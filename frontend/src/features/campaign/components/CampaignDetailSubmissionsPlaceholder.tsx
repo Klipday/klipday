@@ -1,18 +1,20 @@
-import { AlertCircle, CheckCircle2, Clock, ExternalLink, RotateCcw, Video } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { UseMyCampaignSubmissionQuery } from '@/features/submission/hooks';
-import { FormatCompactCount } from '@/features/submission/utils/submission-utils';
-import { cn } from '@/lib/utils';
+import { Navigate } from 'react-router';
 import type { CampaignDetailSubmissionsPlaceholderProps } from '../types';
+import { CampaignDetailAdminSubmissions } from './CampaignDetailAdminSubmissions';
+import { CampaignDetailBrandSubmissions } from './CampaignDetailBrandSubmissions';
+import { CampaignDetailCreatorSubmissions } from './CampaignDetailCreatorSubmissions';
 
 /**
- * Placeholder view rendered when secondary tabs ("Video Kamu" or "Pengajuan Klip")
+ * Orchestrator tab view rendered when secondary tabs ("Video Kamu" or "Pengajuan Klip")
  * are selected in the campaign detail page.
- * For creators with active submissions, displays their submitted video details, review status,
- * and revision action button.
+ * Strictly delegates rendering to role-specific components:
+ * - CREATOR or 'my-videos' tab: CampaignDetailCreatorSubmissions
+ * - BRAND: CampaignDetailBrandSubmissions
+ * - ADMIN: CampaignDetailAdminSubmissions
+ * - Fallback: Redirects back to default campaign detail tab.
  *
- * @param props - Component properties containing userRole, activeTab, and campaignId.
- * @returns The rendered tab placeholder or creator submission card element.
+ * @param props - Component properties containing userRole, activeTab, campaignId, and submit dialog callback.
+ * @returns The rendered role-specific submissions component or redirect navigation.
  */
 export function CampaignDetailSubmissionsPlaceholder({
   userRole,
@@ -21,193 +23,19 @@ export function CampaignDetailSubmissionsPlaceholder({
   onOpenSubmitDialog,
   className,
 }: CampaignDetailSubmissionsPlaceholderProps) {
-  const isCreatorView = activeTab === 'my-videos' || userRole === 'CREATOR';
-
-  const { data: mySubmissionData } = UseMyCampaignSubmissionQuery(
-    isCreatorView && campaignId ? campaignId : undefined,
-  );
-
-  const submission = mySubmissionData?.submission;
-
-  if (isCreatorView && submission) {
-    const status = submission.submissionStatus;
-    const isJoinedOnly = status === 'JOINED';
-    const isPending = status === 'PENDING_REVIEW';
-    const isApproved = status === 'APPROVED';
-    const isRevision = status === 'REVISION_REQUESTED';
-    const isRejected = status === 'REJECTED';
-
-    if (isJoinedOnly) {
-      return (
-        <div
-          className={cn(
-            'flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-muted/10 p-8 text-center space-y-3.5',
-            className,
-          )}>
-          <div className="max-w-md space-y-1">
-            <h3 className="text-sm font-medium text-foreground">
-              Kamu Sudah Tergabung dalam Kampanye Ini
-            </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Buat dan publikasikan videomu sesuai brief, lalu kirimkan tautannya melalui formulir pengajuan.
-            </p>
-          </div>
-          {campaignId && (
-            <Button
-              type="button"
-              size="default"
-              onClick={onOpenSubmitDialog}
-              className="gap-2 font-medium px-5 rounded-xl text-xs">
-              <Video className="size-3.5" />
-              <span>Kirim Video</span>
-            </Button>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div className={cn('rounded-2xl border border-border/60 bg-card p-5 sm:p-6 space-y-5', className)}>
-        {/* Header with status badge */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/40 pb-4">
-          <div>
-            <h3 className="text-sm font-medium text-foreground">Video Pengajuan Kamu</h3>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {isPending && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                <Clock className="size-3" />
-                <span>Menunggu Persetujuan Brand</span>
-              </span>
-            )}
-            {isApproved && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                <CheckCircle2 className="size-3" />
-                <span>Disetujui • Pelacakan Views Aktif</span>
-              </span>
-            )}
-            {isRevision && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30">
-                <AlertCircle className="size-3" />
-                <span>Perlu Revisi</span>
-              </span>
-            )}
-            {isRejected && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-destructive/10 text-destructive border border-destructive/30">
-                <AlertCircle className="size-3" />
-                <span>Ditolak</span>
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Video Card Preview */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
-          <div className="md:col-span-4 flex justify-center">
-            <div className="relative aspect-[3/4] w-full max-w-[180px] overflow-hidden rounded-xl border border-border/60 bg-muted/40 shadow-xs">
-              {submission.thumbnailUrl ? (
-                <img
-                  src={submission.thumbnailUrl}
-                  alt={submission.videoCaption || 'Thumbnail video'}
-                  referrerPolicy="no-referrer"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                  Tanpa thumbnail
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="md:col-span-8 space-y-4">
-            <div className="space-y-1">
-              <span className="text-[11px] font-medium text-muted-foreground">Caption Video:</span>
-              <p className="text-xs text-foreground font-normal leading-relaxed">
-                {submission.videoCaption || 'Tidak ada caption.'}
-              </p>
-            </div>
-
-            {submission.liveVideoUrl && (
-              <div className="space-y-1">
-                <span className="text-[11px] font-medium text-muted-foreground">Tautan Video:</span>
-                <div>
-                  <a
-                    href={submission.liveVideoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline break-all">
-                    <span>{submission.liveVideoUrl}</span>
-                    <ExternalLink className="size-3 shrink-0" />
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {/* Performance metrics flattened */}
-            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/40">
-              <div className="space-y-0.5">
-                <span className="text-[11px] text-muted-foreground">Tayangan Terverifikasi</span>
-                <p className="text-sm font-semibold text-foreground">
-                  {FormatCompactCount(submission.verifiedViews)}
-                </p>
-              </div>
-
-              <div className="space-y-0.5">
-                <span className="text-[11px] text-muted-foreground">Estimasi Pendapatan</span>
-                <p className="text-sm font-semibold text-foreground">
-                  Rp {Number(submission.earnings || 0).toLocaleString('id-ID')}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Revision feedback banner & action */}
-        {isRevision && (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-3">
-            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-medium text-xs">
-              <AlertCircle className="size-3.5" />
-              <span>Catatan Revisi dari Brand:</span>
-            </div>
-            <p className="text-xs text-foreground/80 leading-relaxed">
-              {submission.reviewNote || 'Harap periksa kembali brief kampanye dan perbarui video kamu.'}
-            </p>
-            {campaignId && (
-              <div className="pt-1">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={onOpenSubmitDialog}
-                  className="gap-1.5 font-medium text-xs rounded-lg">
-                  <RotateCcw className="size-3.5" />
-                  <span>Kirim Revisi Video</span>
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
+  if (userRole === 'CREATOR' && activeTab === 'my-videos') {
+    return <CampaignDetailCreatorSubmissions campaignId={campaignId} onOpenSubmitDialog={onOpenSubmitDialog} className={className} />;
   }
 
-  return (
-    <div
-      className={cn(
-        'flex min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-muted/10 p-8 text-center',
-        className,
-      )}>
-      <div className="max-w-md space-y-1">
-        <h3 className="text-sm font-medium text-foreground">
-          {isCreatorView ? 'Progres Video Kamu' : 'Daftar Pengajuan Klip Kreator'}
-        </h3>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          {isCreatorView
-            ? 'Setelah kamu bergabung dan mengunggah video, status review dan estimasi tayangan akan dipantau di sini.'
-            : 'Semua pengajuan video dari para kreator akan masuk ke tab ini untuk proses review dan persetujuan brand.'}
-        </p>
-      </div>
-    </div>
-  );
+  if (userRole === 'BRAND' && activeTab === 'submissions') {
+    return <CampaignDetailBrandSubmissions campaignId={campaignId} className={className} />;
+  }
+
+  if (userRole === 'ADMIN' && activeTab === 'admin-submissions') {
+    return <CampaignDetailAdminSubmissions campaignId={campaignId} className={className} />;
+  }
+
+  // Fallback for unauthorized, mismatched, or unrecognized roles/tabs: redirect back to detail tab
+  const redirectPath = campaignId ? `/campaigns/${campaignId}` : '/campaigns';
+  return <Navigate to={redirectPath} replace />;
 }

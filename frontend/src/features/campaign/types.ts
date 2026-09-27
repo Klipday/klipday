@@ -1,5 +1,10 @@
 import type { ComponentType, ReactNode } from 'react';
 import type { Control } from 'react-hook-form';
+import type {
+  CampaignSubmissionReviewItem,
+  SubmissionSortOption,
+  SubmissionStatus,
+} from '@/features/submission/types';
 import type { MaterialsFormValues } from './schemas';
 
 export interface ApiResponse<T> {
@@ -525,6 +530,54 @@ export interface CampaignDetailSubmissionsPlaceholderProps {
   activeTab: string;
   campaignId?: string;
   onOpenSubmitDialog?: () => void;
+  className?: string;
+}
+
+export interface CampaignDetailCreatorSubmissionsProps {
+  campaignId?: string;
+  onOpenSubmitDialog?: () => void;
+  className?: string;
+}
+
+export interface CampaignDetailBrandSubmissionsProps {
+  campaignId?: string;
+  className?: string;
+}
+
+export interface CampaignDetailAdminSubmissionsProps {
+  campaignId?: string;
+  className?: string;
+}
+
+export interface CampaignDetailBrandSubmissionCardProps {
+  submission: CampaignSubmissionReviewItem;
+  className?: string;
+}
+
+export interface CampaignDetailBrandSubmissionsToolbarProps {
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  status: SubmissionStatus | 'ALL';
+  onStatusChange: (status: SubmissionStatus | 'ALL') => void;
+  sort: SubmissionSortOption;
+  onSortChange: (sort: SubmissionSortOption) => void;
+  onResetFilters: () => void;
+  hasActiveFilters: boolean;
+  className?: string;
+}
+
+export interface CampaignDetailBrandSubmissionsPaginationProps {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+  className?: string;
+}
+
+export interface CampaignDetailBrandSubmissionsEmptyProps {
+  hasFilters: boolean;
+  onResetFilters?: () => void;
   className?: string;
 }
 

@@ -491,6 +491,7 @@ export async function GetCampaignSubmissions(req: Request, res: Response, next: 
           select: {
             id: true,
             fullName: true,
+            avatarUrl: true,
           },
         },
         socialAccount: {

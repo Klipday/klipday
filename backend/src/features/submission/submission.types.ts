@@ -89,6 +89,7 @@ export interface CampaignSubmissionReviewItemDto {
   creator: {
     id: string;
     fullName: string;
+    avatarUrl: string | null;
   };
   socialAccount: {
     id: string;

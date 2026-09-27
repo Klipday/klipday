@@ -1,6 +1,8 @@
 import { apiClient, ExtractApiError } from '@/lib/api-client';
 import type { ApiResponse } from '../campaign/types';
 import type {
+  CampaignSubmissionsPaginatedResponse,
+  CampaignSubmissionsQueryParams,
   CreatorSocialAccount,
   FinalSubmitVideoInput,
   MySubmissionData,
@@ -195,6 +197,30 @@ export async function ValidateTikTokVideoUrl(
     return result;
   } catch (error) {
     const apiError = ExtractApiError(error, 'Tautan video TikTok tidak valid atau tidak cocok.');
+    throw apiError;
+  }
+}
+
+/**
+ * Retrieves paginated, filtered, and sorted campaign submissions for brand/admin review.
+ *
+ * @param campaignId - Target campaign UUID.
+ * @param params - Optional query filter and pagination parameters.
+ * @returns Paginated campaign submissions review data.
+ */
+export async function GetCampaignSubmissions(
+  campaignId: string,
+  params?: CampaignSubmissionsQueryParams,
+): Promise<CampaignSubmissionsPaginatedResponse> {
+  try {
+    const response = await apiClient.get<ApiResponse<CampaignSubmissionsPaginatedResponse>>(
+      `/campaigns/${campaignId}/submissions`,
+      { params },
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal memuat daftar pengajuan klip.');
     throw apiError;
   }
 }

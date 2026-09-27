@@ -58,7 +58,7 @@ export function FormatCampaignSubmissionReviewItem(row: {
   submittedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-  creator: { id: string; fullName: string };
+  creator: { id: string; fullName: string; avatarUrl: string | null };
   socialAccount: { id: string; username: string; avatarUrl: string | null; followersCount: number } | null;
 }): CampaignSubmissionReviewItemDto {
   const earningsString = row.earnings.toString();

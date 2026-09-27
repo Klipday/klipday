@@ -49,9 +49,7 @@ function CampaignDetailPage({ className }: CampaignDetailPageProps) {
   const { data: campaign, isLoading: isCampaignLoading, isError, error, refetch } = UseCampaignQuery(id);
 
   const isCreator = userProfile?.role === 'CREATOR';
-  const { isLoading: isSubmissionLoading } = UseMyCampaignSubmissionQuery(
-    isCreator && id ? id : undefined,
-  );
+  const { isLoading: isSubmissionLoading } = UseMyCampaignSubmissionQuery(isCreator && id ? id : undefined);
 
   const isPageLoading = isCampaignLoading || isProfileLoading || (isCreator && isSubmissionLoading);
 
@@ -71,40 +69,25 @@ function CampaignDetailPage({ className }: CampaignDetailPageProps) {
   }
 
   // Redirection guard: draft and revision campaigns must continue their creation wizard flow for owning brands
-  if (
-    userProfile?.role === 'BRAND' &&
-    (campaign.campaignStatus === 'DRAFT' || campaign.campaignStatus === 'REVISION')
-  ) {
+  if (userProfile?.role === 'BRAND' && (campaign.campaignStatus === 'DRAFT' || campaign.campaignStatus === 'REVISION')) {
     const wizardStepPath = ResolveCampaignWizardStepPath(campaign);
     return <Navigate to={wizardStepPath} replace />;
   }
 
   // Guard for creator: non-active and non-finished campaigns cannot be accessed
-  if (
-    userProfile?.role === 'CREATOR' &&
-    campaign.campaignStatus !== 'ACTIVE' &&
-    campaign.campaignStatus !== 'FINISHED'
-  ) {
+  if (userProfile?.role === 'CREATOR' && campaign.campaignStatus !== 'ACTIVE' && campaign.campaignStatus !== 'FINISHED') {
     return <Navigate to="/dashboard/campaigns" replace />;
   }
 
   return (
     <div className={cn('w-full pb-12', className)}>
       {/* Hero Banner Header - Full Width with Backdrop and Gradient Fade */}
-      <CampaignDetailHeader
-        campaign={campaign}
-        userRole={userProfile?.role}
-        onOpenSubmitDialog={() => setIsSubmitDialogOpen(true)}
-      />
+      <CampaignDetailHeader campaign={campaign} userRole={userProfile?.role} onOpenSubmitDialog={() => setIsSubmitDialogOpen(true)} />
 
       {/* Main Campaign Content Container spanning full available space */}
       <div className="w-full space-y-6 pt-2 sm:pt-4">
         {/* Dynamic Role-Aware Tabs */}
-        <CampaignDetailTabs
-          activeTab={activeTab}
-          onTabChange={HandleTabChange}
-          userRole={userProfile?.role}
-        />
+        <CampaignDetailTabs activeTab={activeTab} onTabChange={HandleTabChange} userRole={userProfile?.role} />
 
         {/* Active Tab View */}
         {activeTab === 'detail' ? (
@@ -112,10 +95,7 @@ function CampaignDetailPage({ className }: CampaignDetailPageProps) {
             {/* Main Left Column (8 cols): About, Collapsible Brief & Materials Sections */}
             <div className="lg:col-span-8 space-y-6 min-w-0">
               <CampaignDetailAbout description={campaign.description} />
-              <CampaignDetailBriefSections
-                brief={campaign.brief}
-                materials={campaign.materials}
-              />
+              <CampaignDetailBriefSections brief={campaign.brief} materials={campaign.materials} />
             </div>
 
             {/* Sticky Right Sidebar (4 cols): Budget burn, 2x2 rate grid, schedule */}
@@ -134,11 +114,7 @@ function CampaignDetailPage({ className }: CampaignDetailPageProps) {
       </div>
 
       {/* Modern 2-Column Submission Modal Dialog */}
-      <SubmissionDialog
-        campaign={campaign}
-        open={isSubmitDialogOpen}
-        onOpenChange={setIsSubmitDialogOpen}
-      />
+      {isCreator && <SubmissionDialog campaign={campaign} open={isSubmitDialogOpen} onOpenChange={setIsSubmitDialogOpen} />}
     </div>
   );
 }

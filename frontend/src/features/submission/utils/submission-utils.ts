@@ -71,3 +71,28 @@ export function FormatCompactCount(count?: number | null): string {
 
   return count.toLocaleString('id-ID');
 }
+
+/**
+ * Formats a submission timestamp into Indonesian localized date string.
+ * Example output: "26 Sep 2026, 14:30".
+ *
+ * @param dateStr - ISO date string representation.
+ * @returns Formatted date string or fallback if invalid.
+ */
+export function FormatSubmissionDate(dateStr?: string | null): string {
+  if (!dateStr) {
+    return 'Belum tercatat';
+  }
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) {
+    return 'Tanggal invalid';
+  }
+  const formatted = new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+  return formatted;
+}

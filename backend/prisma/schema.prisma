@@ -166,6 +166,9 @@ model Creator {
   // fullName is the name of the creator, and is mapped to the full_name column in the database.
   fullName String @map("full_name")
 
+  // avatarUrl is the profile picture of the creator, and is optional.
+  avatarUrl String? @map("avatar_url")
+
   // status is used to determine if the creator's account is active or deleted.
   status Status @default(ACTIVE)
 

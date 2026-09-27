@@ -1,10 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import {
+  GetCampaignSubmissions,
   GetConnectedSocialAccount,
   GetMyCampaignSubmission,
   GetRecentTikTokVideos,
 } from '../api';
-import type { CreatorSocialAccount, MySubmissionData, SocialVideoItem } from '../types';
+import type {
+  CampaignSubmissionsPaginatedResponse,
+  CampaignSubmissionsQueryParams,
+  CreatorSocialAccount,
+  MySubmissionData,
+  SocialVideoItem,
+} from '../types';
 
 /**
  * Query hook for retrieving current creator's submission progress and connected TikTok handle.
@@ -54,5 +61,29 @@ export function UseRecentTikTokVideosQuery(isEnabled = true, username?: string) 
     enabled: Boolean(isEnabled && username),
     staleTime: 1000 * 30, // 30 seconds
     retry: 2,
+  });
+}
+
+/**
+ * Query hook for retrieving paginated and filtered submissions for a campaign (Brand/Admin review queue).
+ *
+ * @param campaignId - Target campaign UUID.
+ * @param params - Query parameters for pagination, status filter, search, and sorting.
+ * @returns TanStack Query result containing submission review items and pagination metadata.
+ */
+export function UseCampaignSubmissionsQuery(
+  campaignId?: string,
+  params?: CampaignSubmissionsQueryParams,
+) {
+  return useQuery<CampaignSubmissionsPaginatedResponse>({
+    queryKey: ['campaign-submissions', campaignId, params],
+    queryFn: () => {
+      if (!campaignId) {
+        throw new Error('Campaign ID is required.');
+      }
+      return GetCampaignSubmissions(campaignId, params);
+    },
+    enabled: Boolean(campaignId),
+    staleTime: 1000 * 30, // 30 seconds
   });
 }

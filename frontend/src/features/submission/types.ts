@@ -1,13 +1,6 @@
 import type { Campaign } from '../campaign/types';
 
-export type SubmissionStatus =
-  | 'JOINED'
-  | 'PENDING_REVIEW'
-  | 'REVISION_REQUESTED'
-  | 'REJECTED'
-  | 'APPROVED'
-  | 'POSTED'
-  | 'VERIFIED';
+export type SubmissionStatus = 'JOINED' | 'PENDING_REVIEW' | 'REVISION_REQUESTED' | 'REJECTED' | 'APPROVED' | 'POSTED' | 'VERIFIED';
 
 export type SocialPlatform = 'TIKTOK' | 'INSTAGRAM' | 'YOUTUBE';
 
@@ -176,13 +169,7 @@ export interface SubmissionDialogStepperProps {
   className?: string;
 }
 
-export type SubmissionBriefSection =
-  | 'tentang'
-  | 'wajib'
-  | 'narasi'
-  | 'caption'
-  | 'aturan'
-  | 'materi';
+export type SubmissionBriefSection = 'tentang' | 'wajib' | 'narasi' | 'caption' | 'aturan' | 'materi';
 
 export type BriefTabFilter = SubmissionBriefSection;
 
@@ -271,3 +258,52 @@ export interface SubmissionExitConfirmDialogProps {
   className?: string;
 }
 
+export type SubmissionSortOption = 'latest' | 'oldest' | 'views_desc' | 'views_asc';
+
+export interface CampaignSubmissionsQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: SubmissionStatus | 'ALL';
+  sort?: SubmissionSortOption;
+}
+
+export interface CampaignSubmissionReviewItem {
+  id: string;
+  campaignId: string;
+  creatorId: string;
+  draftVideoUrl: string | null;
+  liveVideoUrl: string | null;
+  thumbnailUrl: string | null;
+  videoCaption: string | null;
+  submissionStatus: SubmissionStatus;
+  reviewNote: string | null;
+  verifiedViews: number;
+  earnings: string;
+  submittedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  creator: {
+    id: string;
+    fullName: string;
+    avatarUrl: string | null;
+  };
+  socialAccount: {
+    id: string;
+    username: string;
+    avatarUrl: string | null;
+    followersCount: number;
+  } | null;
+}
+
+export interface SubmissionPaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface CampaignSubmissionsPaginatedResponse {
+  items: CampaignSubmissionReviewItem[];
+  pagination: SubmissionPaginationMeta;
+}
