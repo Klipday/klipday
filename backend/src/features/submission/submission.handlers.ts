@@ -2,13 +2,8 @@ import type { NextFunction, Request, Response } from 'express';
 import { CampaignStatus, Platform, Role, Status, SubmissionStatus } from '../../generated/prisma/enums.js';
 import { prisma } from '../../utils/prisma.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
-import {
-  BUDGET_DECIMAL_PLACES,
-  CPM_VIEW_DIVISOR,
-  DEFAULT_LIMIT,
-  DEFAULT_PAGE,
-  SUBMISSION_MESSAGES,
-} from './submission.constants.js';
+import { IsSupabaseStorageUrl, PersistVideoThumbnailToStorage } from '../../services/supabase.js';
+import { BUDGET_DECIMAL_PLACES, CPM_VIEW_DIVISOR, DEFAULT_LIMIT, DEFAULT_PAGE, SUBMISSION_MESSAGES } from './submission.constants.js';
 import { FinalSubmitVideoSchema, SaveDraftSubmissionSchema, SubmissionQuerySchema } from './submission.validators.js';
 import type { CampaignSubmissionsPaginatedData, MySubmissionResponseData, SubmissionDetailDto } from './submission.types.js';
 import {
@@ -283,11 +278,19 @@ export async function SaveDraftSubmission(req: Request, res: Response, next: Nex
       return;
     }
 
+    let resolvedThumbnailUrl = validation.data.thumbnailUrl;
+    if (resolvedThumbnailUrl && !IsSupabaseStorageUrl(resolvedThumbnailUrl)) {
+      const storedThumbnail = await PersistVideoThumbnailToStorage(resolvedThumbnailUrl, `submission-${existingSubmission.id}`);
+      if (storedThumbnail) {
+        resolvedThumbnailUrl = storedThumbnail;
+      }
+    }
+
     const updateDraftPayload = {
       where: { id: existingSubmission.id },
       data: {
         liveVideoUrl: validation.data.liveVideoUrl,
-        thumbnailUrl: validation.data.thumbnailUrl,
+        thumbnailUrl: resolvedThumbnailUrl,
         videoCaption: validation.data.videoCaption,
         socialAccountId: validation.data.socialAccountId,
       },
@@ -395,11 +398,19 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
       return;
     }
 
+    let resolvedThumbnailUrl = validation.data.thumbnailUrl;
+    if (resolvedThumbnailUrl && !IsSupabaseStorageUrl(resolvedThumbnailUrl)) {
+      const storedThumbnail = await PersistVideoThumbnailToStorage(resolvedThumbnailUrl, `submission-${existingSubmission.id}`);
+      if (storedThumbnail) {
+        resolvedThumbnailUrl = storedThumbnail;
+      }
+    }
+
     const finalizeSubmissionPayload = {
       where: { id: existingSubmission.id },
       data: {
         liveVideoUrl: validation.data.liveVideoUrl,
-        thumbnailUrl: validation.data.thumbnailUrl,
+        thumbnailUrl: resolvedThumbnailUrl,
         videoCaption: validation.data.videoCaption,
         socialAccountId: validation.data.socialAccountId,
         submissionStatus: SubmissionStatus.PENDING_REVIEW,
@@ -505,10 +516,7 @@ export async function GetCampaignSubmissions(req: Request, res: Response, next: 
       },
     };
 
-    const [total, submissions] = await Promise.all([
-      prisma.submission.count(countQuery),
-      prisma.submission.findMany(findSubmissionsQuery),
-    ]);
+    const [total, submissions] = await Promise.all([prisma.submission.count(countQuery), prisma.submission.findMany(findSubmissionsQuery)]);
 
     const items = submissions.map(FormatCampaignSubmissionReviewItem);
     const totalPages = Math.ceil(total / limit) || 1;

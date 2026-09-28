@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock, ExternalLink, RotateCcw, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UseMyCampaignSubmissionQuery } from '@/features/submission/hooks';
@@ -19,6 +20,7 @@ export function CampaignDetailCreatorSubmissions({
   className,
 }: CampaignDetailCreatorSubmissionsProps) {
   const { data: mySubmissionData } = UseMyCampaignSubmissionQuery(campaignId);
+  const [hasThumbnailError, setHasThumbnailError] = useState(false);
   const submission = mySubmissionData?.submission;
 
   if (submission) {
@@ -98,16 +100,18 @@ export function CampaignDetailCreatorSubmissions({
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
           <div className="md:col-span-4 flex justify-center">
             <div className="relative aspect-[3/4] w-full max-w-[180px] overflow-hidden rounded-xl border border-border/60 bg-muted/40 shadow-xs">
-              {submission.thumbnailUrl ? (
+              {submission.thumbnailUrl && !hasThumbnailError ? (
                 <img
                   src={submission.thumbnailUrl}
                   alt={submission.videoCaption || 'Thumbnail video'}
                   referrerPolicy="no-referrer"
                   className="h-full w-full object-cover"
+                  onError={() => setHasThumbnailError(true)}
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                  Tanpa thumbnail
+                <div className="flex flex-col h-full w-full items-center justify-center gap-1.5 p-3 text-center text-xs text-muted-foreground">
+                  <Video className="size-5 text-muted-foreground/60" />
+                  <span className="text-[11px]">Tanpa thumbnail</span>
                 </div>
               )}
             </div>

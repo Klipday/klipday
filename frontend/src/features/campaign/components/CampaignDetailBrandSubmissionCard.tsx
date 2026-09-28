@@ -1,4 +1,5 @@
-import { AlertCircle, CheckCircle2, Clock, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { AlertCircle, CheckCircle2, Clock, ExternalLink, Video } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { FormatCompactCount, FormatSubmissionDate } from '@/features/submission/utils/submission-utils';
 import { cn } from '@/lib/utils';
@@ -13,6 +14,7 @@ import type { CampaignDetailBrandSubmissionCardProps } from '../types';
  * @returns The rendered brand submission card element.
  */
 export function CampaignDetailBrandSubmissionCard({ submission, className }: CampaignDetailBrandSubmissionCardProps) {
+  const [hasThumbnailError, setHasThumbnailError] = useState(false);
   const status = submission.submissionStatus;
   const isPending = status === 'PENDING_REVIEW';
   const isApproved = status === 'APPROVED';
@@ -91,15 +93,19 @@ export function CampaignDetailBrandSubmissionCard({ submission, className }: Cam
         {/* Thumbnail Preview */}
         <div className="md:col-span-3 flex justify-center md:justify-start">
           <div className="relative aspect-[3/4] w-full max-w-[150px] overflow-hidden rounded-xl border border-border/60 bg-muted/40 shadow-2xs">
-            {submission.thumbnailUrl ? (
+            {submission.thumbnailUrl && !hasThumbnailError ? (
               <img
                 src={submission.thumbnailUrl}
                 alt={submission.videoCaption || 'Thumbnail video'}
                 referrerPolicy="no-referrer"
                 className="h-full w-full object-cover"
+                onError={() => setHasThumbnailError(true)}
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">Tanpa thumbnail</div>
+              <div className="flex flex-col h-full w-full items-center justify-center gap-1.5 p-3 text-center text-xs text-muted-foreground">
+                <Video className="size-5 text-muted-foreground/60" />
+                <span className="text-[11px]">Tanpa thumbnail</span>
+              </div>
             )}
           </div>
         </div>

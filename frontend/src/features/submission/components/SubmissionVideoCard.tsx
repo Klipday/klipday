@@ -1,4 +1,5 @@
-import { Check, Eye } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Eye, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SubmissionVideoCardProps } from '../types';
 import { FormatCompactCount } from '../utils/submission-utils';
@@ -15,6 +16,8 @@ export function SubmissionVideoCard({
   onSelect,
   className,
 }: SubmissionVideoCardProps) {
+  const [hasError, setHasError] = useState(false);
+
   const HandleClick = () => {
     if (isSelected) {
       onSelect(null);
@@ -45,17 +48,19 @@ export function SubmissionVideoCard({
       )}>
       {/* Thumbnail Aspect 3/4 Container */}
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted/40">
-        {video.thumbnailUrl ? (
+        {video.thumbnailUrl && !hasError ? (
           <img
             src={video.thumbnailUrl}
             alt={video.caption || 'Thumbnail video'}
             referrerPolicy="no-referrer"
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
+            onError={() => setHasError(true)}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-muted/50 text-muted-foreground text-xs">
-            Tidak ada pratinjau
+          <div className="flex flex-col h-full w-full items-center justify-center gap-1 bg-muted/50 text-muted-foreground text-xs p-2 text-center">
+            <Video className="size-5 text-muted-foreground/60" />
+            <span className="text-[10px]">Tidak ada pratinjau</span>
           </div>
         )}
 

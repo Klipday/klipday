@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, ChevronDown, ChevronUp, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, ChevronUp, Link as LinkIcon, Loader2, Video } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ export function SubmissionFormStep3VideoPicker({
   className,
 }: SubmissionFormStep3VideoPickerProps) {
   const navigate = useNavigate();
+  const [hasSelectedThumbnailError, setHasSelectedThumbnailError] = useState(false);
 
   const { data: recentVideos, isLoading: isLoadingVideos } = UseRecentTikTokVideosQuery(
     Boolean(connectedAccount?.isVerified),
@@ -124,16 +125,18 @@ export function SubmissionFormStep3VideoPicker({
       {selectedVideo && (
         <div className="rounded-xl border border-border/70 bg-muted/20 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            {selectedVideo.thumbnailUrl ? (
+            {selectedVideo.thumbnailUrl && !hasSelectedThumbnailError ? (
               <img
                 src={selectedVideo.thumbnailUrl}
                 alt="Thumbnail terpilih"
                 referrerPolicy="no-referrer"
                 className="size-14 rounded-lg object-cover border border-border/60 shrink-0"
+                onError={() => setHasSelectedThumbnailError(true)}
               />
             ) : (
-              <div className="size-14 rounded-lg bg-muted flex items-center justify-center text-[10px] text-muted-foreground shrink-0">
-                Video
+              <div className="size-14 rounded-lg bg-muted/60 border border-border/60 flex flex-col items-center justify-center text-[10px] text-muted-foreground shrink-0 gap-0.5">
+                <Video className="size-4 text-muted-foreground/60" />
+                <span className="text-[9px]">Video</span>
               </div>
             )}
             <div className="min-w-0 space-y-0.5">

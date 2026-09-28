@@ -1,4 +1,5 @@
-import { ExternalLink, Loader2, SendHorizontal } from 'lucide-react';
+import { useState } from 'react';
+import { ExternalLink, Loader2, SendHorizontal, Video } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ export function SubmissionFormStep4Overview({
   connectedAccount,
   className,
 }: SubmissionFormStep4OverviewProps) {
+  const [hasThumbnailError, setHasThumbnailError] = useState(false);
   const navigate = useNavigate();
   const finalSubmitMutation = UseFinalSubmitVideoMutation(campaign.id);
 
@@ -71,16 +73,18 @@ export function SubmissionFormStep4Overview({
         {/* Thumbnail preview */}
         <div className="sm:col-span-4 flex justify-center sm:justify-start">
           <div className="relative aspect-[3/4] w-full max-w-[180px] overflow-hidden rounded-xl border border-border/60 bg-muted/30 shadow-xs">
-            {thumbnailUrl ? (
+            {thumbnailUrl && !hasThumbnailError ? (
               <img
                 src={thumbnailUrl}
                 alt={videoCaption || 'Thumbnail video'}
                 referrerPolicy="no-referrer"
                 className="h-full w-full object-cover"
+                onError={() => setHasThumbnailError(true)}
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                Tanpa pratinjau
+              <div className="flex flex-col h-full w-full items-center justify-center gap-1.5 p-3 text-center text-xs text-muted-foreground">
+                <Video className="size-5 text-muted-foreground/60" />
+                <span className="text-[11px]">Tanpa pratinjau</span>
               </div>
             )}
           </div>

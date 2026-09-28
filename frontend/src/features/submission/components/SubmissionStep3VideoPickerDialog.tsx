@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, Check, Loader2, RefreshCw } from 'lucide-react';
+import { AlertCircle, Check, Loader2, RefreshCw, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +43,7 @@ export function SubmissionStep3VideoPickerDialog({
 
   const [activeTab, setActiveTab] = useState<VideoPickerTab>('GALLERY');
   const [manualUrlInput, setManualUrlInput] = useState('');
+  const [hasManualThumbnailError, setHasManualThumbnailError] = useState(false);
 
   const HandleValidateManualUrl = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,16 +253,18 @@ export function SubmissionStep3VideoPickerDialog({
           {selectedVideo ? (
             <div className="rounded-xl border border-border/80 bg-muted/20 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
               <div className="flex items-center gap-3.5 min-w-0">
-                {selectedVideo.thumbnailUrl ? (
+                {selectedVideo.thumbnailUrl && !hasManualThumbnailError ? (
                   <img
                     src={selectedVideo.thumbnailUrl}
                     alt="Thumbnail terpilih"
                     referrerPolicy="no-referrer"
                     className="size-16 rounded-lg object-cover border border-border/60 shrink-0"
+                    onError={() => setHasManualThumbnailError(true)}
                   />
                 ) : (
-                  <div className="size-16 rounded-lg bg-muted flex items-center justify-center text-xs text-muted-foreground shrink-0">
-                    Video
+                  <div className="size-16 rounded-lg bg-muted/60 border border-border/60 flex flex-col items-center justify-center text-xs text-muted-foreground shrink-0 gap-1">
+                    <Video className="size-5 text-muted-foreground/60" />
+                    <span className="text-[10px]">Video</span>
                   </div>
                 )}
                 <div className="min-w-0 space-y-1">

@@ -1,4 +1,5 @@
-import { ExternalLink, Info } from 'lucide-react';
+import { useState } from 'react';
+import { ExternalLink, Info, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SubmissionStep4OverviewDialogProps } from '../types';
 
@@ -16,6 +17,7 @@ export function SubmissionStep4OverviewDialog({
   connectedAccount,
   className,
 }: SubmissionStep4OverviewDialogProps) {
+  const [hasThumbnailError, setHasThumbnailError] = useState(false);
   const liveVideoUrl = selectedVideo?.url;
   const thumbnailUrl = selectedVideo?.thumbnailUrl;
   const videoCaption = selectedVideo?.caption;
@@ -59,16 +61,18 @@ export function SubmissionStep4OverviewDialog({
           {/* Thumbnail preview */}
           <div className="sm:col-span-4 flex justify-center sm:justify-start">
             <div className="relative aspect-3/4 w-full max-w-[150px] overflow-hidden rounded-xl border border-border/60 bg-muted/30 shadow-xs">
-              {thumbnailUrl ? (
+              {thumbnailUrl && !hasThumbnailError ? (
                 <img
                   src={thumbnailUrl}
                   alt={videoCaption || 'Thumbnail video'}
                   referrerPolicy="no-referrer"
                   className="h-full w-full object-cover"
+                  onError={() => setHasThumbnailError(true)}
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                  Tanpa pratinjau
+                <div className="flex flex-col h-full w-full items-center justify-center gap-1.5 p-3 text-center text-xs text-muted-foreground">
+                  <Video className="size-5 text-muted-foreground/60" />
+                  <span className="text-[11px]">Tanpa pratinjau</span>
                 </div>
               )}
             </div>
