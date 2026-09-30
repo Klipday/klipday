@@ -18,3 +18,4 @@ export * from './SubmissionDialogFooter';
 export * from './SocialAccountConnectDialog';
 export * from './SocialPlatformIcons';
 export * from './SubmissionExitConfirmDialog';
+export * from './SubmissionReviewDialog';

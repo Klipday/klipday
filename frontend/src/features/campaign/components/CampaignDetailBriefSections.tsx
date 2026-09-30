@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import {
   Check,
-  Copy,
   ExternalLink,
   FileSpreadsheet,
   Image as ImageIcon,
@@ -9,7 +7,6 @@ import {
   Video,
   X,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
   Accordion,
@@ -19,7 +16,6 @@ import {
 } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import type { CampaignDetailBriefSectionsProps } from '../types';
-import { CopyTextToClipboard } from '../utils';
 
 /**
  * Resolves the functional icon representing the specific asset type.
@@ -48,7 +44,7 @@ function ResolveMaterialIcon(type: string) {
  * Implements the accordion dropdown layout:
  * 1. "Wajib ada di video kamu" (CTA, Key Message, Purpose, Mood, Social rules, Dos & Don'ts)
  * 2. "Narasi" (Brand-provided narration scripts)
- * 3. "Hashtag" (Interactive one-click copyable hashtags)
+ * 3. "Hashtag" (Campaign hashtags)
  * 4. "Rekomendasi Hook" (Opening hook directives and creator guidelines)
  * 5. "Materi Clipping" (Downloadable video footage, raw images, and asset links)
  *
@@ -60,20 +56,11 @@ export function CampaignDetailBriefSections({
   materials,
   className,
 }: CampaignDetailBriefSectionsProps) {
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-
   const activeMaterials = materials?.filter((item) => item.status !== 'DELETED') ?? [];
   const materialsCount = activeMaterials.length;
 
   const hashtags = brief?.hashtags ?? [];
-  const hashtagsString = hashtags.length > 0
-    ? hashtags.map((tag) => (tag.startsWith('#') ? tag : `#${tag}`)).join(' ')
-    : '';
-
   const mentionTags = brief?.mentionTags ?? [];
-  const mentionsString = mentionTags.length > 0
-    ? mentionTags.map((tag) => (tag.startsWith('@') ? tag : `@${tag}`)).join(' ')
-    : '';
 
   const hasNarration = Boolean(brief?.narration?.trim());
   const hasGuidelines = Boolean(brief?.guidelines?.trim());
@@ -89,24 +76,6 @@ export function CampaignDetailBriefSections({
       (brief?.mentionTags && brief.mentionTags.length > 0) ||
       hasDosOrDonts
   );
-
-  /**
-   * Copies provided text to clipboard and provides toast + local feedback.
-   *
-   * @param text - The text to copy.
-   * @param key - Unique key tracking the active copied feedback state.
-   * @param successMessage - Localized feedback message on success.
-   */
-  async function HandleCopy(text: string, key: string, successMessage: string) {
-    const success = await CopyTextToClipboard(text);
-    if (success) {
-      setCopiedKey(key);
-      toast.success(successMessage);
-      setTimeout(() => setCopiedKey(null), 2000);
-    } else {
-      toast.error('Gagal menyalin teks.');
-    }
-  }
 
   return (
     <section className={cn('space-y-3 pt-2', className)}>
@@ -179,29 +148,8 @@ export function CampaignDetailBriefSections({
                 {/* Required Caption */}
                 {brief.requiredCaption && (
                   <div className="rounded-xl border border-border/40 bg-muted/20 p-3.5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-foreground">Caption Wajib</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          void HandleCopy(
-                            brief.requiredCaption || '',
-                            'caption',
-                            'Caption berhasil disalin.'
-                          )
-                        }
-                        className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground px-2">
-                        {copiedKey === 'caption' ? (
-                          <Check className="size-3 text-emerald-500" />
-                        ) : (
-                          <Copy className="size-3" />
-                        )}
-                        <span>{copiedKey === 'caption' ? 'Tersalin' : 'Salin Caption'}</span>
-                      </Button>
-                    </div>
-                    <p className="rounded-lg border border-border/40 bg-background/80 p-3 text-xs text-foreground font-mono leading-relaxed whitespace-pre-wrap">
+                    <span className="text-xs font-semibold text-foreground block">Caption Wajib</span>
+                    <p className="rounded-lg border border-border/40 bg-background/80 p-3 text-xs text-foreground font-mono leading-relaxed whitespace-pre-wrap select-text">
                       {brief.requiredCaption}
                     </p>
                   </div>
@@ -210,44 +158,18 @@ export function CampaignDetailBriefSections({
                 {/* Mention Tags */}
                 {mentionTags.length > 0 && (
                   <div className="rounded-xl border border-border/40 bg-muted/20 p-3.5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-foreground">
-                        Akun Wajib Mention
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          void HandleCopy(
-                            mentionsString,
-                            'mentions',
-                            'Semua mention berhasil disalin.'
-                          )
-                        }
-                        className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground px-2">
-                        {copiedKey === 'mentions' ? (
-                          <Check className="size-3 text-emerald-500" />
-                        ) : (
-                          <Copy className="size-3" />
-                        )}
-                        <span>{copiedKey === 'mentions' ? 'Tersalin' : 'Salin Mention'}</span>
-                      </Button>
-                    </div>
+                    <span className="text-xs font-semibold text-foreground block">
+                      Akun Wajib Mention
+                    </span>
                     <div className="flex flex-wrap gap-1.5">
                       {mentionTags.map((account) => {
                         const cleanAccount = account.startsWith('@') ? account : `@${account}`;
                         return (
-                          <button
+                          <span
                             key={account}
-                            type="button"
-                            onClick={() =>
-                              void HandleCopy(cleanAccount, account, `Mention ${cleanAccount} disalin.`)
-                            }
-                            title="Klik untuk menyalin"
-                            className="rounded-md border border-border/60 bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer inline-flex items-center gap-1">
-                            <span>{cleanAccount}</span>
-                          </button>
+                            className="rounded-md border border-border/60 bg-card px-2.5 py-1 text-xs font-medium text-foreground select-text inline-flex items-center">
+                            {cleanAccount}
+                          </span>
                         );
                       })}
                     </div>
@@ -322,32 +244,11 @@ export function CampaignDetailBriefSections({
           <AccordionContent className="px-4 pb-5 pt-1 sm:px-5 sm:pb-6 border-t border-border/40 space-y-3">
             {hasNarration ? (
               <div className="space-y-2 pt-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    Skrip narasi yang disediakan brand:
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      void HandleCopy(
-                        brief?.narration || '',
-                        'narration',
-                        'Skrip narasi berhasil disalin.'
-                      )
-                    }
-                    className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground px-2">
-                    {copiedKey === 'narration' ? (
-                      <Check className="size-3 text-emerald-500" />
-                    ) : (
-                      <Copy className="size-3" />
-                    )}
-                    <span>{copiedKey === 'narration' ? 'Tersalin' : 'Salin Narasi'}</span>
-                  </Button>
-                </div>
+                <span className="text-xs text-muted-foreground block">
+                  Skrip narasi yang disediakan brand:
+                </span>
                 <div className="rounded-xl border border-border/40 bg-muted/20 p-4">
-                  <p className="text-xs sm:text-sm text-foreground whitespace-pre-line leading-relaxed">
+                  <p className="text-xs sm:text-sm text-foreground whitespace-pre-line leading-relaxed select-text">
                     {brief?.narration}
                   </p>
                 </div>
@@ -374,44 +275,18 @@ export function CampaignDetailBriefSections({
           <AccordionContent className="px-4 pb-5 pt-1 sm:px-5 sm:pb-6 border-t border-border/40 space-y-3">
             {hashtags.length > 0 ? (
               <div className="space-y-3 pt-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    Klik tagar untuk menyalin satuan atau gunakan tombol salin semua:
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      void HandleCopy(
-                        hashtagsString,
-                        'hashtags',
-                        'Semua tagar berhasil disalin.'
-                      )
-                    }
-                    className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground px-2">
-                    {copiedKey === 'hashtags' ? (
-                      <Check className="size-3 text-emerald-500" />
-                    ) : (
-                      <Copy className="size-3" />
-                    )}
-                    <span>{copiedKey === 'hashtags' ? 'Tersalin' : 'Salin Semua Tagar'}</span>
-                  </Button>
-                </div>
+                <span className="text-xs text-muted-foreground block">
+                  Tagar yang harus disertakan dalam video:
+                </span>
                 <div className="flex flex-wrap gap-2">
                   {hashtags.map((tag) => {
                     const cleanTag = tag.startsWith('#') ? tag : `#${tag}`;
                     return (
-                      <button
+                      <span
                         key={tag}
-                        type="button"
-                        onClick={() =>
-                          void HandleCopy(cleanTag, tag, `Tagar ${cleanTag} disalin.`)
-                        }
-                        title="Klik untuk menyalin tagar"
-                        className="rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/60 transition-colors cursor-pointer inline-flex items-center gap-1.5">
-                        <span>{cleanTag}</span>
-                      </button>
+                        className="rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 text-xs font-medium text-foreground select-text inline-flex items-center">
+                        {cleanTag}
+                      </span>
                     );
                   })}
                 </div>

@@ -307,3 +307,21 @@ export interface CampaignSubmissionsPaginatedResponse {
   items: CampaignSubmissionReviewItem[];
   pagination: SubmissionPaginationMeta;
 }
+
+export type SubmissionReviewDecision = 'ACCEPT' | 'REVISION' | 'REJECT';
+
+export interface RejectSubmissionInput {
+  submissionId: string;
+  reviewNote?: string;
+}
+
+export interface RequestRevisionInput {
+  submissionId: string;
+  reviewNote: string;
+}
+
+export interface SubmissionReviewDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  submission: CampaignSubmissionReviewItem;
+}

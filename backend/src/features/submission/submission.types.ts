@@ -16,6 +16,14 @@ export interface FinalSubmitVideoBody {
   socialAccountId: string;
 }
 
+export interface RejectSubmissionBody {
+  reviewNote?: string;
+}
+
+export interface RequestRevisionBody {
+  reviewNote: string;
+}
+
 export interface SubmissionDetailDto {
   id: string;
   campaignId: string;

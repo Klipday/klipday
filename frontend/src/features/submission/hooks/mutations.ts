@@ -1,15 +1,21 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  AcceptSubmission,
   FinalSubmitVideo,
   JoinCampaign,
+  RejectSubmission,
+  RequestSubmissionRevision,
   RequestTikTokVerificationCode,
   SaveDraftSubmission,
   ValidateTikTokVideoUrl,
   VerifyTikTokBio,
 } from '../api';
 import type {
+  CampaignSubmissionReviewItem,
   CreatorSocialAccount,
   FinalSubmitVideoInput,
+  RejectSubmissionInput,
+  RequestRevisionInput,
   RequestVerificationCodeInput,
   RequestVerificationCodeResponse,
   SaveDraftSubmissionInput,
@@ -108,5 +114,58 @@ export function UseVerifyTikTokBioMutation() {
 export function UseValidateTikTokVideoUrlMutation() {
   return useMutation<SocialVideoItem, Error, ValidateVideoUrlInput>({
     mutationFn: (input: ValidateVideoUrlInput) => ValidateTikTokVideoUrl(input),
+  });
+}
+
+/**
+ * Mutation hook for approving a video submission.
+ *
+ * @returns TanStack mutation object for accepting submission.
+ */
+export function UseAcceptSubmissionMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<CampaignSubmissionReviewItem, Error, string>({
+    mutationFn: (submissionId: string) => AcceptSubmission(submissionId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['campaign-submissions', data.campaignId] });
+      queryClient.invalidateQueries({ queryKey: ['campaign', data.campaignId] });
+    },
+  });
+}
+
+/**
+ * Mutation hook for rejecting a video submission with an optional review note.
+ *
+ * @returns TanStack mutation object for rejecting submission.
+ */
+export function UseRejectSubmissionMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<CampaignSubmissionReviewItem, Error, RejectSubmissionInput>({
+    mutationFn: ({ submissionId, reviewNote }: RejectSubmissionInput) =>
+      RejectSubmission(submissionId, reviewNote),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['campaign-submissions', data.campaignId] });
+      queryClient.invalidateQueries({ queryKey: ['campaign', data.campaignId] });
+    },
+  });
+}
+
+/**
+ * Mutation hook for requesting a video revision with mandatory review note.
+ *
+ * @returns TanStack mutation object for revision request.
+ */
+export function UseRequestSubmissionRevisionMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<CampaignSubmissionReviewItem, Error, RequestRevisionInput>({
+    mutationFn: ({ submissionId, reviewNote }: RequestRevisionInput) =>
+      RequestSubmissionRevision(submissionId, reviewNote),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['campaign-submissions', data.campaignId] });
+      queryClient.invalidateQueries({ queryKey: ['campaign', data.campaignId] });
+    },
   });
 }

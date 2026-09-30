@@ -4,7 +4,13 @@ import { prisma } from '../../utils/prisma.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
 import { IsSupabaseStorageUrl, PersistVideoThumbnailToStorage } from '../../services/supabase.js';
 import { BUDGET_DECIMAL_PLACES, CPM_VIEW_DIVISOR, DEFAULT_LIMIT, DEFAULT_PAGE, SUBMISSION_MESSAGES } from './submission.constants.js';
-import { FinalSubmitVideoSchema, SaveDraftSubmissionSchema, SubmissionQuerySchema } from './submission.validators.js';
+import {
+  FinalSubmitVideoSchema,
+  RejectSubmissionSchema,
+  RequestRevisionSchema,
+  SaveDraftSubmissionSchema,
+  SubmissionQuerySchema,
+} from './submission.validators.js';
 import type { CampaignSubmissionsPaginatedData, MySubmissionResponseData, SubmissionDetailDto } from './submission.types.js';
 import {
   BuildSubmissionsOrderBy,
@@ -85,11 +91,16 @@ export async function JoinCampaign(req: Request, res: Response, next: NextFuncti
         creatorId: creator.id,
         status: Status.ACTIVE,
       },
-      select: { id: true },
+      select: { id: true, submissionStatus: true },
     };
     const existingSubmission = await prisma.submission.findFirst(findExistingSubmissionQuery);
 
-    if (!existingSubmission) {
+    if (existingSubmission) {
+      if (existingSubmission.submissionStatus === SubmissionStatus.REJECTED) {
+        SendError(res, SUBMISSION_MESSAGES.REJECTED_CANNOT_RESUBMIT, 400);
+        return;
+      }
+    } else {
       const createSubmissionPayload = {
         data: {
           campaignId: campaign.id,
@@ -259,6 +270,10 @@ export async function SaveDraftSubmission(req: Request, res: Response, next: Nex
         SendError(res, SUBMISSION_MESSAGES.ALREADY_APPROVED, 400);
         return;
       }
+      if (existingSubmission.submissionStatus === SubmissionStatus.REJECTED) {
+        SendError(res, SUBMISSION_MESSAGES.REJECTED_CANNOT_RESUBMIT, 400);
+        return;
+      }
 
       SendError(res, SUBMISSION_MESSAGES.STATUS_NOT_ALLOW_DRAFT, 400);
       return;
@@ -377,6 +392,11 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
 
       if (existingSubmission.submissionStatus === SubmissionStatus.APPROVED) {
         SendError(res, SUBMISSION_MESSAGES.ALREADY_APPROVED, 400);
+        return;
+      }
+
+      if (existingSubmission.submissionStatus === SubmissionStatus.REJECTED) {
+        SendError(res, SUBMISSION_MESSAGES.REJECTED_CANNOT_RESUBMIT, 400);
         return;
       }
 
@@ -532,6 +552,322 @@ export async function GetCampaignSubmissions(req: Request, res: Response, next: 
     };
 
     SendSuccess(res, responsePayload, SUBMISSION_MESSAGES.GET_SUBMISSIONS_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles `POST /submissions/:id/accept`:
+ * Approves a creator's submitted video, transitioning its status to `APPROVED` and clearing review notes.
+ * Accessible only by the owning campaign brand or platform admin.
+ *
+ * @param req - Express request containing authenticated account and submission id parameter.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function AcceptSubmission(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const account = req.account;
+    if (!account) {
+      SendError(res, SUBMISSION_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.BRAND && account.role !== Role.ADMIN) {
+      SendError(res, SUBMISSION_MESSAGES.ONLY_BRANDS_AND_ADMINS_CAN_REVIEW, 403);
+      return;
+    }
+
+    const submissionId = req.params.id as string;
+
+    const findSubmissionQuery = {
+      where: {
+        id: submissionId,
+        status: Status.ACTIVE,
+        ...(account.role === Role.BRAND
+          ? {
+              campaign: {
+                brand: {
+                  accountId: account.sub,
+                },
+                status: Status.ACTIVE,
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        submissionStatus: true,
+      },
+    };
+    const submissionTarget = await prisma.submission.findFirst(findSubmissionQuery);
+
+    if (!submissionTarget) {
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_NOT_FOUND, 404);
+      return;
+    }
+
+    if (submissionTarget.submissionStatus === SubmissionStatus.APPROVED) {
+      SendError(res, SUBMISSION_MESSAGES.ALREADY_APPROVED, 400);
+      return;
+    }
+
+    const allowedStatuses: SubmissionStatus[] = [SubmissionStatus.PENDING_REVIEW, SubmissionStatus.REVISION_REQUESTED];
+    if (!allowedStatuses.includes(submissionTarget.submissionStatus)) {
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_STATUS_NOT_REVIEWABLE, 400);
+      return;
+    }
+
+    const updateSubmissionPayload = {
+      where: { id: submissionTarget.id },
+      data: {
+        submissionStatus: SubmissionStatus.APPROVED,
+        reviewNote: null,
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            fullName: true,
+            avatarUrl: true,
+          },
+        },
+        socialAccount: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+            followersCount: true,
+          },
+        },
+      },
+    };
+
+    const updatedSubmission = await prisma.submission.update(updateSubmissionPayload);
+    const formattedItem = FormatCampaignSubmissionReviewItem(updatedSubmission);
+
+    SendSuccess(res, formattedItem, SUBMISSION_MESSAGES.ACCEPT_SUBMISSION_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles `POST /submissions/:id/reject`:
+ * Rejects a creator's video submission. Once rejected, the creator cannot modify, save drafts,
+ * or upload/resubmit the video again for this campaign.
+ *
+ * @param req - Express request containing authenticated account, submission id parameter, and optional note.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function RejectSubmission(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const account = req.account;
+    if (!account) {
+      SendError(res, SUBMISSION_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.BRAND && account.role !== Role.ADMIN) {
+      SendError(res, SUBMISSION_MESSAGES.ONLY_BRANDS_AND_ADMINS_CAN_REVIEW, 403);
+      return;
+    }
+
+    const submissionId = req.params.id as string;
+
+    const findSubmissionQuery = {
+      where: {
+        id: submissionId,
+        status: Status.ACTIVE,
+        ...(account.role === Role.BRAND
+          ? {
+              campaign: {
+                brand: {
+                  accountId: account.sub,
+                },
+                status: Status.ACTIVE,
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        submissionStatus: true,
+      },
+    };
+    const submissionTarget = await prisma.submission.findFirst(findSubmissionQuery);
+
+    if (!submissionTarget) {
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_NOT_FOUND, 404);
+      return;
+    }
+
+    if (submissionTarget.submissionStatus === SubmissionStatus.REJECTED) {
+      SendError(res, SUBMISSION_MESSAGES.ALREADY_REJECTED, 400);
+      return;
+    }
+
+    if (submissionTarget.submissionStatus === SubmissionStatus.APPROVED) {
+      SendError(res, SUBMISSION_MESSAGES.ALREADY_APPROVED, 400);
+      return;
+    }
+
+    const allowedStatuses: SubmissionStatus[] = [SubmissionStatus.PENDING_REVIEW, SubmissionStatus.REVISION_REQUESTED];
+    if (!allowedStatuses.includes(submissionTarget.submissionStatus)) {
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_STATUS_NOT_REVIEWABLE, 400);
+      return;
+    }
+
+    const validation = RejectSubmissionSchema.safeParse(req.body ?? {});
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]?.message ?? SUBMISSION_MESSAGES.INVALID_PAYLOAD;
+      SendError(res, firstError, 400);
+      return;
+    }
+
+    const note = validation.data?.reviewNote?.trim() || null;
+
+    const updateSubmissionPayload = {
+      where: { id: submissionTarget.id },
+      data: {
+        submissionStatus: SubmissionStatus.REJECTED,
+        reviewNote: note,
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            fullName: true,
+            avatarUrl: true,
+          },
+        },
+        socialAccount: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+            followersCount: true,
+          },
+        },
+      },
+    };
+
+    const updatedSubmission = await prisma.submission.update(updateSubmissionPayload);
+    const formattedItem = FormatCampaignSubmissionReviewItem(updatedSubmission);
+
+    SendSuccess(res, formattedItem, SUBMISSION_MESSAGES.REJECT_SUBMISSION_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles `POST /submissions/:id/revision`:
+ * Requests a revision on a submitted video, updating status to `REVISION_REQUESTED` and attaching
+ * mandatory feedback/admin note for the creator.
+ *
+ * @param req - Express request containing authenticated account, submission id parameter, and admin note.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function RequestSubmissionRevision(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const account = req.account;
+    if (!account) {
+      SendError(res, SUBMISSION_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.BRAND && account.role !== Role.ADMIN) {
+      SendError(res, SUBMISSION_MESSAGES.ONLY_BRANDS_AND_ADMINS_CAN_REVIEW, 403);
+      return;
+    }
+
+    const submissionId = req.params.id as string;
+
+    const findSubmissionQuery = {
+      where: {
+        id: submissionId,
+        status: Status.ACTIVE,
+        ...(account.role === Role.BRAND
+          ? {
+              campaign: {
+                brand: {
+                  accountId: account.sub,
+                },
+                status: Status.ACTIVE,
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        submissionStatus: true,
+      },
+    };
+    const submissionTarget = await prisma.submission.findFirst(findSubmissionQuery);
+
+    if (!submissionTarget) {
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_NOT_FOUND, 404);
+      return;
+    }
+
+    if (submissionTarget.submissionStatus === SubmissionStatus.APPROVED) {
+      SendError(res, SUBMISSION_MESSAGES.ALREADY_APPROVED, 400);
+      return;
+    }
+
+    if (submissionTarget.submissionStatus === SubmissionStatus.REJECTED) {
+      SendError(res, SUBMISSION_MESSAGES.ALREADY_REJECTED, 400);
+      return;
+    }
+
+    const allowedStatuses: SubmissionStatus[] = [SubmissionStatus.PENDING_REVIEW, SubmissionStatus.REVISION_REQUESTED];
+    if (!allowedStatuses.includes(submissionTarget.submissionStatus)) {
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_STATUS_NOT_REVIEWABLE, 400);
+      return;
+    }
+
+    const validation = RequestRevisionSchema.safeParse(req.body);
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]?.message ?? SUBMISSION_MESSAGES.INVALID_PAYLOAD;
+      SendError(res, firstError, 400);
+      return;
+    }
+
+    const note = validation.data.reviewNote.trim();
+
+    const updateSubmissionPayload = {
+      where: { id: submissionTarget.id },
+      data: {
+        submissionStatus: SubmissionStatus.REVISION_REQUESTED,
+        reviewNote: note,
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            fullName: true,
+            avatarUrl: true,
+          },
+        },
+        socialAccount: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+            followersCount: true,
+          },
+        },
+      },
+    };
+
+    const updatedSubmission = await prisma.submission.update(updateSubmissionPayload);
+    const formattedItem = FormatCampaignSubmissionReviewItem(updatedSubmission);
+
+    SendSuccess(res, formattedItem, SUBMISSION_MESSAGES.REVISE_SUBMISSION_SUCCESS);
   } catch (err) {
     next(err);
   }

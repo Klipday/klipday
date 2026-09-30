@@ -5,6 +5,7 @@ import {
   DEFAULT_PAGE,
   MAX_CAPTION_LENGTH,
   MAX_LIMIT,
+  MAX_REVIEW_NOTE_LENGTH,
   MAX_SEARCH_LENGTH,
   REVIEWABLE_SUBMISSION_STATUSES,
   SUBMISSION_MESSAGES,
@@ -12,10 +13,13 @@ import {
   SUBMISSION_SORT_OPTIONS,
 } from '../src/features/submission/submission.constants.js';
 import {
+  AcceptSubmission,
   FinalSubmitVideo,
   GetCampaignSubmissions,
   GetMyCampaignSubmission,
   JoinCampaign,
+  RejectSubmission,
+  RequestSubmissionRevision,
   SaveDraftSubmission,
 } from '../src/features/submission/submission.handlers.js';
 import {
@@ -26,6 +30,8 @@ import {
 } from '../src/features/submission/submission.helper.js';
 import {
   FinalSubmitVideoSchema,
+  RejectSubmissionSchema,
+  RequestRevisionSchema,
   SaveDraftSubmissionSchema,
   SubmissionQuerySchema,
 } from '../src/features/submission/submission.validators.js';
@@ -367,6 +373,57 @@ describe('Submission Feature Module', () => {
         }
       });
     });
+
+    describe('RejectSubmissionSchema', () => {
+      it('validates empty object successfully', () => {
+        const result = RejectSubmissionSchema.safeParse({});
+        expect(result.success).toBe(true);
+      });
+
+      it('validates valid reviewNote successfully', () => {
+        const withReview = RejectSubmissionSchema.safeParse({ reviewNote: 'Klip tidak memenuhi guideline hook.' });
+        expect(withReview.success).toBe(true);
+      });
+
+      it('fails when note exceeds MAX_REVIEW_NOTE_LENGTH', () => {
+        const longNote = 'a'.repeat(MAX_REVIEW_NOTE_LENGTH + 1);
+        const result = RejectSubmissionSchema.safeParse({ reviewNote: longNote });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.issues[0]?.message).toBe(SUBMISSION_MESSAGES.REVIEW_NOTE_MAX_EXCEEDED);
+        }
+      });
+    });
+
+    describe('RequestRevisionSchema', () => {
+      it('validates when reviewNote is provided and trimmed non-empty', () => {
+        const result = RequestRevisionSchema.safeParse({ reviewNote: ' Perbaiki sound musik latar ' });
+        expect(result.success).toBe(true);
+      });
+
+      it('fails when reviewNote is not provided or note is empty', () => {
+        const emptyObj = RequestRevisionSchema.safeParse({});
+        expect(emptyObj.success).toBe(false);
+        if (!emptyObj.success) {
+          expect(emptyObj.error.issues[0]?.message).toBe(SUBMISSION_MESSAGES.REVIEW_NOTE_REQUIRED);
+        }
+
+        const whitespaceOnly = RequestRevisionSchema.safeParse({ reviewNote: '    ' });
+        expect(whitespaceOnly.success).toBe(false);
+        if (!whitespaceOnly.success) {
+          expect(whitespaceOnly.error.issues[0]?.message).toBe(SUBMISSION_MESSAGES.REVIEW_NOTE_REQUIRED);
+        }
+      });
+
+      it('fails when note exceeds MAX_REVIEW_NOTE_LENGTH', () => {
+        const longNote = 'a'.repeat(MAX_REVIEW_NOTE_LENGTH + 1);
+        const result = RequestRevisionSchema.safeParse({ reviewNote: longNote });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.issues[0]?.message).toBe(SUBMISSION_MESSAGES.REVIEW_NOTE_MAX_EXCEEDED);
+        }
+      });
+    });
   });
 
   // ===========================================================================
@@ -555,6 +612,31 @@ describe('Submission Feature Module', () => {
           status: 'error',
           data: null,
           message: SUBMISSION_MESSAGES.CREATOR_NOT_FOUND,
+        });
+      });
+
+      it('returns 400 when creator was already rejected for this campaign', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockCreator.accountId, role: Role.CREATOR },
+          params: { id: mockActiveCampaign.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(mockActiveCampaign as never);
+        jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue({
+          id: 'sub-rejected-1',
+          submissionStatus: SubmissionStatus.REJECTED,
+        } as never);
+
+        await JoinCampaign(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.REJECTED_CANNOT_RESUBMIT,
         });
       });
     });
@@ -815,6 +897,31 @@ describe('Submission Feature Module', () => {
         });
       });
 
+      it('returns 400 if submission is already REJECTED', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockCreator.accountId, role: Role.CREATOR },
+          params: { id: mockActiveCampaign.id },
+          body: validDraftPayload,
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue({
+          ...mockSubmissionRow,
+          submissionStatus: SubmissionStatus.REJECTED,
+        } as never);
+
+        await SaveDraftSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.REJECTED_CANNOT_RESUBMIT,
+        });
+      });
+
       it('returns 400 when socialAccountId does not belong to the creator (Security Edge Case)', async () => {
         const req = CreateMockRequest({
           account: { sub: mockCreator.accountId, role: Role.CREATOR },
@@ -977,6 +1084,31 @@ describe('Submission Feature Module', () => {
           status: 'error',
           data: null,
           message: SUBMISSION_MESSAGES.ALREADY_APPROVED,
+        });
+      });
+
+      it('returns 400 when submission is already REJECTED', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockCreator.accountId, role: Role.CREATOR },
+          params: { id: mockActiveCampaign.id },
+          body: validSubmitPayload,
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue({
+          ...mockSubmissionRow,
+          submissionStatus: SubmissionStatus.REJECTED,
+        } as never);
+
+        await FinalSubmitVideo(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.REJECTED_CANNOT_RESUBMIT,
         });
       });
 
@@ -1169,6 +1301,670 @@ describe('Submission Feature Module', () => {
           status: 'error',
           data: null,
           message: SUBMISSION_MESSAGES.LIMIT_MAX_EXCEEDED,
+        });
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // 3.6 AcceptSubmission
+    // -------------------------------------------------------------------------
+    describe('AcceptSubmission Handler', () => {
+      const mockBrandAccount = { sub: 'acc-brand-1', role: Role.BRAND };
+      const pendingSubmission = {
+        ...mockSubmissionRow,
+        id: 'sub-review-1',
+        submissionStatus: SubmissionStatus.PENDING_REVIEW,
+        creator: { id: mockCreator.id, fullName: mockCreator.fullName, avatarUrl: null },
+        socialAccount: mockSocialAccount,
+      };
+
+      it('approves submission and clears reviewNote (200 Happy Path by Brand)', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
+        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
+          ...pendingSubmission,
+          submissionStatus: SubmissionStatus.APPROVED,
+          reviewNote: null,
+        } as never);
+
+        await AcceptSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'success',
+          data: expect.objectContaining({
+            id: pendingSubmission.id,
+            submissionStatus: SubmissionStatus.APPROVED,
+            reviewNote: null,
+          }),
+          message: SUBMISSION_MESSAGES.ACCEPT_SUBMISSION_SUCCESS,
+        });
+      });
+
+      it('allows platform ADMIN to accept submission without brand filter (200 Happy Path by Admin)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: 'admin-acc', role: Role.ADMIN },
+          params: { id: pendingSubmission.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
+        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
+          ...pendingSubmission,
+          submissionStatus: SubmissionStatus.APPROVED,
+          reviewNote: null,
+        } as never);
+
+        await AcceptSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'success',
+          data: expect.objectContaining({
+            id: pendingSubmission.id,
+            submissionStatus: SubmissionStatus.APPROVED,
+          }),
+          message: SUBMISSION_MESSAGES.ACCEPT_SUBMISSION_SUCCESS,
+        });
+      });
+
+      it('returns 401 when account is unauthenticated', async () => {
+        const req = CreateMockRequest({
+          account: undefined,
+          params: { id: pendingSubmission.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        await AcceptSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(401);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.AUTH_REQUIRED,
+        });
+      });
+
+      it('returns 403 when user is a CREATOR', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockCreator.accountId, role: Role.CREATOR },
+          params: { id: pendingSubmission.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        await AcceptSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(403);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.ONLY_BRANDS_AND_ADMINS_CAN_REVIEW,
+        });
+      });
+
+      it('returns 404 when submission does not exist or brand ownership fails', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: 'non-existent-sub' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(null);
+
+        await AcceptSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(404);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.SUBMISSION_NOT_FOUND,
+        });
+      });
+
+      it('returns 400 when submission is already APPROVED', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue({
+          ...pendingSubmission,
+          submissionStatus: SubmissionStatus.APPROVED,
+        } as never);
+
+        await AcceptSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.ALREADY_APPROVED,
+        });
+      });
+
+      it('returns 400 when submission status is not reviewable (e.g. JOINED)', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue({
+          ...pendingSubmission,
+          submissionStatus: SubmissionStatus.JOINED,
+        } as never);
+
+        await AcceptSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.SUBMISSION_STATUS_NOT_REVIEWABLE,
+        });
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // 3.7 RejectSubmission
+    // -------------------------------------------------------------------------
+    describe('RejectSubmission Handler', () => {
+      const mockBrandAccount = { sub: 'acc-brand-1', role: Role.BRAND };
+      const pendingSubmission = {
+        ...mockSubmissionRow,
+        id: 'sub-review-1',
+        submissionStatus: SubmissionStatus.PENDING_REVIEW,
+        creator: { id: mockCreator.id, fullName: mockCreator.fullName, avatarUrl: null },
+        socialAccount: mockSocialAccount,
+      };
+
+      it('rejects submission with reviewNote (200 Happy Path by Brand)', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+          body: { reviewNote: 'Video tidak memenuhi kriteria durasi minimal.' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
+        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
+          ...pendingSubmission,
+          submissionStatus: SubmissionStatus.REJECTED,
+          reviewNote: 'Video tidak memenuhi kriteria durasi minimal.',
+        } as never);
+
+        await RejectSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'success',
+          data: expect.objectContaining({
+            id: pendingSubmission.id,
+            submissionStatus: SubmissionStatus.REJECTED,
+            reviewNote: 'Video tidak memenuhi kriteria durasi minimal.',
+          }),
+          message: SUBMISSION_MESSAGES.REJECT_SUBMISSION_SUCCESS,
+        });
+      });
+
+      it('rejects submission without note (empty body) (200 Happy Path)', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+          body: {},
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
+        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
+          ...pendingSubmission,
+          submissionStatus: SubmissionStatus.REJECTED,
+          reviewNote: null,
+        } as never);
+
+        await RejectSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'success',
+          data: expect.objectContaining({
+            submissionStatus: SubmissionStatus.REJECTED,
+            reviewNote: null,
+          }),
+          message: SUBMISSION_MESSAGES.REJECT_SUBMISSION_SUCCESS,
+        });
+      });
+
+      it('allows platform ADMIN to reject submission (200 Happy Path by Admin)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: 'admin-acc', role: Role.ADMIN },
+          params: { id: pendingSubmission.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
+        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
+          ...pendingSubmission,
+          submissionStatus: SubmissionStatus.REJECTED,
+          reviewNote: null,
+        } as never);
+
+        await RejectSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'success',
+          data: expect.objectContaining({
+            submissionStatus: SubmissionStatus.REJECTED,
+          }),
+          message: SUBMISSION_MESSAGES.REJECT_SUBMISSION_SUCCESS,
+        });
+      });
+
+      it('returns 401 when account is unauthenticated', async () => {
+        const req = CreateMockRequest({
+          account: undefined,
+          params: { id: pendingSubmission.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        await RejectSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(401);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.AUTH_REQUIRED,
+        });
+      });
+
+      it('returns 403 when user is a CREATOR', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockCreator.accountId, role: Role.CREATOR },
+          params: { id: pendingSubmission.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        await RejectSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(403);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.ONLY_BRANDS_AND_ADMINS_CAN_REVIEW,
+        });
+      });
+
+      it('returns 404 when submission does not exist or ownership fails', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: 'non-existent-sub' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(null);
+
+        await RejectSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(404);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.SUBMISSION_NOT_FOUND,
+        });
+      });
+
+      it('returns 400 when submission is already REJECTED', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue({
+          ...pendingSubmission,
+          submissionStatus: SubmissionStatus.REJECTED,
+        } as never);
+
+        await RejectSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.ALREADY_REJECTED,
+        });
+      });
+
+      it('returns 400 when submission is already APPROVED', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue({
+          ...pendingSubmission,
+          submissionStatus: SubmissionStatus.APPROVED,
+        } as never);
+
+        await RejectSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.ALREADY_APPROVED,
+        });
+      });
+
+      it('returns 400 when submission status is not reviewable (e.g. JOINED)', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue({
+          ...pendingSubmission,
+          submissionStatus: SubmissionStatus.JOINED,
+        } as never);
+
+        await RejectSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.SUBMISSION_STATUS_NOT_REVIEWABLE,
+        });
+      });
+
+      it('returns 400 when reviewNote exceeds maximum character limit', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+          body: { reviewNote: 'x'.repeat(MAX_REVIEW_NOTE_LENGTH + 1) },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
+
+        await RejectSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.REVIEW_NOTE_MAX_EXCEEDED,
+        });
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // 3.8 RequestSubmissionRevision
+    // -------------------------------------------------------------------------
+    describe('RequestSubmissionRevision Handler', () => {
+      const mockBrandAccount = { sub: 'acc-brand-1', role: Role.BRAND };
+      const pendingSubmission = {
+        ...mockSubmissionRow,
+        id: 'sub-review-1',
+        submissionStatus: SubmissionStatus.PENDING_REVIEW,
+        creator: { id: mockCreator.id, fullName: mockCreator.fullName, avatarUrl: null },
+        socialAccount: mockSocialAccount,
+      };
+
+      it('requests revision with reviewNote (200 Happy Path by Brand)', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+          body: { reviewNote: 'Mohon perbaiki hook di 3 detik pertama agar lebih menarik.' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
+        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
+          ...pendingSubmission,
+          submissionStatus: SubmissionStatus.REVISION_REQUESTED,
+          reviewNote: 'Mohon perbaiki hook di 3 detik pertama agar lebih menarik.',
+        } as never);
+
+        await RequestSubmissionRevision(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'success',
+          data: expect.objectContaining({
+            id: pendingSubmission.id,
+            submissionStatus: SubmissionStatus.REVISION_REQUESTED,
+            reviewNote: 'Mohon perbaiki hook di 3 detik pertama agar lebih menarik.',
+          }),
+          message: SUBMISSION_MESSAGES.REVISE_SUBMISSION_SUCCESS,
+        });
+      });
+
+      it('allows platform ADMIN to request revision (200 Happy Path by Admin)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: 'admin-acc', role: Role.ADMIN },
+          params: { id: pendingSubmission.id },
+          body: { reviewNote: 'Admin note for creator.' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
+        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
+          ...pendingSubmission,
+          submissionStatus: SubmissionStatus.REVISION_REQUESTED,
+          reviewNote: 'Admin note for creator.',
+        } as never);
+
+        await RequestSubmissionRevision(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'success',
+          data: expect.objectContaining({
+            submissionStatus: SubmissionStatus.REVISION_REQUESTED,
+          }),
+          message: SUBMISSION_MESSAGES.REVISE_SUBMISSION_SUCCESS,
+        });
+      });
+
+      it('returns 401 when account is unauthenticated', async () => {
+        const req = CreateMockRequest({
+          account: undefined,
+          params: { id: pendingSubmission.id },
+          body: { reviewNote: 'Some note' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        await RequestSubmissionRevision(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(401);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.AUTH_REQUIRED,
+        });
+      });
+
+      it('returns 403 when user is a CREATOR', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockCreator.accountId, role: Role.CREATOR },
+          params: { id: pendingSubmission.id },
+          body: { reviewNote: 'Some note' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        await RequestSubmissionRevision(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(403);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.ONLY_BRANDS_AND_ADMINS_CAN_REVIEW,
+        });
+      });
+
+      it('returns 404 when submission does not exist or ownership fails', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: 'non-existent-sub' },
+          body: { reviewNote: 'Some note' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(null);
+
+        await RequestSubmissionRevision(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(404);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.SUBMISSION_NOT_FOUND,
+        });
+      });
+
+      it('returns 400 when note is missing or empty', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+          body: {},
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
+
+        await RequestSubmissionRevision(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.REVIEW_NOTE_REQUIRED,
+        });
+      });
+
+      it('returns 400 when note exceeds MAX_REVIEW_NOTE_LENGTH', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+          body: { reviewNote: 'x'.repeat(MAX_REVIEW_NOTE_LENGTH + 1) },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
+
+        await RequestSubmissionRevision(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.REVIEW_NOTE_MAX_EXCEEDED,
+        });
+      });
+
+      it('returns 400 when submission is already APPROVED', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+          body: { reviewNote: 'Please revise' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue({
+          ...pendingSubmission,
+          submissionStatus: SubmissionStatus.APPROVED,
+        } as never);
+
+        await RequestSubmissionRevision(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.ALREADY_APPROVED,
+        });
+      });
+
+      it('returns 400 when submission is already REJECTED', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+          body: { reviewNote: 'Please revise' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue({
+          ...pendingSubmission,
+          submissionStatus: SubmissionStatus.REJECTED,
+        } as never);
+
+        await RequestSubmissionRevision(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.ALREADY_REJECTED,
+        });
+      });
+
+      it('returns 400 when submission status is not reviewable (e.g. JOINED)', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+          body: { reviewNote: 'Please revise' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue({
+          ...pendingSubmission,
+          submissionStatus: SubmissionStatus.JOINED,
+        } as never);
+
+        await RequestSubmissionRevision(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.SUBMISSION_STATUS_NOT_REVIEWABLE,
         });
       });
     });

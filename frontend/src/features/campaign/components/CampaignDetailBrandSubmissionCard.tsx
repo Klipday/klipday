@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock, ExternalLink, Video } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { SubmissionReviewDialog } from '@/features/submission/components';
 import { FormatCompactCount, FormatSubmissionDate } from '@/features/submission/utils/submission-utils';
 import { cn } from '@/lib/utils';
 import type { CampaignDetailBrandSubmissionCardProps } from '../types';
@@ -15,6 +17,7 @@ import type { CampaignDetailBrandSubmissionCardProps } from '../types';
  */
 export function CampaignDetailBrandSubmissionCard({ submission, className }: CampaignDetailBrandSubmissionCardProps) {
   const [hasThumbnailError, setHasThumbnailError] = useState(false);
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const status = submission.submissionStatus;
   const isPending = status === 'PENDING_REVIEW';
   const isApproved = status === 'APPROVED';
@@ -70,7 +73,7 @@ export function CampaignDetailBrandSubmissionCard({ submission, className }: Cam
           {isApproved && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
               <CheckCircle2 className="size-3" />
-              <span>Disetujui • Pelacakan Aktif</span>
+              <span>Disetujui</span>
             </span>
           )}
           {isRevision && (
@@ -162,6 +165,28 @@ export function CampaignDetailBrandSubmissionCard({ submission, className }: Cam
           )}
         </div>
       </div>
+
+      {/* Review Action Bar for Pending Submissions */}
+      {isPending && (
+        <div className="flex items-center justify-end pt-3 border-t border-border/40">
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setIsReviewDialogOpen(true)}
+            className="gap-1.5 text-xs font-medium rounded-xl cursor-pointer">
+            <CheckCircle2 className="size-3.5" />
+            <span>Review Klip</span>
+          </Button>
+        </div>
+      )}
+
+      {/* Review Decision Modal Dialog */}
+      <SubmissionReviewDialog
+        open={isReviewDialogOpen}
+        onOpenChange={setIsReviewDialogOpen}
+        submission={submission}
+      />
     </div>
   );
 }
+

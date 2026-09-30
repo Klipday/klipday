@@ -5,6 +5,7 @@ export const DEFAULT_LIMIT = 10;
 export const MAX_LIMIT = 100;
 export const MAX_CAPTION_LENGTH = 2000;
 export const MAX_SEARCH_LENGTH = 100;
+export const MAX_REVIEW_NOTE_LENGTH = 1000;
 export const CPM_VIEW_DIVISOR = 1000;
 export const BUDGET_DECIMAL_PLACES = 2;
 
@@ -60,8 +61,11 @@ export const SUBMISSION_MESSAGES = {
   CANNOT_MODIFY_UNDER_REVIEW: 'Your video submission is currently under review and cannot be modified.',
   UNDER_REVIEW_BY_BRAND: 'Your video submission is currently under review by the brand.',
   ALREADY_APPROVED: 'Your video submission has already been approved.',
+  ALREADY_REJECTED: 'Your video submission has already been rejected.',
   STATUS_NOT_ALLOW_DRAFT: 'Draft cannot be modified in the current submission status.',
   SUBMISSION_STATUS_NOT_RESUBMITTABLE: 'Submission cannot be submitted in the current status.',
+  SUBMISSION_STATUS_NOT_REVIEWABLE: 'Video submission cannot be reviewed in its current status.',
+  REJECTED_CANNOT_RESUBMIT: 'This submission has been rejected and cannot be modified or resubmitted.',
 
   // Social Account Validation
   SOCIAL_ACCOUNT_INVALID: 'Social account is invalid or does not belong to your profile.',
@@ -75,6 +79,8 @@ export const SUBMISSION_MESSAGES = {
   TIKTOK_URL_INVALID: 'TikTok video URL must be a valid URL.',
   THUMBNAIL_URL_INVALID: 'Invalid thumbnail URL.',
   CAPTION_MAX_EXCEEDED: 'Caption is too long.',
+  REVIEW_NOTE_REQUIRED: 'A review note is required when requesting a revision.',
+  REVIEW_NOTE_MAX_EXCEEDED: 'Review note cannot exceed 1000 characters.',
   INVALID_PAYLOAD: 'Invalid request payload.',
 
   // Pagination & Query Filters
@@ -95,4 +101,7 @@ export const SUBMISSION_MESSAGES = {
   DRAFT_SAVED: 'Submission draft saved successfully.',
   SUBMIT_SUCCESS: 'Video submission sent successfully for brand review.',
   GET_SUBMISSIONS_SUCCESS: 'Campaign submissions retrieved successfully.',
+  ACCEPT_SUBMISSION_SUCCESS: 'Video submission approved successfully.',
+  REJECT_SUBMISSION_SUCCESS: 'Video submission rejected successfully.',
+  REVISE_SUBMISSION_SUCCESS: 'Revision requested successfully.',
 } as const;

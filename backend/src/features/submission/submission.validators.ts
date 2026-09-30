@@ -3,6 +3,7 @@ import {
   ALL_STATUS_FILTER,
   MAX_CAPTION_LENGTH,
   MAX_LIMIT,
+  MAX_REVIEW_NOTE_LENGTH,
   MAX_SEARCH_LENGTH,
   REVIEWABLE_SUBMISSION_STATUSES,
   SUBMISSION_MESSAGES,
@@ -54,4 +55,16 @@ export const SubmissionQuerySchema = z.object({
       error: SUBMISSION_MESSAGES.SORT_INVALID,
     })
     .optional(),
+});
+
+export const RejectSubmissionSchema = z.object({
+  reviewNote: z.string().trim().max(MAX_REVIEW_NOTE_LENGTH, SUBMISSION_MESSAGES.REVIEW_NOTE_MAX_EXCEEDED).optional(),
+});
+
+export const RequestRevisionSchema = z.object({
+  reviewNote: z
+    .string({ error: SUBMISSION_MESSAGES.REVIEW_NOTE_REQUIRED })
+    .trim()
+    .min(1, SUBMISSION_MESSAGES.REVIEW_NOTE_REQUIRED)
+    .max(MAX_REVIEW_NOTE_LENGTH, SUBMISSION_MESSAGES.REVIEW_NOTE_MAX_EXCEEDED),
 });

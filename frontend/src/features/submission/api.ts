@@ -1,6 +1,7 @@
 import { apiClient, ExtractApiError } from '@/lib/api-client';
 import type { ApiResponse } from '../campaign/types';
 import type {
+  CampaignSubmissionReviewItem,
   CampaignSubmissionsPaginatedResponse,
   CampaignSubmissionsQueryParams,
   CreatorSocialAccount,
@@ -40,9 +41,7 @@ export async function JoinCampaign(campaignId: string): Promise<Submission> {
  */
 export async function GetMyCampaignSubmission(campaignId: string): Promise<MySubmissionData> {
   try {
-    const response = await apiClient.get<ApiResponse<MySubmissionData>>(
-      `/campaigns/${campaignId}/my-submission`,
-    );
+    const response = await apiClient.get<ApiResponse<MySubmissionData>>(`/campaigns/${campaignId}/my-submission`);
     const result = response.data.data;
     return result;
   } catch (error) {
@@ -58,15 +57,9 @@ export async function GetMyCampaignSubmission(campaignId: string): Promise<MySub
  * @param input - Video draft details.
  * @returns Updated submission row.
  */
-export async function SaveDraftSubmission(
-  campaignId: string,
-  input: SaveDraftSubmissionInput,
-): Promise<Submission> {
+export async function SaveDraftSubmission(campaignId: string, input: SaveDraftSubmissionInput): Promise<Submission> {
   try {
-    const response = await apiClient.patch<ApiResponse<Submission>>(
-      `/campaigns/${campaignId}/submission/draft`,
-      input,
-    );
+    const response = await apiClient.patch<ApiResponse<Submission>>(`/campaigns/${campaignId}/submission/draft`, input);
     const result = response.data.data;
     return result;
   } catch (error) {
@@ -82,15 +75,9 @@ export async function SaveDraftSubmission(
  * @param input - Final video parameters.
  * @returns Finalized submission with status PENDING_REVIEW.
  */
-export async function FinalSubmitVideo(
-  campaignId: string,
-  input: FinalSubmitVideoInput,
-): Promise<Submission> {
+export async function FinalSubmitVideo(campaignId: string, input: FinalSubmitVideoInput): Promise<Submission> {
   try {
-    const response = await apiClient.post<ApiResponse<Submission>>(
-      `/campaigns/${campaignId}/submission/submit`,
-      input,
-    );
+    const response = await apiClient.post<ApiResponse<Submission>>(`/campaigns/${campaignId}/submission/submit`, input);
     const result = response.data.data;
     return result;
   } catch (error) {
@@ -106,9 +93,7 @@ export async function FinalSubmitVideo(
  */
 export async function GetConnectedSocialAccount(): Promise<CreatorSocialAccount | null> {
   try {
-    const response = await apiClient.get<ApiResponse<CreatorSocialAccount | null>>(
-      '/social-accounts/connected',
-    );
+    const response = await apiClient.get<ApiResponse<CreatorSocialAccount | null>>('/social-accounts/connected');
     const result = response.data.data;
     return result;
   } catch (error) {
@@ -123,14 +108,9 @@ export async function GetConnectedSocialAccount(): Promise<CreatorSocialAccount 
  * @param input - TikTok username.
  * @returns Verification code and expiry timestamp.
  */
-export async function RequestTikTokVerificationCode(
-  input: RequestVerificationCodeInput,
-): Promise<RequestVerificationCodeResponse> {
+export async function RequestTikTokVerificationCode(input: RequestVerificationCodeInput): Promise<RequestVerificationCodeResponse> {
   try {
-    const response = await apiClient.post<ApiResponse<RequestVerificationCodeResponse>>(
-      '/social-accounts/tiktok/request-code',
-      input,
-    );
+    const response = await apiClient.post<ApiResponse<RequestVerificationCodeResponse>>('/social-accounts/tiktok/request-code', input);
     const result = response.data.data;
     return result;
   } catch (error) {
@@ -147,10 +127,7 @@ export async function RequestTikTokVerificationCode(
  */
 export async function VerifyTikTokBio(input: VerifyBioInput): Promise<CreatorSocialAccount> {
   try {
-    const response = await apiClient.post<ApiResponse<CreatorSocialAccount>>(
-      '/social-accounts/tiktok/verify',
-      input,
-    );
+    const response = await apiClient.post<ApiResponse<CreatorSocialAccount>>('/social-accounts/tiktok/verify', input);
     const result = response.data.data;
     return result;
   } catch (error) {
@@ -185,14 +162,9 @@ export async function GetRecentTikTokVideos(username?: string): Promise<SocialVi
  * @param input - Public video URL.
  * @returns Extracted video metadata.
  */
-export async function ValidateTikTokVideoUrl(
-  input: ValidateVideoUrlInput,
-): Promise<SocialVideoItem> {
+export async function ValidateTikTokVideoUrl(input: ValidateVideoUrlInput): Promise<SocialVideoItem> {
   try {
-    const response = await apiClient.post<ApiResponse<SocialVideoItem>>(
-      '/social-accounts/tiktok/validate-video-url',
-      input,
-    );
+    const response = await apiClient.post<ApiResponse<SocialVideoItem>>('/social-accounts/tiktok/validate-video-url', input);
     const result = response.data.data;
     return result;
   } catch (error) {
@@ -210,17 +182,72 @@ export async function ValidateTikTokVideoUrl(
  */
 export async function GetCampaignSubmissions(
   campaignId: string,
-  params?: CampaignSubmissionsQueryParams,
+  params?: CampaignSubmissionsQueryParams
 ): Promise<CampaignSubmissionsPaginatedResponse> {
   try {
-    const response = await apiClient.get<ApiResponse<CampaignSubmissionsPaginatedResponse>>(
-      `/campaigns/${campaignId}/submissions`,
-      { params },
-    );
+    const response = await apiClient.get<ApiResponse<CampaignSubmissionsPaginatedResponse>>(`/campaigns/${campaignId}/submissions`, {
+      params,
+    });
     const result = response.data.data;
     return result;
   } catch (error) {
     const apiError = ExtractApiError(error, 'Gagal memuat daftar pengajuan klip.');
+    throw apiError;
+  }
+}
+
+/**
+ * Sends a POST request to `/submissions/:id/accept` to approve a video submission.
+ *
+ * @param submissionId - Target submission UUID.
+ * @returns Updated submission review item with APPROVED status.
+ */
+export async function AcceptSubmission(submissionId: string): Promise<CampaignSubmissionReviewItem> {
+  try {
+    const response = await apiClient.post<ApiResponse<CampaignSubmissionReviewItem>>(`/submissions/${submissionId}/accept`);
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal menyetujui pengajuan video.');
+    throw apiError;
+  }
+}
+
+/**
+ * Sends a POST request to `/submissions/:id/reject` to reject a video submission.
+ *
+ * @param submissionId - Target submission UUID.
+ * @param reviewNote - Optional reason or note for rejection.
+ * @returns Updated submission review item with REJECTED status.
+ */
+export async function RejectSubmission(submissionId: string, reviewNote?: string): Promise<CampaignSubmissionReviewItem> {
+  try {
+    const payload = reviewNote?.trim() ? { reviewNote: reviewNote.trim() } : {};
+    const response = await apiClient.post<ApiResponse<CampaignSubmissionReviewItem>>(`/submissions/${submissionId}/reject`, payload);
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal menolak pengajuan video.');
+    throw apiError;
+  }
+}
+
+/**
+ * Sends a POST request to `/submissions/:id/revision` to request video revision from creator.
+ *
+ * @param submissionId - Target submission UUID.
+ * @param reviewNote - Mandatory instructions explaining needed revisions.
+ * @returns Updated submission review item with REVISION_REQUESTED status.
+ */
+export async function RequestSubmissionRevision(submissionId: string, reviewNote: string): Promise<CampaignSubmissionReviewItem> {
+  try {
+    const response = await apiClient.post<ApiResponse<CampaignSubmissionReviewItem>>(`/submissions/${submissionId}/revision`, {
+      reviewNote: reviewNote.trim(),
+    });
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal meminta revisi video.');
     throw apiError;
   }
 }
