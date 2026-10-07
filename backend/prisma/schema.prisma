@@ -45,6 +45,7 @@ enum Platform {
 
 enum CampaignStatus {
   DRAFT
+  AWAITING_PAYMENT
   IN_REVIEW
   REVISION
   REJECTED
@@ -64,6 +65,33 @@ enum SubmissionStatus {
   VERIFIED
 
   @@map("submission_status")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  REJECTED
+
+  @@map("payment_status")
+}
+
+enum PayoutStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@map("payout_status")
+}
+
+enum WalletTransactionType {
+  CAMPAIGN_EARNING
+  WITHDRAWAL
+  BRAND_DEPOSIT
+  CAMPAIGN_PAYMENT
+  CAMPAIGN_REFUND
+
+  @@map("wallet_transaction_type")
 }
 
 enum MaterialType {
@@ -125,6 +153,7 @@ model Account {
   brand   Brand?
   creator Creator?
   admin   Admin?
+  wallet  Wallet?
 
   @@map("accounts")
 }
@@ -210,6 +239,12 @@ model Admin {
   account   Account @relation(fields: [accountId], references: [id])
   accountId String  @unique @map("account_id")
 
+  // relation to processed payouts
+  processedPayouts PayoutRequest[]
+
+  // relation to verified campaign payments
+  verifiedPayments CampaignPayment[]
+
   @@map("admins")
 }
 
@@ -289,6 +324,12 @@ model Campaign {
 
   // relation to submissions
   submissions Submission[]
+
+  // relation to wallet transactions
+  walletTransactions WalletTransaction[]
+
+  // relation to campaign payments
+  payments CampaignPayment[]
 
   @@index([status, campaignStatus, isFeatured])
   @@map("campaigns")
@@ -423,6 +464,9 @@ model Submission {
   socialAccount   CreatorSocialAccount? @relation(fields: [socialAccountId], references: [id])
   socialAccountId String?               @map("social_account_id")
 
+  // relation to wallet transactions
+  walletTransactions WalletTransaction[]
+
   @@unique([campaignId, creatorId])
   @@map("submissions")
 }
@@ -533,3 +577,162 @@ model ErrorLog {
   @@index([statusCode])
   @@map("error_logs")
 }
+
+model Wallet {
+  // id is the primary key for the wallet, and is generated as a UUID.
+  id String @id @default(uuid())
+
+  // relation to account (can be brand or creator)
+  account   Account @relation(fields: [accountId], references: [id])
+  accountId String  @unique @map("account_id")
+
+  // available balance in Rupiah (stored as decimal for precision)
+  balance Decimal @default(0) @db.Decimal(15, 2)
+
+  // saved destination account details for payouts (especially creators)
+  accountProvider   String? @map("account_provider")
+  accountNumber     String? @map("account_number")
+  accountHolderName String? @map("account_holder_name")
+
+  // status is used to determine if the wallet is active or soft-deleted.
+  status Status @default(ACTIVE)
+
+  // timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // relations
+  transactions   WalletTransaction[]
+  payoutRequests PayoutRequest[]
+
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  // id is the primary key for the transaction, and is generated as a UUID.
+  id String @id @default(uuid())
+
+  // human-readable reference code for receipt and auditing (e.g. TXN-2610-8912)
+  referenceCode String? @unique @map("reference_code")
+
+  // relation to wallet
+  wallet   Wallet @relation(fields: [walletId], references: [id])
+  walletId String @map("wallet_id")
+
+  // type of transaction
+  type WalletTransactionType
+
+  // financial amounts
+  amount        Decimal @db.Decimal(15, 2)
+  balanceBefore Decimal @map("balance_before") @db.Decimal(15, 2)
+  balanceAfter  Decimal @map("balance_after") @db.Decimal(15, 2)
+
+  // transaction description
+  description String
+
+  // effective business transaction timestamp (distinct from technical db createdAt)
+  transactionDate DateTime @default(now()) @map("transaction_date")
+
+  // optional relations to campaign and submission
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+  campaignId String?   @map("campaign_id")
+
+  submission   Submission? @relation(fields: [submissionId], references: [id])
+  submissionId String?     @map("submission_id")
+
+  // status for soft-delete
+  status Status @default(ACTIVE)
+
+  // technical creation timestamp
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([walletId, transactionDate(sort: Desc)])
+  @@index([campaignId])
+  @@index([submissionId])
+  @@map("wallet_transactions")
+}
+
+model PayoutRequest {
+  // id is the primary key for the payout request, and is generated as a UUID.
+  id String @id @default(uuid())
+
+  // reference code for bank transfer remark (e.g. WD-91238)
+  referenceCode String @unique @map("reference_code")
+
+  // relation to wallet
+  wallet   Wallet @relation(fields: [walletId], references: [id])
+  walletId String @map("wallet_id")
+
+  // requested withdrawal amount
+  amount Decimal @db.Decimal(15, 2)
+
+  // destination account snapshot at the time of request
+  accountProvider   String @map("account_provider")
+  accountNumber     String @map("account_number")
+  accountHolderName String @map("account_holder_name")
+
+  // payout status lifecycle
+  payoutStatus     PayoutStatus @default(PENDING) @map("payout_status")
+  rejectionReason  String?      @map("rejection_reason")
+  transferProofUrl String?      @map("transfer_proof_url")
+  adminNote        String?      @map("admin_note")
+
+  // relation to processing admin
+  processedByAdmin   Admin?    @relation(fields: [processedByAdminId], references: [id])
+  processedByAdminId String?   @map("processed_by_admin_id")
+  processedAt        DateTime? @map("processed_at")
+
+  // status for soft-delete
+  status Status @default(ACTIVE)
+
+  // timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([payoutStatus, createdAt(sort: Desc)])
+  @@map("payout_requests")
+}
+
+model CampaignPayment {
+  // id is the primary key for the campaign payment, and is generated as a UUID.
+  id String @id @default(uuid())
+
+  // relation to campaign
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  campaignId String   @map("campaign_id")
+
+  // financial details
+  amount       Decimal @db.Decimal(15, 2)
+  uniqueCode   Int     @map("unique_code")
+  totalPayable Decimal @map("total_payable") @db.Decimal(15, 2)
+
+  // destination bank account details (snapshot for invoice)
+  destinationBank    String @default("BCA") @map("destination_bank")
+  destinationAccount String @default("1234567890") @map("destination_account")
+
+  // sender details
+  senderProviderName String? @map("sender_provider_name")
+  senderAccountName  String? @map("sender_account_name")
+  transferProofUrl   String? @map("transfer_proof_url")
+
+  // payment lifecycle status
+  paymentStatus   PaymentStatus @default(PENDING) @map("payment_status")
+  rejectionReason String?       @map("rejection_reason")
+
+  // relation to verifying admin
+  verifiedByAdmin   Admin?    @relation(fields: [verifiedByAdminId], references: [id])
+  verifiedByAdminId String?   @map("verified_by_admin_id")
+  verifiedAt        DateTime? @map("verified_at")
+
+  // status for soft-delete
+  status Status @default(ACTIVE)
+
+  // timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([campaignId])
+  @@index([paymentStatus, createdAt(sort: Desc)])
+  @@map("campaign_payments")
+}
+

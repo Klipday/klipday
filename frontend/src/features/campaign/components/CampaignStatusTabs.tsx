@@ -20,7 +20,7 @@ export function CampaignStatusTabs() {
   const validStatusKeys = CAMPAIGN_STATUS_TABS.map((tab) => tab.key);
   const currentStatus = urlStatus && validStatusKeys.includes(urlStatus) ? urlStatus : 'ACTIVE';
 
-  const handleTabChange = (nextStatus: string) => {
+  const HandleTabChange = (nextStatus: string) => {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -33,7 +33,7 @@ export function CampaignStatusTabs() {
 
   return (
     <div className="w-full">
-      <Tabs value={currentStatus} onValueChange={handleTabChange} className="w-full">
+      <Tabs value={currentStatus} onValueChange={HandleTabChange} className="w-full">
         <div className="flex items-center overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <TabsList className="inline-flex h-10 items-stretch gap-0 rounded-xl border border-border/60 bg-muted/20 p-0 overflow-hidden divide-x divide-border/40 shadow-xs">
             {CAMPAIGN_STATUS_TABS.map((tab) => {

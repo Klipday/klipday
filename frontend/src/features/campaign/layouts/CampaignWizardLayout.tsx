@@ -60,8 +60,18 @@ function CampaignWizardLayout() {
     return <CampaignWizardError message={error?.message} onRetry={() => refetch()} />;
   }
 
-  if (campaign?.campaignStatus && campaign.campaignStatus !== 'DRAFT' && campaign.campaignStatus !== 'REVISION') {
+  if (
+    campaign?.campaignStatus &&
+    campaign.campaignStatus !== 'DRAFT' &&
+    campaign.campaignStatus !== 'REVISION' &&
+    campaign.campaignStatus !== 'AWAITING_PAYMENT'
+  ) {
     return <Navigate to="/brand-dashboard/brand-campaigns?status=IN_REVIEW" replace />;
+  }
+
+  if (campaign?.campaignStatus === 'AWAITING_PAYMENT' && !location.pathname.includes('step-6')) {
+    const step6Path = GetWizardStepPath('step-6', id);
+    return <Navigate to={step6Path} replace />;
   }
 
   if (isForbiddenStep) {

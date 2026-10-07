@@ -1,6 +1,8 @@
 import type { Prisma } from '../../generated/prisma/client.js';
-import type { CampaignStatus, CampaignType, Category, Industry, MaterialType, Platform, Status } from '../../generated/prisma/enums.js';
+import type { CampaignStatus, CampaignType, Category, Industry, MaterialType, PaymentStatus, Platform, Status } from '../../generated/prisma/enums.js';
 import type {
+  AdminVerifyPaymentInput,
+  BankTransferPaymentInput,
   CampaignBriefInput,
   CampaignEditInput,
   CampaignMaterialItemInput,
@@ -10,6 +12,8 @@ import type {
 } from './campaign.schemas.js';
 
 export type {
+  AdminVerifyPaymentInput,
+  BankTransferPaymentInput,
   CampaignBriefInput,
   CampaignEditInput,
   CampaignMaterialItemInput,
@@ -89,9 +93,43 @@ export interface CampaignCardBriefItem {
   status: Status;
 }
 
+export interface CampaignPaymentItem {
+  id: string;
+  campaignId: string;
+  amount: Prisma.Decimal | number;
+  uniqueCode: number;
+  totalPayable: Prisma.Decimal | number;
+  destinationBank: string;
+  destinationAccount: string;
+  senderProviderName: string | null;
+  senderAccountName: string | null;
+  transferProofUrl: string | null;
+  paymentStatus: PaymentStatus;
+  rejectionReason: string | null;
+  verifiedByAdminId: string | null;
+  verifiedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CampaignBankDetails {
+  bankName: string;
+  accountNo: string;
+  accountName: string;
+}
+
+export interface CampaignPaymentDetailsResponse {
+  payment: CampaignPaymentItem | null;
+  walletBalance: number;
+  bankDetails: CampaignBankDetails;
+  budget: number;
+  canPayWithWallet: boolean;
+}
+
 export interface CampaignDetailItem extends CampaignCardItem {
   materials: CampaignCardMaterialItem[];
   brief: CampaignCardBriefItem | null;
+  payments?: CampaignPaymentItem[];
 }
 
 export interface CampaignsPaginatedData {

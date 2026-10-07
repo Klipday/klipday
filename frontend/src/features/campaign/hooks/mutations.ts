@@ -1,8 +1,23 @@
 import { useMutation, useQueryClient, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { DeleteCampaign, EditCampaign, GetCampaignById, InitializeCampaign, SubmitCampaign } from '../api';
-import type { Campaign, CampaignEditInput, InitializeCampaignResponse } from '../types';
+import {
+  ConfirmBankTransferPayment,
+  DeleteCampaign,
+  EditCampaign,
+  GetCampaignById,
+  InitializeCampaign,
+  PayCampaignWithWallet,
+  SubmitCampaign,
+  VerifyCampaignPayment,
+} from '../api';
+import type {
+  AdminVerifyPaymentPayload,
+  BankTransferPaymentPayload,
+  Campaign,
+  CampaignEditInput,
+  InitializeCampaignResponse,
+} from '../types';
 import { ResolveCampaignWizardStepPath } from '../utils';
 
 export type InitializeCampaignMutationOptions = Omit<UseMutationOptions<InitializeCampaignResponse, Error, void>, 'mutationFn'>;
@@ -144,11 +159,159 @@ export function UseSubmitCampaignMutation(
       }
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['campaign-payment', campaignId] });
 
-      toast.success('Kampanye berhasil diajukan untuk proses review.');
-      navigate('/brand-dashboard/brand-campaigns?status=IN_REVIEW', { replace: true });
+      if (submittedCampaign.campaignStatus === 'IN_REVIEW') {
+        toast.success('Perubahan kampanye berhasil diajukan untuk review admin.');
+        navigate('/brand-dashboard/brand-campaigns?status=IN_REVIEW', { replace: true });
+      } else {
+        toast.success('Draf kampanye disimpan. Silakan selesaikan pembayaran.');
+        navigate(`/brand-dashboard/brand-campaigns/${campaignId}/create/step-6`);
+      }
 
       onSuccess?.(submittedCampaign, variables, onMutateResult, context);
+    },
+    onError: (error, variables, onMutateResult, context) => {
+      toast.error(error.message);
+      onError?.(error, variables, onMutateResult, context);
+    },
+  });
+
+  return mutation;
+}
+
+export type PayCampaignWithWalletMutationOptions = Omit<UseMutationOptions<Campaign, Error, void>, 'mutationFn'>;
+
+/**
+ * Mutation hook for paying campaign budget using brand wallet balance.
+ *
+ * @param campaignId - The UUID of the campaign being paid.
+ * @param options - Optional mutation options.
+ * @returns TanStack Query mutation object for wallet payment.
+ */
+export function UsePayCampaignWithWalletMutation(
+  campaignId?: string,
+  options?: PayCampaignWithWalletMutationOptions
+): UseMutationResult<Campaign, Error, void> {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { onSuccess, onError, ...restOptions } = options ?? {};
+
+  const mutation = useMutation({
+    ...restOptions,
+    mutationFn: () => {
+      if (!campaignId) {
+        throw new Error('Campaign ID is required.');
+      }
+      return PayCampaignWithWallet(campaignId);
+    },
+    onSuccess: (updatedCampaign, variables, onMutateResult, context) => {
+      if (campaignId) {
+        queryClient.setQueryData(['campaign', campaignId], updatedCampaign);
+      }
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['campaign-payment', campaignId] });
+
+      toast.success('Pembayaran menggunakan saldo dompet berhasil. Kampanye diteruskan untuk review.');
+      navigate('/brand-dashboard/brand-campaigns?status=IN_REVIEW', { replace: true });
+
+      onSuccess?.(updatedCampaign, variables, onMutateResult, context);
+    },
+    onError: (error, variables, onMutateResult, context) => {
+      toast.error(error.message);
+      onError?.(error, variables, onMutateResult, context);
+    },
+  });
+
+  return mutation;
+}
+
+export type ConfirmBankTransferPaymentMutationOptions = Omit<UseMutationOptions<Campaign, Error, BankTransferPaymentPayload>, 'mutationFn'>;
+
+/**
+ * Mutation hook for submitting manual bank transfer details and receipt proof.
+ *
+ * @param campaignId - The UUID of the campaign being paid.
+ * @param options - Optional mutation options.
+ * @returns TanStack Query mutation object for bank transfer confirmation.
+ */
+export function UseConfirmBankTransferPaymentMutation(
+  campaignId?: string,
+  options?: ConfirmBankTransferPaymentMutationOptions
+): UseMutationResult<Campaign, Error, BankTransferPaymentPayload> {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { onSuccess, onError, ...restOptions } = options ?? {};
+
+  const mutation = useMutation({
+    ...restOptions,
+    mutationFn: (data: BankTransferPaymentPayload) => {
+      if (!campaignId) {
+        throw new Error('Campaign ID is required.');
+      }
+      return ConfirmBankTransferPayment(campaignId, data);
+    },
+    onSuccess: (updatedCampaign, variables, onMutateResult, context) => {
+      if (campaignId) {
+        queryClient.setQueryData(['campaign', campaignId], updatedCampaign);
+      }
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['campaign-payment', campaignId] });
+
+      toast.success('Bukti pembayaran berhasil dikirim. Menunggu verifikasi admin.');
+      navigate('/brand-dashboard/brand-campaigns?status=IN_REVIEW', { replace: true });
+
+      onSuccess?.(updatedCampaign, variables, onMutateResult, context);
+    },
+    onError: (error, variables, onMutateResult, context) => {
+      toast.error(error.message);
+      onError?.(error, variables, onMutateResult, context);
+    },
+  });
+
+  return mutation;
+}
+
+export type VerifyCampaignPaymentMutationOptions = Omit<UseMutationOptions<Campaign, Error, AdminVerifyPaymentPayload>, 'mutationFn'>;
+
+/**
+ * Mutation hook for Admin payment approval or rejection.
+ *
+ * @param campaignId - The UUID of the campaign being verified.
+ * @param options - Optional mutation options.
+ * @returns TanStack Query mutation object for admin payment verification.
+ */
+export function UseVerifyCampaignPaymentMutation(
+  campaignId?: string,
+  options?: VerifyCampaignPaymentMutationOptions
+): UseMutationResult<Campaign, Error, AdminVerifyPaymentPayload> {
+  const queryClient = useQueryClient();
+  const { onSuccess, onError, ...restOptions } = options ?? {};
+
+  const mutation = useMutation({
+    ...restOptions,
+    mutationFn: (data: AdminVerifyPaymentPayload) => {
+      if (!campaignId) {
+        throw new Error('Campaign ID is required.');
+      }
+      return VerifyCampaignPayment(campaignId, data);
+    },
+    onSuccess: (updatedCampaign, variables, onMutateResult, context) => {
+      if (campaignId) {
+        queryClient.setQueryData(['campaign', campaignId], updatedCampaign);
+      }
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['campaign-payment', campaignId] });
+
+      const msg = variables.action === 'APPROVE'
+        ? 'Pembayaran berhasil diverifikasi. Kampanye kini berstatus AKTIF.'
+        : 'Pembayaran ditolak. Kampanye dikembalikan ke status Menunggu Pembayaran.';
+      toast.success(msg);
+
+      onSuccess?.(updatedCampaign, variables, onMutateResult, context);
     },
     onError: (error, variables, onMutateResult, context) => {
       toast.error(error.message);

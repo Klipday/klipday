@@ -35,8 +35,15 @@ export const CAMPAIGN_WIZARD_STEPS: WizardStepItem[] = [
     id: 'review',
     slug: 'step-5',
     stepNumber: 5,
-    title: 'Review & Submit',
-    description: 'Ringkasan & ajukan untuk ditinjau',
+    title: 'Review Kampanye',
+    description: 'Ringkasan & konfirmasi',
+  },
+  {
+    id: 'payment',
+    slug: 'step-6',
+    stepNumber: 6,
+    title: 'Pembayaran',
+    description: 'Metode transfer / saldo',
   },
 ];
 

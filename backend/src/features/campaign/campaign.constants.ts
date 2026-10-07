@@ -29,7 +29,7 @@ export const ALLOWED_THUMBNAIL_MIME_TYPES = {
   'image/webp': 'webp',
 } as const;
 
-export const SUBMITTABLE_CAMPAIGN_STATUSES = [CampaignStatus.DRAFT, CampaignStatus.REVISION] as const;
+export const SUBMITTABLE_CAMPAIGN_STATUSES = [CampaignStatus.DRAFT, CampaignStatus.REVISION, CampaignStatus.AWAITING_PAYMENT] as const;
 
 export const FEATURED_CAMPAIGNS_LIMIT = 5;
 export const FEATURED_CAMPAIGNS_MIN_COUNT = 3;
@@ -118,7 +118,47 @@ export const CAMPAIGN_DETAIL_SELECT = {
       status: true,
     },
   },
+  payments: {
+    where: { status: Status.ACTIVE },
+    orderBy: { createdAt: 'desc' },
+    take: 1,
+    select: {
+      id: true,
+      campaignId: true,
+      amount: true,
+      uniqueCode: true,
+      totalPayable: true,
+      destinationBank: true,
+      destinationAccount: true,
+      senderProviderName: true,
+      senderAccountName: true,
+      transferProofUrl: true,
+      paymentStatus: true,
+      rejectionReason: true,
+      verifiedByAdminId: true,
+      verifiedAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  },
 } as const satisfies Prisma.CampaignSelect;
+
+export const DEFAULT_KLIPDAY_BANK_NAME = 'BCA';
+export const DEFAULT_KLIPDAY_BANK_ACCOUNT_NO = '1234567890';
+export const DEFAULT_KLIPDAY_BANK_ACCOUNT_NAME = 'PT Klipday Media Indonesia';
+
+export const WALLET_PAYMENT_DESTINATION_BANK = 'SALDO_KLIPDAY';
+export const WALLET_PAYMENT_DESTINATION_ACCOUNT = 'WALLET';
+
+export const ADMIN_PAYMENT_VERIFY_ACTIONS = ['APPROVE', 'REJECT'] as const;
+
+export const MAX_PAYMENT_PROOF_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+export const ALLOWED_PAYMENT_PROOF_MIME_TYPES = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+} as const;
 
 export const CAMPAIGN_MESSAGES = {
   // Success messages
@@ -219,4 +259,24 @@ export const CAMPAIGN_MESSAGES = {
   CAMPAIGN_TYPE_FILTER_INVALID: 'Invalid campaign type filter selected.',
   PLATFORM_FILTER_INVALID: 'Invalid platform filter selected.',
   CAMPAIGN_STATUS_FILTER_INVALID: 'Invalid campaign status filter selected.',
+
+  // Payment workflow messages
+  PAYMENT_INITIALIZED_SUCCESS: 'Campaign payment initialized successfully.',
+  PAYMENT_RETRIEVED_SUCCESS: 'Campaign payment details retrieved successfully.',
+  WALLET_PAYMENT_SUCCESS: 'Payment completed successfully using wallet balance.',
+  TRANSFER_PAYMENT_SUBMITTED_SUCCESS: 'Bank transfer payment submitted successfully.',
+  PAYMENT_PROOF_UPLOAD_SUCCESS: 'Payment receipt uploaded successfully.',
+  PAYMENT_VERIFIED_SUCCESS: 'Campaign payment verified successfully.',
+  ONLY_DRAFT_CAN_BE_DELETED: 'Only draft campaigns can be deleted.',
+  CAMPAIGN_NOT_AWAITING_PAYMENT: 'Campaign is not awaiting payment.',
+  INSUFFICIENT_WALLET_BALANCE: 'Insufficient wallet balance to pay for this campaign.',
+  WALLET_NOT_FOUND: 'Wallet not found for this account.',
+  PAYMENT_PROOF_REQUIRED: 'Payment receipt image is required.',
+  SENDER_PROVIDER_REQUIRED: 'Sender bank or e-wallet provider is required.',
+  SENDER_ACCOUNT_NAME_REQUIRED: 'Sender account holder name is required.',
+  PAYMENT_NOT_FOUND: 'Campaign payment record not found.',
+  PAYMENT_NOT_SUBMITTED: 'Campaign payment is not in submitted status.',
+  REJECTION_REASON_REQUIRED: 'Rejection reason is required when rejecting payment.',
+  ADMIN_ACTION_INVALID: 'Invalid admin verification action. Allowed values: APPROVE, REJECT.',
+  ADMIN_NOT_FOUND: 'Admin profile not found.',
 } as const;

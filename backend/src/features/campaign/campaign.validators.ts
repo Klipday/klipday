@@ -1,6 +1,6 @@
 import { CAMPAIGN_MESSAGES } from './campaign.constants.js';
-import { campaignEditSchema, campaignQuerySchema } from './campaign.schemas.js';
-import type { CampaignEditInput, CampaignExistingFields, CampaignQueryInput, CampaignSubmitCheckRecord } from './campaign.types.js';
+import { adminVerifyPaymentSchema, bankTransferPaymentSchema, campaignEditSchema, campaignQuerySchema } from './campaign.schemas.js';
+import type { AdminVerifyPaymentInput, BankTransferPaymentInput, CampaignEditInput, CampaignExistingFields, CampaignQueryInput, CampaignSubmitCheckRecord } from './campaign.types.js';
 
 /**
  * Validates the campaign edit request body against the edit schema.
@@ -183,3 +183,45 @@ export function ValidateCampaignQuery(query: unknown): CampaignQueryInput | stri
 
   return parseResult.data;
 }
+
+/**
+ * Validates the manual bank transfer payment confirmation payload.
+ *
+ * @param body - Raw request body from `req.body`.
+ * @returns The parsed `BankTransferPaymentInput` or an error message string when invalid.
+ */
+export function ValidateBankTransferPaymentBody(body: unknown): BankTransferPaymentInput | string {
+  const parseResult = bankTransferPaymentSchema.safeParse(body);
+
+  if (!parseResult.success) {
+    const firstIssue = parseResult.error.issues[0];
+    const errorMessage = firstIssue?.message ?? CAMPAIGN_MESSAGES.INVALID_REQUEST_BODY;
+    return errorMessage;
+  }
+
+  return parseResult.data;
+}
+
+/**
+ * Validates the admin payment verification action payload.
+ * Requires rejectionReason if action is 'REJECT'.
+ *
+ * @param body - Raw request body from `req.body`.
+ * @returns The parsed `AdminVerifyPaymentInput` or an error message string when invalid.
+ */
+export function ValidateAdminVerifyPaymentBody(body: unknown): AdminVerifyPaymentInput | string {
+  const parseResult = adminVerifyPaymentSchema.safeParse(body);
+
+  if (!parseResult.success) {
+    const firstIssue = parseResult.error.issues[0];
+    const errorMessage = firstIssue?.message ?? CAMPAIGN_MESSAGES.INVALID_REQUEST_BODY;
+    return errorMessage;
+  }
+
+  if (parseResult.data.action === 'REJECT' && (!parseResult.data.rejectionReason || parseResult.data.rejectionReason.trim() === '')) {
+    return CAMPAIGN_MESSAGES.REJECTION_REASON_REQUIRED;
+  }
+
+  return parseResult.data;
+}
+

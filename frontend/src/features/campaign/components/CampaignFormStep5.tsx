@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router';
 import {
   AlertDialog,
@@ -114,46 +114,62 @@ export function CampaignFormStep5() {
         </Button>
 
         {/* SUBMIT CONFIRMATION ALERT DIALOG */}
-        <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-          <AlertDialogTrigger asChild>
-            <Button type="button" disabled={isPending || !completeness.isComplete} className="gap-2 font-semibold">
-              {isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Mengajukan...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4" />
-                  Ajukan Kampanye untuk Review
-                </>
-              )}
-            </Button>
-          </AlertDialogTrigger>
+        {(() => {
+          const isPaidRevision = campaign?.campaignStatus === 'REVISION' && campaign?.payments?.[0]?.paymentStatus === 'APPROVED';
+          return (
+            <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+              <AlertDialogTrigger asChild>
+                <Button type="button" disabled={isPending || !completeness.isComplete} className="gap-2 font-semibold">
+                  {isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Memproses...
+                    </>
+                  ) : (
+                    <>
+                      <span>{isPaidRevision ? 'Kirim Revisi ke Admin' : 'Lanjut ke Pembayaran'}</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
 
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Konfirmasi Pengajuan Kampanye</AlertDialogTitle>
-              <AlertDialogDescription>
-                Apakah Anda yakin seluruh rincian kampanye sudah sesuai? Status kampanye akan berubah menjadi{' '}
-                <strong className="text-foreground">IN REVIEW</strong> dan diteruskan ke tim review Klipday.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isPending}>Periksa Kembali</AlertDialogCancel>
-              <AlertDialogAction onClick={HandleConfirmSubmit} disabled={isPending} className="gap-2">
-                {isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Memproses...
-                  </>
-                ) : (
-                  'Ya, Ajukan Sekarang'
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {isPaidRevision ? 'Kirim Revisi Kampanye ke Admin?' : 'Lanjutkan ke Pembayaran?'}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {isPaidRevision ? (
+                      <>
+                        Perubahan kampanye Anda akan disimpan dan status kampanye akan diteruskan ke tim peninjau admin (
+                        <strong className="text-foreground">MENUNGGU REVIEW</strong>).
+                      </>
+                    ) : (
+                      <>
+                        Seluruh data kampanye Anda akan disimpan dan status kampanye akan berubah menjadi{' '}
+                        <strong className="text-foreground">MENUNGGU PEMBAYARAN</strong>. Anda akan diarahkan ke langkah pembayaran anggaran kampanye.
+                      </>
+                    )}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isPending}>Periksa Kembali</AlertDialogCancel>
+                  <AlertDialogAction onClick={HandleConfirmSubmit} disabled={isPending} className="gap-2">
+                    {isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Memproses...
+                      </>
+                    ) : (
+                      isPaidRevision ? 'Ya, Kirim Revisi' : 'Ya, Lanjut ke Pembayaran'
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          );
+        })()}
       </div>
     </div>
   );

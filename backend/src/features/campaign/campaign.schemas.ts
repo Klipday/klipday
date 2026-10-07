@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { CampaignStatus, CampaignType, Category, MaterialType, Platform } from '../../generated/prisma/enums.js';
-import { CAMPAIGN_MESSAGES, CAMPAIGN_SORT_OPTIONS } from './campaign.constants.js';
+import { ADMIN_PAYMENT_VERIFY_ACTIONS, CAMPAIGN_MESSAGES, CAMPAIGN_SORT_OPTIONS } from './campaign.constants.js';
 
 export { CAMPAIGN_SORT_OPTIONS };
 export type CampaignSortOption = (typeof CAMPAIGN_SORT_OPTIONS)[number];
@@ -150,8 +150,30 @@ export const campaignQuerySchema = z.object({
   sort: campaignQuerySortEnum.optional(),
 });
 
+export const bankTransferPaymentSchema = z.object({
+  senderProviderName: z
+    .string({ error: CAMPAIGN_MESSAGES.SENDER_PROVIDER_REQUIRED })
+    .trim()
+    .min(2, CAMPAIGN_MESSAGES.SENDER_PROVIDER_REQUIRED),
+  senderAccountName: z
+    .string({ error: CAMPAIGN_MESSAGES.SENDER_ACCOUNT_NAME_REQUIRED })
+    .trim()
+    .min(2, CAMPAIGN_MESSAGES.SENDER_ACCOUNT_NAME_REQUIRED),
+  transferProofUrl: z
+    .string({ error: CAMPAIGN_MESSAGES.PAYMENT_PROOF_REQUIRED })
+    .trim()
+    .pipe(z.url({ error: CAMPAIGN_MESSAGES.PAYMENT_PROOF_REQUIRED })),
+});
+
+export const adminVerifyPaymentSchema = z.object({
+  action: z.enum(ADMIN_PAYMENT_VERIFY_ACTIONS, { error: CAMPAIGN_MESSAGES.ADMIN_ACTION_INVALID }),
+  rejectionReason: z.string().trim().optional(),
+});
+
 export type CampaignMaterialItemInput = z.infer<typeof campaignMaterialItemSchema>;
 export type CampaignMaterialsInput = z.infer<typeof campaignMaterialsSchema>;
 export type CampaignBriefInput = z.infer<typeof campaignBriefSchema>;
 export type CampaignEditInput = z.infer<typeof campaignEditSchema>;
 export type CampaignQueryInput = z.infer<typeof campaignQuerySchema>;
+export type BankTransferPaymentInput = z.infer<typeof bankTransferPaymentSchema>;
+export type AdminVerifyPaymentInput = z.infer<typeof adminVerifyPaymentSchema>;

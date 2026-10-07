@@ -42,13 +42,13 @@ export function DraftsSheet({ isOpen, onOpenChange, className }: DraftsSheetProp
   const drafts = draftsData?.items ?? [];
   const draftCount = drafts.length;
 
-  const handleContinue = (draft: CampaignCardItem) => {
+  const HandleContinue = (draft: CampaignCardItem) => {
     onOpenChange(false);
     const targetPath = ResolveCampaignWizardStepPath(draft);
     navigate(targetPath);
   };
 
-  const handleDelete = (draft: CampaignCardItem) => {
+  const HandleDelete = (draft: CampaignCardItem) => {
     setDeletingId(draft.id);
     deleteMutation.mutate(draft.id);
   };
@@ -110,8 +110,8 @@ export function DraftsSheet({ isOpen, onOpenChange, className }: DraftsSheetProp
                 <DraftItemRow
                   key={draft.id}
                   draft={draft}
-                  onContinue={handleContinue}
-                  onDelete={handleDelete}
+                  onContinue={HandleContinue}
+                  onDelete={HandleDelete}
                   isDeleting={deletingId === draft.id}
                 />
               ))}

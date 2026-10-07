@@ -2,16 +2,16 @@ import { useState } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router';
 import { cn } from '@/lib/utils';
 import { UseCurrentAccountQuery } from '@/features/authentication/hooks';
-import { SubmissionDialog } from '@/features/submission/components';
+import { CampaignSubmissionsTab, SubmissionDialog } from '@/features/submission/components';
 import { UseMyCampaignSubmissionQuery } from '@/features/submission/hooks';
 import {
+  AdminPaymentReviewCard,
   CampaignDetailAbout,
   CampaignDetailBriefSections,
   CampaignDetailErrorState,
   CampaignDetailHeader,
   CampaignDetailRewardSidebar,
   CampaignDetailSkeleton,
-  CampaignDetailSubmissionsPlaceholder,
   CampaignDetailTabs,
 } from '../components';
 import { UseCampaignQuery } from '../hooks';
@@ -68,8 +68,13 @@ function CampaignDetailPage({ className }: CampaignDetailPageProps) {
     );
   }
 
-  // Redirection guard: draft and revision campaigns must continue their creation wizard flow for owning brands
-  if (userProfile?.role === 'BRAND' && (campaign.campaignStatus === 'DRAFT' || campaign.campaignStatus === 'REVISION')) {
+  // Redirection guard: draft, revision, and awaiting payment campaigns must continue their creation wizard flow for owning brands
+  if (
+    userProfile?.role === 'BRAND' &&
+    (campaign.campaignStatus === 'DRAFT' ||
+      campaign.campaignStatus === 'REVISION' ||
+      campaign.campaignStatus === 'AWAITING_PAYMENT')
+  ) {
     const wizardStepPath = ResolveCampaignWizardStepPath(campaign);
     return <Navigate to={wizardStepPath} replace />;
   }
@@ -86,6 +91,11 @@ function CampaignDetailPage({ className }: CampaignDetailPageProps) {
 
       {/* Main Campaign Content Container spanning full available space */}
       <div className="w-full space-y-6 pt-2 sm:pt-4">
+        {/* Admin Payment Verification Review Card */}
+        {userProfile?.role === 'ADMIN' && campaign.payments?.[0]?.paymentStatus === 'SUBMITTED' && (
+          <AdminPaymentReviewCard campaign={campaign} onVerificationSuccess={() => void refetch()} />
+        )}
+
         {/* Dynamic Role-Aware Tabs */}
         <CampaignDetailTabs activeTab={activeTab} onTabChange={HandleTabChange} userRole={userProfile?.role} />
 
@@ -104,7 +114,7 @@ function CampaignDetailPage({ className }: CampaignDetailPageProps) {
             </div>
           </div>
         ) : (
-          <CampaignDetailSubmissionsPlaceholder
+          <CampaignSubmissionsTab
             userRole={userProfile?.role}
             activeTab={activeTab}
             campaignId={campaign.id}

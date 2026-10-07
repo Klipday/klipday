@@ -37,7 +37,7 @@ export function DraftItemRow({
   const progress = GetDraftStepProgress(draft);
   const formattedDate = FormatDraftDate(draft.updatedAt);
 
-  const handleConfirmDelete = () => {
+  const HandleConfirmDelete = () => {
     setIsAlertOpen(false);
     onDelete(draft);
   };
@@ -89,7 +89,7 @@ export function DraftItemRow({
               <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
               <AlertDialogAction
                 variant="destructive"
-                onClick={handleConfirmDelete}
+                onClick={HandleConfirmDelete}
                 disabled={isDeleting}
               >
                 {isDeleting ? (

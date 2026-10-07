@@ -24,6 +24,10 @@ export { FieldLengthTracker } from './FieldLengthTracker';
 export { MaterialFieldGroup } from './MaterialFieldGroup';
 export { CampaignFormStep5 } from './CampaignFormStep5';
 export { CampaignFormStep5 as ReviewSummary } from './CampaignFormStep5';
+export { CampaignFormStep6 } from './CampaignFormStep6';
+export { CampaignPaymentTransferOption } from './CampaignPaymentTransferOption';
+export { CampaignPaymentWalletOption } from './CampaignPaymentWalletOption';
+export { AdminPaymentReviewCard } from './AdminPaymentReviewCard';
 export { CampaignReviewBasicInfo } from './CampaignReviewBasicInfo';
 export { CampaignReviewBrief } from './CampaignReviewBrief';
 export { CampaignReviewCompletenessAlert } from './CampaignReviewCompletenessAlert';
@@ -39,15 +43,10 @@ export { CampaignDetailHeroMedia } from './CampaignDetailHeroMedia';
 export { CampaignDetailHeader } from './CampaignDetailHeader';
 export { CampaignDetailTabs } from './CampaignDetailTabs';
 export { CampaignDetailAbout } from './CampaignDetailAbout';
-export { CampaignDetailBrief } from './CampaignDetailBrief';
-export { CampaignDetailBriefCard } from './CampaignDetailBriefCard';
 export { CampaignDetailBriefSections } from './CampaignDetailBriefSections';
-export { CampaignDetailMaterials } from './CampaignDetailMaterials';
-export { CampaignDetailInspiration } from './CampaignDetailInspiration';
 export { CampaignDetailRewardSidebar } from './CampaignDetailRewardSidebar';
 export { CampaignDetailSkeleton } from './CampaignDetailSkeleton';
 export { CampaignDetailErrorState } from './CampaignDetailErrorState';
-export { CampaignDetailSubmissionsPlaceholder } from './CampaignDetailSubmissionsPlaceholder';
 export { FeaturedCampaignCarousel } from './FeaturedCampaignCarousel';
 export { FeaturedCampaignSlide } from './FeaturedCampaignSlide';
 export { FeaturedCampaignSkeleton } from './FeaturedCampaignSkeleton';
@@ -56,13 +55,19 @@ export { CreatorCampaignsEmptyState } from './CreatorCampaignsEmptyState';
 export { CreatorCampaignsErrorState } from './CreatorCampaignsErrorState';
 export { CampaignFiltersToolbar } from './CampaignFiltersToolbar';
 export { CampaignFilterSelect } from './CampaignFilterSelect';
-export { CampaignDetailCreatorSubmissions } from './CampaignDetailCreatorSubmissions';
-export { CampaignDetailBrandSubmissions } from './CampaignDetailBrandSubmissions';
-export { CampaignDetailAdminSubmissions } from './CampaignDetailAdminSubmissions';
-export { CampaignDetailBrandSubmissionCard } from './CampaignDetailBrandSubmissionCard';
-export { CampaignDetailBrandSubmissionsToolbar } from './CampaignDetailBrandSubmissionsToolbar';
-export { CampaignDetailBrandSubmissionsPagination } from './CampaignDetailBrandSubmissionsPagination';
-export { CampaignDetailBrandSubmissionsEmpty } from './CampaignDetailBrandSubmissionsEmpty';
-export { CampaignDetailBrandSubmissionsSkeleton } from './CampaignDetailBrandSubmissionsSkeleton';
 
+// Reusable brief presentation components
+export * from './brief';
 
+// Re-exports from submission module for backward compatibility
+export {
+  AdminSubmissionsView as CampaignDetailAdminSubmissions,
+  BrandSubmissionCard as CampaignDetailBrandSubmissionCard,
+  BrandSubmissionsEmptyState as CampaignDetailBrandSubmissionsEmpty,
+  BrandSubmissionsPagination as CampaignDetailBrandSubmissionsPagination,
+  BrandSubmissionsSkeleton as CampaignDetailBrandSubmissionsSkeleton,
+  BrandSubmissionsToolbar as CampaignDetailBrandSubmissionsToolbar,
+  BrandSubmissionsView as CampaignDetailBrandSubmissions,
+  CampaignSubmissionsTab as CampaignDetailSubmissionsPlaceholder,
+  CreatorSubmissionsView as CampaignDetailCreatorSubmissions,
+} from '@/features/submission/components';

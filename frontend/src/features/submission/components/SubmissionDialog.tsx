@@ -14,6 +14,7 @@ import {
   UseConnectedSocialAccountQuery,
   UseFinalSubmitVideoMutation,
   UseMyCampaignSubmissionQuery,
+  UseSaveDraftSubmissionMutation,
 } from '../hooks';
 import type { SocialVideoItem, SubmissionDialogProps } from '../types';
 import { SubmissionDialogCampaignSidebar } from './SubmissionDialogCampaignSidebar';
@@ -50,6 +51,7 @@ export function SubmissionDialog({
 
   const { data: queriedAccount } = UseConnectedSocialAccountQuery();
   const { data: mySubmissionData } = UseMyCampaignSubmissionQuery(open ? campaign.id : undefined);
+  const saveDraftMutation = UseSaveDraftSubmissionMutation(campaign.id);
   const finalSubmitMutation = UseFinalSubmitVideoMutation(campaign.id);
 
   const connectedAccount = queriedAccount ?? mySubmissionData?.socialAccount ?? null;
@@ -207,13 +209,27 @@ export function SubmissionDialog({
         toast.error('Harap pilih video terlebih dahulu.');
         return;
       }
+
+      if (connectedAccount?.id) {
+        try {
+          await saveDraftMutation.mutateAsync({
+            liveVideoUrl: activeVideo.url,
+            thumbnailUrl: activeVideo.thumbnailUrl || undefined,
+            videoCaption: activeVideo.caption || undefined,
+            socialAccountId: connectedAccount.id,
+          });
+        } catch (err) {
+          console.warn('Gagal menyimpan draf pengajuan:', err);
+        }
+      }
+
       setMaxStepReached((prev) => Math.max(prev, 4));
       setCurrentStep(4);
       return;
     }
 
     if (currentStep === 4) {
-      if (!activeVideo) {
+      if (!activeVideo || !connectedAccount?.id) {
         toast.error('Data video tidak lengkap.');
         return;
       }
@@ -221,9 +237,9 @@ export function SubmissionDialog({
       try {
         await finalSubmitMutation.mutateAsync({
           liveVideoUrl: activeVideo.url,
-          thumbnailUrl: activeVideo.thumbnailUrl,
-          videoCaption: activeVideo.caption,
-          socialAccountId: connectedAccount?.id,
+          thumbnailUrl: activeVideo.thumbnailUrl || undefined,
+          videoCaption: activeVideo.caption || undefined,
+          socialAccountId: connectedAccount.id,
         });
 
         toast.success('Pengajuan video berhasil dikirimkan! Menunggu persetujuan brand.');
@@ -390,7 +406,7 @@ export function SubmissionDialog({
             currentStep={currentStep}
             totalSteps={4}
             canProceed={canProceed}
-            isSubmitting={finalSubmitMutation.isPending}
+            isSubmitting={saveDraftMutation.isPending || finalSubmitMutation.isPending}
             onBack={HandleBack}
             onNext={HandleNext}
           />

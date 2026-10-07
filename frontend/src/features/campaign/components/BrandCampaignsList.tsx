@@ -8,7 +8,7 @@ import { CampaignCard } from './CampaignCard';
 import { CampaignCardSkeleton } from './CampaignCardSkeleton';
 import { CampaignStatusEmptyState } from './CampaignStatusEmptyState';
 
-const VALID_STATUSES = ['ACTIVE', 'IN_REVIEW', 'REVISION', 'FINISHED'] as const;
+const VALID_STATUSES = ['ACTIVE', 'AWAITING_PAYMENT', 'IN_REVIEW', 'REVISION', 'FINISHED'] as const;
 
 /**
  * Brand campaigns list component.
@@ -47,7 +47,9 @@ export function BrandCampaignsList({ onCardClick, className }: BrandCampaignsLis
       return;
     }
 
-    if (campaign.campaignStatus === 'DRAFT' || campaign.campaignStatus === 'REVISION') {
+    if (campaign.campaignStatus === 'AWAITING_PAYMENT') {
+      navigate(`/brand-dashboard/brand-campaigns/${campaign.id}/create/step-6`);
+    } else if (campaign.campaignStatus === 'DRAFT' || campaign.campaignStatus === 'REVISION') {
       const targetPath = ResolveCampaignWizardStepPath(campaign);
       navigate(targetPath);
     } else {

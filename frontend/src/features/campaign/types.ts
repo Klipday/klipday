@@ -1,10 +1,5 @@
 import type { ComponentType, ReactNode } from 'react';
 import type { Control } from 'react-hook-form';
-import type {
-  CampaignSubmissionReviewItem,
-  SubmissionSortOption,
-  SubmissionStatus,
-} from '@/features/submission/types';
 import type { MaterialsFormValues } from './schemas';
 
 export interface ApiResponse<T> {
@@ -17,7 +12,7 @@ export interface InitializeCampaignResponse {
   id: string;
 }
 
-export type WizardStepSlug = 'step-1' | 'step-2' | 'step-3' | 'step-4' | 'step-5';
+export type WizardStepSlug = 'step-1' | 'step-2' | 'step-3' | 'step-4' | 'step-5' | 'step-6';
 
 export interface WizardStepItem {
   id: string;
@@ -62,6 +57,25 @@ export interface CampaignBrand {
   industry?: string | null;
 }
 
+export interface CampaignPayment {
+  id: string;
+  campaignId: string;
+  amount: number | string;
+  uniqueCode: number;
+  totalPayable: number | string;
+  destinationBank: string;
+  destinationAccount: string;
+  senderProviderName?: string | null;
+  senderAccountName?: string | null;
+  transferProofUrl?: string | null;
+  paymentStatus: 'PENDING' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  rejectionReason?: string | null;
+  verifiedByAdminId?: string | null;
+  verifiedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Campaign {
   id: string;
   title?: string | null;
@@ -90,6 +104,7 @@ export interface Campaign {
   materials?: CampaignMaterial[];
   brief?: CampaignBrief | null;
   brand?: CampaignBrand;
+  payments?: CampaignPayment[];
   _count?: {
     submissions?: number;
   };
@@ -393,6 +408,7 @@ export type CampaignLifecycleStatus =
 
 export interface CampaignStatusCounts {
   DRAFT: number;
+  AWAITING_PAYMENT: number;
   IN_REVIEW: number;
   REVISION: number;
   REJECTED: number;
@@ -481,30 +497,8 @@ export interface CampaignDetailAboutProps {
   className?: string;
 }
 
-export interface CampaignDetailBriefProps {
-  brief?: CampaignBrief | null;
-  className?: string;
-}
-
 export interface CampaignDetailBriefSectionsProps {
   brief?: CampaignBrief | null;
-  materials?: CampaignMaterial[];
-  className?: string;
-}
-
-export interface CampaignDetailBriefCardProps {
-  brief?: CampaignBrief | null;
-  materials?: CampaignMaterial[];
-  className?: string;
-}
-
-export interface CampaignDetailMaterialsProps {
-  materials?: CampaignMaterial[];
-  className?: string;
-}
-
-export interface CampaignDetailInspirationProps {
-  mainMediaUrl?: string | null;
   materials?: CampaignMaterial[];
   className?: string;
 }
@@ -525,61 +519,24 @@ export interface CampaignDetailErrorStateProps {
   className?: string;
 }
 
-export interface CampaignDetailSubmissionsPlaceholderProps {
-  userRole?: 'BRAND' | 'CREATOR' | 'ADMIN' | null;
-  activeTab: string;
-  campaignId?: string;
-  onOpenSubmitDialog?: () => void;
-  className?: string;
-}
-
-export interface CampaignDetailCreatorSubmissionsProps {
-  campaignId?: string;
-  onOpenSubmitDialog?: () => void;
-  className?: string;
-}
-
-export interface CampaignDetailBrandSubmissionsProps {
-  campaignId?: string;
-  className?: string;
-}
-
-export interface CampaignDetailAdminSubmissionsProps {
-  campaignId?: string;
-  className?: string;
-}
-
-export interface CampaignDetailBrandSubmissionCardProps {
-  submission: CampaignSubmissionReviewItem;
-  className?: string;
-}
-
-export interface CampaignDetailBrandSubmissionsToolbarProps {
-  searchTerm: string;
-  onSearchChange: (value: string) => void;
-  status: SubmissionStatus | 'ALL';
-  onStatusChange: (status: SubmissionStatus | 'ALL') => void;
-  sort: SubmissionSortOption;
-  onSortChange: (sort: SubmissionSortOption) => void;
-  onResetFilters: () => void;
-  hasActiveFilters: boolean;
-  className?: string;
-}
-
-export interface CampaignDetailBrandSubmissionsPaginationProps {
-  currentPage: number;
-  totalPages: number;
-  totalItems: number;
-  pageSize: number;
-  onPageChange: (page: number) => void;
-  className?: string;
-}
-
-export interface CampaignDetailBrandSubmissionsEmptyProps {
-  hasFilters: boolean;
-  onResetFilters?: () => void;
-  className?: string;
-}
+export type {
+  AdminSubmissionsViewProps,
+  BrandSubmissionCardProps,
+  BrandSubmissionsEmptyProps,
+  BrandSubmissionsPaginationProps,
+  BrandSubmissionsToolbarProps,
+  BrandSubmissionsViewProps,
+  CampaignDetailAdminSubmissionsProps,
+  CampaignDetailBrandSubmissionCardProps,
+  CampaignDetailBrandSubmissionsEmptyProps,
+  CampaignDetailBrandSubmissionsPaginationProps,
+  CampaignDetailBrandSubmissionsProps,
+  CampaignDetailBrandSubmissionsToolbarProps,
+  CampaignDetailCreatorSubmissionsProps,
+  CampaignDetailSubmissionsPlaceholderProps,
+  CampaignSubmissionsTabProps,
+  CreatorSubmissionsViewProps,
+} from '@/features/submission/types';
 
 export interface FeaturedCampaignCarouselProps {
   campaigns: CampaignCardItem[];
@@ -656,5 +613,88 @@ export interface UseCampaignFiltersResult {
   UpdateParam: (key: string, value: string | null) => void;
   ResetFilters: () => void;
 }
+
+export interface BriefDirectivesProps {
+  brief?: CampaignBrief | null;
+  layout?: 'grid' | 'stack';
+  className?: string;
+}
+
+export interface BriefDosDontsProps {
+  dos?: string[] | null;
+  donts?: string[] | null;
+  className?: string;
+}
+
+export interface BriefNarrationProps {
+  narration?: string | null;
+  className?: string;
+}
+
+export interface BriefTagsProps {
+  hashtags?: string[] | null;
+  mentionTags?: string[] | null;
+  className?: string;
+}
+
+export interface BriefMaterialsListProps {
+  materials?: CampaignMaterial[] | null;
+  className?: string;
+}
+
+export interface CampaignBankDetails {
+  bankName: string;
+  accountNo: string;
+  accountName: string;
+}
+
+export interface CampaignPaymentDetailsResponse {
+  payment: CampaignPayment | null;
+  walletBalance: number;
+  bankDetails: CampaignBankDetails;
+  budget: number;
+  canPayWithWallet: boolean;
+}
+
+export interface BankTransferPaymentPayload {
+  senderProviderName: string;
+  senderAccountName: string;
+  transferProofUrl: string;
+}
+
+export interface AdminVerifyPaymentPayload {
+  action: 'APPROVE' | 'REJECT';
+  rejectionReason?: string;
+}
+
+export interface CampaignFormStep6Props {
+  className?: string;
+}
+
+export interface CampaignPaymentWalletOptionProps {
+  campaignId: string;
+  budget: number;
+  walletBalance: number;
+  canPay: boolean;
+  className?: string;
+  onPaymentSuccess?: () => void;
+}
+
+export interface CampaignPaymentTransferOptionProps {
+  campaignId: string;
+  totalPayable: number;
+  uniqueCode: number;
+  bankDetails: CampaignBankDetails;
+  existingPayment?: CampaignPayment | null;
+  className?: string;
+  onPaymentSuccess?: () => void;
+}
+
+export interface AdminPaymentReviewCardProps {
+  campaign: Campaign;
+  className?: string;
+  onVerificationSuccess?: () => void;
+}
+
 
 

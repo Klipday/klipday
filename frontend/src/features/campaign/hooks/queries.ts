@@ -1,6 +1,13 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
-import { GetCampaignById, GetCampaigns, GetCampaignStatusCounts, GetFeaturedCampaigns } from '../api';
-import type { Campaign, CampaignCardItem, CampaignQueryParams, CampaignsPaginatedData, CampaignStatusCounts } from '../types';
+import { GetCampaignById, GetCampaignPaymentDetails, GetCampaigns, GetCampaignStatusCounts, GetFeaturedCampaigns } from '../api';
+import type {
+  Campaign,
+  CampaignCardItem,
+  CampaignPaymentDetailsResponse,
+  CampaignQueryParams,
+  CampaignsPaginatedData,
+  CampaignStatusCounts,
+} from '../types';
 
 /**
  * Custom TanStack Query hook that fetches a single campaign's details by its ID.
@@ -65,4 +72,22 @@ export function UseFeaturedCampaignsQuery(): UseQueryResult<CampaignCardItem[], 
 
   return queryResult;
 }
+
+/**
+ * Custom TanStack Query hook that fetches payment details for a campaign.
+ *
+ * @param id - The UUID of the campaign.
+ * @returns TanStack Query result containing the campaign payment details.
+ */
+export function UseCampaignPaymentDetailsQuery(id: string | undefined): UseQueryResult<CampaignPaymentDetailsResponse, Error> {
+  const queryResult = useQuery({
+    queryKey: ['campaign-payment', id],
+    queryFn: () => GetCampaignPaymentDetails(id),
+    enabled: Boolean(id),
+    staleTime: 15 * 1000,
+  });
+
+  return queryResult;
+}
+
 

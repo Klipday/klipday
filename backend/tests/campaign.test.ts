@@ -5,14 +5,18 @@ import {
   DEFAULT_PAGE,
 } from '../src/features/campaign/campaign.constants.js';
 import {
+  ConfirmBankTransferPayment,
   DeleteCampaign,
   EditCampaign,
   GetCampaignById,
+  GetCampaignPaymentDetails,
   GetCampaigns,
   GetCampaignStatusCounts,
   GetFeaturedCampaigns,
   InitializeCampaign,
+  PayCampaignWithWallet,
   SubmitCampaign,
+  VerifyCampaignPayment,
 } from '../src/features/campaign/campaign.handlers.js';
 import {
   ValidateCampaignDateLogic,
@@ -27,9 +31,11 @@ import {
   Category,
   Industry,
   MaterialType,
+  PaymentStatus,
   Platform,
   Role,
   Status,
+  WalletTransactionType,
 } from '../src/generated/prisma/enums.js';
 import { prisma } from '../src/utils/prisma.js';
 import {
@@ -341,7 +347,7 @@ describe('Campaign Feature Module', () => {
     });
 
     describe('SubmitCampaign', () => {
-      it('submits complete campaign and transitions to IN_REVIEW (200)', async () => {
+      it('commits draft into AWAITING_PAYMENT and initializes payment with unique code (200)', async () => {
         const req = CreateMockRequest({
           account: { sub: mockBrand.accountId, role: Role.BRAND },
           params: { id: sampleCompleteCampaign.id },
@@ -352,10 +358,53 @@ describe('Campaign Feature Module', () => {
         jest
           .spyOn(prisma.campaign, 'findFirst')
           .mockResolvedValue(sampleCompleteCampaign as never);
+        jest
+          .spyOn(prisma.campaignPayment, 'findFirst')
+          .mockResolvedValue(null);
+        jest
+          .spyOn(prisma.campaignPayment, 'create')
+          .mockResolvedValue({ id: 'pay-123', uniqueCode: 123 } as never);
         jest.spyOn(prisma.campaign, 'update').mockResolvedValue({
           ...sampleCompleteCampaign,
-          campaignStatus: CampaignStatus.IN_REVIEW,
+          campaignStatus: CampaignStatus.AWAITING_PAYMENT,
         } as never);
+
+        await SubmitCampaign(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'success',
+          data: expect.objectContaining({ campaignStatus: CampaignStatus.AWAITING_PAYMENT }),
+          message: CAMPAIGN_MESSAGES.PAYMENT_INITIALIZED_SUCCESS,
+        });
+      });
+
+      it('transitions revised campaign directly to IN_REVIEW when payment was already APPROVED (200)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockBrand.accountId, role: Role.BRAND },
+          params: { id: sampleCompleteCampaign.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        const revisedCampaign = {
+          ...sampleCompleteCampaign,
+          campaignStatus: CampaignStatus.REVISION,
+        };
+
+        jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(revisedCampaign as never);
+        jest.spyOn(prisma.campaignPayment, 'findFirst').mockResolvedValue({
+          id: 'pay-approved-1',
+          paymentStatus: PaymentStatus.APPROVED,
+        } as never);
+
+        const updatedCampaign = {
+          ...revisedCampaign,
+          campaignStatus: CampaignStatus.IN_REVIEW,
+        };
+        jest.spyOn(prisma.campaign, 'update').mockResolvedValue(updatedCampaign as never);
+
+        const createPaymentSpy = jest.spyOn(prisma.campaignPayment, 'create');
 
         await SubmitCampaign(req, res, next);
 
@@ -365,6 +414,44 @@ describe('Campaign Feature Module', () => {
           data: expect.objectContaining({ campaignStatus: CampaignStatus.IN_REVIEW }),
           message: CAMPAIGN_MESSAGES.SUBMIT_SUCCESS,
         });
+        expect(createPaymentSpy).not.toHaveBeenCalled();
+      });
+
+      it('creates new payment record when existing payment was REJECTED (200)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockBrand.accountId, role: Role.BRAND },
+          params: { id: sampleCompleteCampaign.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(sampleCompleteCampaign as never);
+        jest.spyOn(prisma.campaignPayment, 'findFirst').mockResolvedValue({
+          id: 'pay-rejected-1',
+          paymentStatus: PaymentStatus.REJECTED,
+          uniqueCode: 111,
+        } as never);
+
+        const createPaymentSpy = jest.spyOn(prisma.campaignPayment, 'create').mockResolvedValue({
+          id: 'pay-new-2',
+          paymentStatus: PaymentStatus.PENDING,
+        } as never);
+
+        jest.spyOn(prisma.campaign, 'update').mockResolvedValue({
+          ...sampleCompleteCampaign,
+          campaignStatus: CampaignStatus.AWAITING_PAYMENT,
+        } as never);
+
+        await SubmitCampaign(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(createPaymentSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              paymentStatus: PaymentStatus.PENDING,
+            }),
+          })
+        );
       });
 
       it('rejects submission if campaign is already ACTIVE or IN_REVIEW (400)', async () => {
@@ -537,7 +624,7 @@ describe('Campaign Feature Module', () => {
 
         jest
           .spyOn(prisma.campaign, 'findFirst')
-          .mockResolvedValue({ id: sampleCompleteCampaign.id } as never);
+          .mockResolvedValue({ id: sampleCompleteCampaign.id, campaignStatus: CampaignStatus.DRAFT } as never);
 
         jest.spyOn(prisma, '$transaction').mockResolvedValue([
           { id: sampleCompleteCampaign.id, status: Status.DELETED },
@@ -553,6 +640,28 @@ describe('Campaign Feature Module', () => {
           status: 'success',
           data: null,
           message: CAMPAIGN_MESSAGES.DELETE_SUCCESS,
+        });
+      });
+
+      it('prevents brand from deleting non-draft campaigns such as AWAITING_PAYMENT (400)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockBrand.accountId, role: Role.BRAND },
+          params: { id: sampleCompleteCampaign.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest
+          .spyOn(prisma.campaign, 'findFirst')
+          .mockResolvedValue({ id: sampleCompleteCampaign.id, campaignStatus: CampaignStatus.AWAITING_PAYMENT } as never);
+
+        await DeleteCampaign(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: CAMPAIGN_MESSAGES.ONLY_DRAFT_CAN_BE_DELETED,
         });
       });
 
@@ -576,5 +685,302 @@ describe('Campaign Feature Module', () => {
         });
       });
     });
+
+    describe('GetCampaignPaymentDetails', () => {
+      it('retrieves payment info, wallet balance, and bank info for owning brand (200)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockBrand.accountId, role: Role.BRAND },
+          params: { id: sampleCompleteCampaign.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        const mockCampaignWithPayment = {
+          id: sampleCompleteCampaign.id,
+          budget: 500000,
+          brandId: mockBrand.id,
+          brand: { accountId: mockBrand.accountId },
+          payments: [
+            {
+              id: 'pay-1',
+              amount: 500000,
+              uniqueCode: 142,
+              totalPayable: 500142,
+              destinationBank: 'BCA',
+              destinationAccount: '1234567890',
+              paymentStatus: PaymentStatus.PENDING,
+            },
+          ],
+        };
+
+        jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(mockCampaignWithPayment as never);
+        jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue({ balance: 1000000 } as never);
+
+        await GetCampaignPaymentDetails(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: 'success',
+            data: expect.objectContaining({
+              walletBalance: 1000000,
+              budget: 500000,
+              canPayWithWallet: true,
+              payment: expect.objectContaining({ uniqueCode: 142, totalPayable: 500142 }),
+            }),
+          })
+        );
+      });
+
+      it('auto-initializes pending payment record if campaign has budget and no payment record exists (200)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockBrand.accountId, role: Role.BRAND },
+          params: { id: sampleCompleteCampaign.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        const mockCampaignWithoutPayment = {
+          id: sampleCompleteCampaign.id,
+          budget: 500000,
+          brandId: mockBrand.id,
+          brand: { accountId: mockBrand.accountId },
+          payments: [],
+        };
+
+        jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(mockCampaignWithoutPayment as never);
+        jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue({ balance: 0 } as never);
+        const createPaymentSpy = jest.spyOn(prisma.campaignPayment, 'create').mockResolvedValue({
+          id: 'pay-auto-1',
+          amount: 500000,
+          uniqueCode: 199,
+          totalPayable: 500199,
+          paymentStatus: PaymentStatus.PENDING,
+        } as never);
+
+        await GetCampaignPaymentDetails(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(createPaymentSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              campaignId: sampleCompleteCampaign.id,
+              amount: 500000,
+              paymentStatus: PaymentStatus.PENDING,
+            }),
+          })
+        );
+      });
+    });
+    });
+
+    describe('PayCampaignWithWallet', () => {
+      it('deducts wallet balance, marks payment approved, and transitions to IN_REVIEW (200)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockBrand.accountId, role: Role.BRAND },
+          params: { id: sampleCompleteCampaign.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        const campaignAwaitingPayment = {
+          ...sampleCompleteCampaign,
+          campaignStatus: CampaignStatus.AWAITING_PAYMENT,
+          payments: [{ id: 'pay-1', status: Status.ACTIVE }],
+        };
+
+        jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(campaignAwaitingPayment as never);
+        jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue({ id: 'wall-1', balance: 1000000 } as never);
+
+        const updatedCampaign = {
+          ...sampleCompleteCampaign,
+          campaignStatus: CampaignStatus.IN_REVIEW,
+        };
+
+        jest.spyOn(prisma, '$transaction').mockResolvedValue([
+          updatedCampaign,
+          { id: 'wall-1', balance: 500000 },
+          { id: 'txn-1' },
+          { id: 'pay-1', paymentStatus: PaymentStatus.APPROVED },
+        ] as never);
+
+        await PayCampaignWithWallet(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'success',
+          data: updatedCampaign,
+          message: CAMPAIGN_MESSAGES.WALLET_PAYMENT_SUCCESS,
+        });
+      });
+
+      it('rejects wallet payment when balance is insufficient (400)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockBrand.accountId, role: Role.BRAND },
+          params: { id: sampleCompleteCampaign.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        const campaignAwaitingPayment = {
+          ...sampleCompleteCampaign,
+          campaignStatus: CampaignStatus.AWAITING_PAYMENT,
+          budget: 500000,
+        };
+
+        jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(campaignAwaitingPayment as never);
+        jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue({ id: 'wall-1', balance: 200000 } as never);
+
+        await PayCampaignWithWallet(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: CAMPAIGN_MESSAGES.INSUFFICIENT_WALLET_BALANCE,
+        });
+      });
+    });
+
+    describe('ConfirmBankTransferPayment', () => {
+      it('saves sender details & receipt proof and transitions to IN_REVIEW (200)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockBrand.accountId, role: Role.BRAND },
+          params: { id: sampleCompleteCampaign.id },
+          body: {
+            senderProviderName: 'BCA',
+            senderAccountName: 'Budi Santoso',
+            transferProofUrl: 'https://example.com/receipt.jpg',
+          },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        const campaignAwaitingPayment = {
+          ...sampleCompleteCampaign,
+          campaignStatus: CampaignStatus.AWAITING_PAYMENT,
+          payments: [{ id: 'pay-1', status: Status.ACTIVE }],
+        };
+
+        jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(campaignAwaitingPayment as never);
+
+        const updatedCampaign = {
+          ...sampleCompleteCampaign,
+          campaignStatus: CampaignStatus.IN_REVIEW,
+        };
+
+        jest.spyOn(prisma, '$transaction').mockResolvedValue([
+          updatedCampaign,
+          { id: 'pay-1', paymentStatus: PaymentStatus.SUBMITTED },
+        ] as never);
+
+        await ConfirmBankTransferPayment(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'success',
+          data: updatedCampaign,
+          message: CAMPAIGN_MESSAGES.TRANSFER_PAYMENT_SUBMITTED_SUCCESS,
+        });
+      });
+    });
+
+    describe('VerifyCampaignPayment', () => {
+      it('approves submitted payment, sets campaign ACTIVE, and logs wallet transaction (200)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: 'acc-admin-1', role: Role.ADMIN },
+          params: { id: sampleCompleteCampaign.id },
+          body: { action: 'APPROVE' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.admin, 'findFirst').mockResolvedValue({ id: 'admin-1' } as never);
+
+        const campaignWithSubmittedPayment = {
+          ...sampleCompleteCampaign,
+          brand: { id: mockBrand.id, accountId: mockBrand.accountId, companyName: mockBrand.companyName },
+          payments: [
+            {
+              id: 'pay-1',
+              totalPayable: 500142,
+              paymentStatus: PaymentStatus.SUBMITTED,
+              status: Status.ACTIVE,
+            },
+          ],
+        };
+
+        jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(campaignWithSubmittedPayment as never);
+        jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue({ id: 'wall-1', balance: 0 } as never);
+
+        const activeCampaign = {
+          ...sampleCompleteCampaign,
+          campaignStatus: CampaignStatus.ACTIVE,
+        };
+
+        jest.spyOn(prisma, '$transaction').mockResolvedValue([
+          activeCampaign,
+          { id: 'pay-1', paymentStatus: PaymentStatus.APPROVED },
+          { id: 'txn-1' },
+        ] as never);
+
+        await VerifyCampaignPayment(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'success',
+          data: activeCampaign,
+          message: CAMPAIGN_MESSAGES.PAYMENT_VERIFIED_SUCCESS,
+        });
+      });
+
+      it('rejects submitted payment, sets campaign AWAITING_PAYMENT with rejectionReason (200)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: 'acc-admin-1', role: Role.ADMIN },
+          params: { id: sampleCompleteCampaign.id },
+          body: { action: 'REJECT', rejectionReason: 'Nominal transfer tidak sesuai dengan kode unik.' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.admin, 'findFirst').mockResolvedValue({ id: 'admin-1' } as never);
+
+        const campaignWithSubmittedPayment = {
+          ...sampleCompleteCampaign,
+          brand: { id: mockBrand.id, accountId: mockBrand.accountId, companyName: mockBrand.companyName },
+          payments: [
+            {
+              id: 'pay-1',
+              totalPayable: 500142,
+              paymentStatus: PaymentStatus.SUBMITTED,
+              status: Status.ACTIVE,
+            },
+          ],
+        };
+
+        jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(campaignWithSubmittedPayment as never);
+
+        const revertedCampaign = {
+          ...sampleCompleteCampaign,
+          campaignStatus: CampaignStatus.AWAITING_PAYMENT,
+          adminNote: 'Nominal transfer tidak sesuai dengan kode unik.',
+        };
+
+        jest.spyOn(prisma, '$transaction').mockResolvedValue([
+          revertedCampaign,
+          { id: 'pay-1', paymentStatus: PaymentStatus.REJECTED },
+        ] as never);
+
+        await VerifyCampaignPayment(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'success',
+          data: revertedCampaign,
+          message: CAMPAIGN_MESSAGES.PAYMENT_VERIFIED_SUCCESS,
+        });
+      });
+    });
   });
 });
+

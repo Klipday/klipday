@@ -8,6 +8,12 @@ import type { CampaignEmptyStateConfig } from '../types';
  */
 export function GetEmptyStateForStatus(status?: string): CampaignEmptyStateConfig {
   switch (status) {
+    case 'AWAITING_PAYMENT':
+      return {
+        title: 'Tidak Ada Kampanye Menunggu Pembayaran',
+        description: 'Semua kampanye Anda telah selesai dibayar atau sedang dalam proses peninjauan.',
+      };
+
     case 'IN_REVIEW':
       return {
         title: 'Tidak Ada Kampanye Dalam Review',

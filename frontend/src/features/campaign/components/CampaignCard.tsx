@@ -35,13 +35,13 @@ export function CampaignCard({ campaign, onClick, className }: CampaignCardProps
   const brandName = campaign.brand?.companyName || 'Brand';
   const brandInitial = brandName.charAt(0).toUpperCase();
 
-  const handleCardClick = () => {
+  const HandleCardClick = () => {
     onClick?.(campaign);
   };
 
   return (
     <Card
-      onClick={handleCardClick}
+      onClick={HandleCardClick}
       className={cn(
         'group relative flex flex-col overflow-hidden rounded-2xl border border-border/50 bg-card p-0 py-0 gap-0 text-card-foreground shadow-xs transition-all duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.02] hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/5 hover:z-10 will-change-transform',
         onClick && 'cursor-pointer',
@@ -134,7 +134,7 @@ export function CampaignCard({ campaign, onClick, className }: CampaignCardProps
             </div>
           </div>
 
-          {/* Hover Action Button: "Lihat Detail" */}
+          {/* Hover Action Button: "Lihat Detail" / "Bayar Sekarang" */}
           <div className="grid grid-rows-[0fr] opacity-0 transition-all duration-300 ease-out group-hover:grid-rows-[1fr] group-hover:opacity-100 group-hover:pt-2">
             <div className="overflow-hidden">
               <Button
@@ -143,9 +143,9 @@ export function CampaignCard({ campaign, onClick, className }: CampaignCardProps
                 className="w-full bg-primary text-primary-foreground font-semibold shadow-xs hover:bg-primary/90 rounded-xl h-9 text-xs sm:text-sm cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleCardClick();
+                  HandleCardClick();
                 }}>
-                Lihat Detail
+                {campaign.campaignStatus === 'AWAITING_PAYMENT' ? 'Bayar Sekarang' : 'Lihat Detail'}
               </Button>
             </div>
           </div>

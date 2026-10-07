@@ -127,6 +127,12 @@ export function GetCampaignStatusBadge(status?: string | null): CampaignStatusBa
         className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
       };
 
+    case 'AWAITING_PAYMENT':
+      return {
+        label: 'Menunggu Pembayaran',
+        className: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+      };
+
     case 'IN_REVIEW':
       return {
         label: 'Dalam Review',

@@ -272,3 +272,26 @@ export function BuildCampaignsOrderBy(
   ];
   return orderByLatest;
 }
+
+/**
+ * Generates a random 3-digit verification unique code between 100 and 999.
+ *
+ * @returns Three-digit integer unique code.
+ */
+export function GeneratePaymentUniqueCode(): number {
+  const code = Math.floor(100 + Math.random() * 900);
+  return code;
+}
+
+/**
+ * Generates a standardized transaction reference code for Klipday wallet logs.
+ *
+ * @returns Formatted reference code string (e.g. TXN-XXXXXX-XXXX).
+ */
+export function GenerateWalletTransactionReferenceCode(): string {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const refCode = `TXN-${timestamp}-${randomSuffix}`;
+  return refCode;
+}
+

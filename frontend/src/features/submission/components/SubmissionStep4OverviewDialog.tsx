@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ExternalLink, Info, Video } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, SanitizeHttpUrl } from '@/lib/utils';
 import type { SubmissionStep4OverviewDialogProps } from '../types';
 
 /**
@@ -87,12 +87,12 @@ export function SubmissionStep4OverviewDialog({
               </p>
             </div>
 
-            {liveVideoUrl && (
+            {SanitizeHttpUrl(liveVideoUrl) && (
               <div className="space-y-1">
                 <span className="text-[11px] font-medium text-muted-foreground">Tautan Video:</span>
                 <div>
                   <a
-                    href={liveVideoUrl}
+                    href={SanitizeHttpUrl(liveVideoUrl)!}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-xs text-foreground/90 hover:text-foreground hover:underline break-all font-medium">

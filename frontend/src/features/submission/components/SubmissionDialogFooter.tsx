@@ -69,11 +69,20 @@ export function SubmissionDialogFooter({
           <Button
             type="button"
             size="default"
-            disabled={!canProceed}
+            disabled={!canProceed || isSubmitting}
             onClick={onNext}
             className="gap-2 font-semibold px-6 rounded-xl h-10 text-xs sm:text-sm bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs cursor-pointer">
-            <span>Selanjutnya</span>
-            <ArrowRight className="size-4" />
+            {isSubmitting && currentStep === 3 ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                <span>Menyimpan...</span>
+              </>
+            ) : (
+              <>
+                <span>Selanjutnya</span>
+                <ArrowRight className="size-4" />
+              </>
+            )}
           </Button>
         )}
       </div>

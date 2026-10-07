@@ -1,9 +1,12 @@
 import { apiClient, ExtractApiError } from '@/lib/api-client';
 import type {
+  AdminVerifyPaymentPayload,
   ApiResponse,
+  BankTransferPaymentPayload,
   Campaign,
   CampaignCardItem,
   CampaignEditInput,
+  CampaignPaymentDetailsResponse,
   CampaignQueryParams,
   CampaignsPaginatedData,
   CampaignStatusCounts,
@@ -205,4 +208,131 @@ export async function GetFeaturedCampaigns(): Promise<CampaignCardItem[]> {
     throw apiError;
   }
 }
+
+/**
+ * Sends a GET request to `/campaigns/:id/payment` to retrieve campaign payment details,
+ * destination bank snapshot, and brand wallet balance.
+ *
+ * @param id - The UUID of the campaign.
+ * @returns The campaign payment details response.
+ * @throws Error if id is missing or standardized API error if request fails.
+ */
+export async function GetCampaignPaymentDetails(id?: string): Promise<CampaignPaymentDetailsResponse> {
+  if (!id) {
+    throw new Error('Campaign ID is required.');
+  }
+
+  try {
+    const response = await apiClient.get<ApiResponse<CampaignPaymentDetailsResponse>>(`/campaigns/${id}/payment`);
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal memuat rincian pembayaran kampanye. Silakan coba lagi.');
+    throw apiError;
+  }
+}
+
+/**
+ * Sends a POST request to `/campaigns/:id/payment/wallet` to pay campaign budget via brand wallet.
+ *
+ * @param id - The UUID of the campaign.
+ * @returns The updated campaign entity.
+ * @throws Error if id is missing or standardized API error if request fails.
+ */
+export async function PayCampaignWithWallet(id: string): Promise<Campaign> {
+  if (!id) {
+    throw new Error('Campaign ID is required.');
+  }
+
+  try {
+    const response = await apiClient.post<ApiResponse<Campaign>>(`/campaigns/${id}/payment/wallet`);
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal melakukan pembayaran menggunakan saldo dompet. Silakan coba lagi.');
+    throw apiError;
+  }
+}
+
+/**
+ * Streams payment receipt image directly to Supabase Storage.
+ *
+ * @param id - The UUID of the campaign.
+ * @param file - The image receipt File to upload.
+ * @param onProgress - Optional callback notifying upload progress (0-100).
+ * @returns The public URL of the uploaded transfer receipt.
+ * @throws Error if id is missing or standardized API error if upload fails.
+ */
+export async function UploadPaymentProof(id: string, file: File, onProgress?: (percent: number) => void): Promise<string> {
+  if (!id) {
+    throw new Error('Campaign ID is required.');
+  }
+
+  try {
+    const response = await apiClient.post<ApiResponse<{ url: string }>>(`/campaigns/${id}/payment/proof`, file, {
+      headers: {
+        'Content-Type': file.type,
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress?.(percent);
+        }
+      },
+    });
+
+    const publicUrl = response.data.data.url;
+    return publicUrl;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal mengunggah bukti pembayaran. Silakan coba lagi.');
+    throw apiError;
+  }
+}
+
+/**
+ * Sends a POST request to `/campaigns/:id/payment/confirm` to confirm manual bank transfer details.
+ *
+ * @param id - The UUID of the campaign.
+ * @param data - The bank transfer sender information and receipt URL.
+ * @returns The updated campaign entity.
+ * @throws Error if id is missing or standardized API error if request fails.
+ */
+export async function ConfirmBankTransferPayment(id: string, data: BankTransferPaymentPayload): Promise<Campaign> {
+  if (!id) {
+    throw new Error('Campaign ID is required.');
+  }
+
+  try {
+    const response = await apiClient.post<ApiResponse<Campaign>>(`/campaigns/${id}/payment/confirm`, data);
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal mengonfirmasi transfer pembayaran. Silakan coba lagi.');
+    throw apiError;
+  }
+}
+
+/**
+ * Sends a POST request to `/campaigns/:id/payment/verify` for Admin to approve or reject payment.
+ *
+ * @param id - The UUID of the campaign.
+ * @param data - Action payload (APPROVE or REJECT with rejectionReason).
+ * @returns The updated campaign entity.
+ * @throws Error if id is missing or standardized API error if request fails.
+ */
+export async function VerifyCampaignPayment(id: string, data: AdminVerifyPaymentPayload): Promise<Campaign> {
+  if (!id) {
+    throw new Error('Campaign ID is required.');
+  }
+
+  try {
+    const response = await apiClient.post<ApiResponse<Campaign>>(`/campaigns/${id}/payment/verify`, data);
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal memverifikasi pembayaran kampanye. Silakan coba lagi.');
+    throw apiError;
+  }
+}
+
 

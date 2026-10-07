@@ -92,56 +92,6 @@ export interface FinalSubmitVideoInput {
   socialAccountId?: string;
 }
 
-export interface SubmissionWizardStepConfig {
-  stepNumber: number;
-  slug: string;
-  label: string;
-  description: string;
-}
-
-export interface SubmissionWizardOutletContext {
-  campaign: Campaign;
-  submissionData?: MySubmissionData;
-}
-
-export interface SubmissionWizardHeaderProps {
-  campaignTitle?: string | null;
-  campaignId?: string;
-  className?: string;
-}
-
-export interface SubmissionWizardStepperProps {
-  currentStepNumber: number;
-  highestAccessibleStep: number;
-  campaignId: string;
-  className?: string;
-}
-
-export interface SubmissionFormStep1BriefProps {
-  campaign: Campaign;
-  className?: string;
-}
-
-export interface SubmissionFormStep2AccountProps {
-  campaignId: string;
-  connectedAccount?: CreatorSocialAccount | null;
-  className?: string;
-}
-
-export interface SubmissionFormStep3VideoPickerProps {
-  campaignId: string;
-  currentDraft?: Submission | null;
-  connectedAccount?: CreatorSocialAccount | null;
-  className?: string;
-}
-
-export interface SubmissionFormStep4OverviewProps {
-  campaign: Campaign;
-  submission?: Submission | null;
-  connectedAccount?: CreatorSocialAccount | null;
-  className?: string;
-}
-
 export interface SubmissionVideoCardProps {
   video: SocialVideoItem;
   isSelected?: boolean;
@@ -325,3 +275,131 @@ export interface SubmissionReviewDialogProps {
   onOpenChange: (open: boolean) => void;
   submission: CampaignSubmissionReviewItem;
 }
+
+export interface SubmissionReviewDialogInnerProps {
+  onOpenChange: (open: boolean) => void;
+  submission: CampaignSubmissionReviewItem;
+}
+
+export interface BrandSubmissionCardProps {
+  submission: CampaignSubmissionReviewItem;
+  onReview?: (submission: CampaignSubmissionReviewItem) => void;
+  className?: string;
+}
+
+export interface BrandSubmissionsToolbarProps {
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  status: SubmissionStatus | 'ALL';
+  onStatusChange: (status: SubmissionStatus | 'ALL') => void;
+  sort: SubmissionSortOption;
+  onSortChange: (sort: SubmissionSortOption) => void;
+  onResetFilters: () => void;
+  hasActiveFilters: boolean;
+  className?: string;
+}
+
+export interface BrandSubmissionsPaginationProps {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+  className?: string;
+}
+
+export interface BrandSubmissionsEmptyProps {
+  hasFilters: boolean;
+  onResetFilters?: () => void;
+  className?: string;
+}
+
+export interface BrandSubmissionsViewProps {
+  campaignId?: string;
+  className?: string;
+}
+
+export interface CreatorSubmissionsViewProps {
+  campaignId?: string;
+  onOpenSubmitDialog?: () => void;
+  className?: string;
+}
+
+export interface AdminSubmissionsViewProps {
+  campaignId?: string;
+  className?: string;
+}
+
+export interface CampaignSubmissionsTabProps {
+  userRole?: 'BRAND' | 'CREATOR' | 'ADMIN' | null;
+  activeTab: string;
+  campaignId?: string;
+  onOpenSubmitDialog?: () => void;
+  className?: string;
+}
+
+// Aliases for backwards compatibility
+export type CampaignDetailBrandSubmissionCardProps = BrandSubmissionCardProps;
+export type CampaignDetailBrandSubmissionsToolbarProps = BrandSubmissionsToolbarProps;
+export type CampaignDetailBrandSubmissionsPaginationProps = BrandSubmissionsPaginationProps;
+export type CampaignDetailBrandSubmissionsEmptyProps = BrandSubmissionsEmptyProps;
+export type CampaignDetailBrandSubmissionsProps = BrandSubmissionsViewProps;
+export type CampaignDetailCreatorSubmissionsProps = CreatorSubmissionsViewProps;
+export type CampaignDetailAdminSubmissionsProps = AdminSubmissionsViewProps;
+export type CampaignDetailSubmissionsPlaceholderProps = CampaignSubmissionsTabProps;
+
+export interface BrandSubmissionsSkeletonProps {
+  className?: string;
+}
+
+export interface StatusFilterOption {
+  value: SubmissionStatus | 'ALL';
+  label: string;
+}
+
+export interface SortFilterOption {
+  value: SubmissionSortOption;
+  label: string;
+}
+
+export interface ConnectGuideInfographicProps {
+  platformDisplayName: string;
+}
+
+export interface SocialVerificationCodeCardProps {
+  activeCode: string;
+  platformDisplayName: string;
+  isCodeExpired: boolean;
+  expirySeconds: number;
+  cooldownSeconds: number;
+  isChecking: boolean;
+  hasCopiedCode: boolean;
+  onCopyCode: () => void;
+  onCheckVerification: () => void;
+  className?: string;
+}
+
+export interface SubmissionManualVideoFormProps {
+  selectedVideo?: SocialVideoItem | null;
+  connectedAccount?: CreatorSocialAccount | null;
+  isPending: boolean;
+  onValidateUrl: (url: string) => Promise<void>;
+  onClearSelectedVideo: () => void;
+  className?: string;
+}
+
+export interface SubmissionVideoGalleryProps {
+  recentVideos?: SocialVideoItem[];
+  selectedVideo?: SocialVideoItem | null;
+  connectedAccount?: CreatorSocialAccount | null;
+  isLoading: boolean;
+  isError: boolean;
+  error?: unknown;
+  isFetching: boolean;
+  onSelectVideo: (video: SocialVideoItem | null) => void;
+  onRefetch: () => void;
+  onSwitchToManual: () => void;
+  className?: string;
+}
+
+export type VideoPickerTab = 'GALLERY' | 'MANUAL';

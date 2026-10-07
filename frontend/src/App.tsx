@@ -24,6 +24,7 @@ const CampaignStep2 = lazy(() => import('@/features/campaign/pages/steps/Campaig
 const CampaignStep3 = lazy(() => import('@/features/campaign/pages/steps/CampaignStep3'));
 const CampaignStep4 = lazy(() => import('@/features/campaign/pages/steps/CampaignStep4'));
 const CampaignStep5 = lazy(() => import('@/features/campaign/pages/steps/CampaignStep5'));
+const CampaignStep6 = lazy(() => import('@/features/campaign/pages/steps/CampaignStep6'));
 const CampaignDetail = lazy(() => import('@/features/campaign/pages/CampaignDetail'));
 
 
@@ -84,6 +85,7 @@ const router = createBrowserRouter(
             <Route path="step-3" element={<CampaignStep3 />} />
             <Route path="step-4" element={<CampaignStep4 />} />
             <Route path="step-5" element={<CampaignStep5 />} />
+            <Route path="step-6" element={<CampaignStep6 />} />
           </Route>
           <Route path="brand-campaigns/:id/create" element={<CampaignWizardLayout />}>
             <Route index element={<CampaignWizardIndexRedirect />} />
@@ -92,6 +94,7 @@ const router = createBrowserRouter(
             <Route path="step-3" element={<CampaignStep3 />} />
             <Route path="step-4" element={<CampaignStep4 />} />
             <Route path="step-5" element={<CampaignStep5 />} />
+            <Route path="step-6" element={<CampaignStep6 />} />
           </Route>
           <Route path="brand-campaign" element={<Navigate to="/brand-dashboard/brand-campaigns" replace />} />
         </Route>
