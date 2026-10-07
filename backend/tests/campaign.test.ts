@@ -344,6 +344,75 @@ describe('Campaign Feature Module', () => {
           message: CAMPAIGN_MESSAGES.REWARD_BUDGET_LESS_THAN_CPM,
         });
       });
+
+      it('returns 400 when attempting to update budget or cpm after payment is already APPROVED', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockBrand.accountId, role: Role.BRAND },
+          params: { id: sampleCompleteCampaign.id },
+          body: { budget: 900000 },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        const paidCampaign = {
+          ...sampleCompleteCampaign,
+          budget: 500000,
+          cpm: 50000,
+          payments: [
+            {
+              paymentStatus: PaymentStatus.APPROVED,
+            },
+          ],
+        };
+
+        jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(paidCampaign as never);
+
+        await EditCampaign(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: CAMPAIGN_MESSAGES.BUDGET_LOCKED_AFTER_PAYMENT,
+        });
+      });
+
+      it('allows updating non-financial fields when payment is already APPROVED (200)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockBrand.accountId, role: Role.BRAND },
+          params: { id: sampleCompleteCampaign.id },
+          body: { title: 'Updated Title After Approval' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        const paidCampaign = {
+          ...sampleCompleteCampaign,
+          budget: 500000,
+          cpm: 50000,
+          payments: [
+            {
+              paymentStatus: PaymentStatus.APPROVED,
+            },
+          ],
+        };
+
+        jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(paidCampaign as never);
+        jest.spyOn(prisma.campaign, 'update').mockResolvedValue({
+          ...paidCampaign,
+          title: 'Updated Title After Approval',
+        } as never);
+
+        await EditCampaign(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: 'success',
+            data: expect.objectContaining({ title: 'Updated Title After Approval' }),
+          })
+        );
+      });
     });
 
     describe('SubmitCampaign', () => {
@@ -767,6 +836,56 @@ describe('Campaign Feature Module', () => {
               campaignId: sampleCompleteCampaign.id,
               amount: 500000,
               paymentStatus: PaymentStatus.PENDING,
+            }),
+          })
+        );
+      });
+
+      it('auto-syncs pending payment amount and totalPayable when campaign budget was updated (200)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockBrand.accountId, role: Role.BRAND },
+          params: { id: sampleCompleteCampaign.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        const mockCampaignWithOldPayment = {
+          id: sampleCompleteCampaign.id,
+          budget: 800000,
+          brandId: mockBrand.id,
+          brand: { accountId: mockBrand.accountId },
+          payments: [
+            {
+              id: 'pay-pending-old',
+              amount: 500000,
+              uniqueCode: 150,
+              totalPayable: 500150,
+              destinationBank: 'BCA',
+              destinationAccount: '1234567890',
+              paymentStatus: PaymentStatus.PENDING,
+            },
+          ],
+        };
+
+        jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(mockCampaignWithOldPayment as never);
+        jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue({ balance: 0 } as never);
+        const updatePaymentSpy = jest.spyOn(prisma.campaignPayment, 'update').mockResolvedValue({
+          id: 'pay-pending-old',
+          amount: 800000,
+          uniqueCode: 150,
+          totalPayable: 800150,
+          paymentStatus: PaymentStatus.PENDING,
+        } as never);
+
+        await GetCampaignPaymentDetails(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(updatePaymentSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { id: 'pay-pending-old' },
+            data: expect.objectContaining({
+              amount: 800000,
+              totalPayable: 800150,
             }),
           })
         );

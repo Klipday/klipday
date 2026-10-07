@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Lock } from 'lucide-react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -33,8 +34,11 @@ export function CampaignFormStep4() {
   const navigate = useNavigate();
   const { campaign } = UseCampaignWizardContext();
 
+  const isBudgetLocked = campaign?.payments?.[0]?.paymentStatus === 'APPROVED';
+
   const editMutation = UseEditCampaignMutation(id, {
     successMessage: 'Hadiah & anggaran berhasil disimpan.',
+    nextStepSlug: 'step-5',
   });
 
   const initialValues = useMemo(() => GetInitialReward(campaign), [campaign]);
@@ -96,6 +100,23 @@ export function CampaignFormStep4() {
 
   return (
     <form noValidate onSubmit={form.handleSubmit(HandleFormSubmit)} className="space-y-8">
+      {/* LOCKED BUDGET CALLOUT NOTICE */}
+      {isBudgetLocked && (
+        <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 text-xs text-muted-foreground">
+          <Lock className="size-4 shrink-0 text-muted-foreground mt-0.5" />
+          <div className="space-y-1">
+            <h4 className="font-semibold text-foreground">Tarif CPM & Total Anggaran Terkunci</h4>
+            <p className="leading-relaxed">
+              Pembayaran anggaran sebesar{' '}
+              <strong className="text-foreground font-medium">
+                Rp {Number(campaign?.budget ?? 0).toLocaleString('id-ID')}
+              </strong>{' '}
+              telah diverifikasi. Tarif CPM dan total anggaran tidak dapat diubah selama tahap revisi. Anda tetap dapat menyesuaikan batas penayangan dan jadwal kampanye.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* SECTION 1: Hadiah & Ambang Tayangan (Reward System) */}
       <div className="space-y-4">
         <div className="border-b border-border/40 pb-2">
@@ -124,7 +145,7 @@ export function CampaignFormStep4() {
                     inputMode="numeric"
                     placeholder="Contoh: 10.000"
                     className="pl-10 text-base"
-                    disabled={isPending}
+                    disabled={isPending || isBudgetLocked}
                     value={FormatNumberForInput(field.value)}
                     onChange={(e) => HandleFormattedNumberChange(field.onChange, e)}
                   />
@@ -227,7 +248,7 @@ export function CampaignFormStep4() {
                     inputMode="numeric"
                     placeholder="Contoh: 5.000.000"
                     className="pl-10 text-base"
-                    disabled={isPending}
+                    disabled={isPending || isBudgetLocked}
                     value={FormatNumberForInput(field.value)}
                     onChange={(e) => HandleFormattedNumberChange(field.onChange, e)}
                   />

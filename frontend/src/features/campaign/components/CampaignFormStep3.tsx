@@ -31,6 +31,7 @@ export function CampaignFormStep3() {
 
   const editMutation = UseEditCampaignMutation(id, {
     successMessage: 'Brief & panduan berhasil disimpan.',
+    nextStepSlug: 'step-4',
   });
 
   const initialValues = useMemo(() => GetInitialBrief(campaign), [campaign]);

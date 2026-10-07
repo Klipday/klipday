@@ -135,6 +135,14 @@ export async function EditCampaign(req: Request, res: Response, next: NextFuncti
         cpm: true,
         startDate: true,
         endDate: true,
+        payments: {
+          where: { status: Status.ACTIVE },
+          orderBy: { createdAt: 'desc' as const },
+          take: 1,
+          select: {
+            paymentStatus: true,
+          },
+        },
       },
     };
 
@@ -149,6 +157,19 @@ export async function EditCampaign(req: Request, res: Response, next: NextFuncti
     if (typeof input === 'string') {
       SendError(res, input, 400);
       return;
+    }
+
+    const latestPayment = ownedCampaign.payments?.[0];
+    const isPaymentApproved = latestPayment?.paymentStatus === PaymentStatus.APPROVED;
+
+    if (isPaymentApproved) {
+      const isAttemptingBudgetChange = input.budget !== undefined && Number(input.budget) !== Number(ownedCampaign.budget);
+      const isAttemptingCpmChange = input.cpm !== undefined && Number(input.cpm) !== Number(ownedCampaign.cpm);
+
+      if (isAttemptingBudgetChange || isAttemptingCpmChange) {
+        SendError(res, CAMPAIGN_MESSAGES.BUDGET_LOCKED_AFTER_PAYMENT, 400);
+        return;
+      }
     }
 
     const rewardError = ValidateCampaignRewardLogic(input, ownedCampaign);
@@ -895,6 +916,26 @@ export async function GetCampaignPaymentDetails(req: Request, res: Response, nex
           destinationAccount,
           paymentStatus: PaymentStatus.PENDING,
           status: Status.ACTIVE,
+        },
+      });
+    } else if (
+      latestPayment &&
+      latestPayment.paymentStatus === PaymentStatus.PENDING &&
+      budget > 0 &&
+      Number(latestPayment.amount) !== budget
+    ) {
+      const validCode =
+        latestPayment.uniqueCode >= 100 && latestPayment.uniqueCode <= 999
+          ? latestPayment.uniqueCode
+          : GeneratePaymentUniqueCode();
+      const totalPayable = budget + validCode;
+
+      latestPayment = await prisma.campaignPayment.update({
+        where: { id: latestPayment.id },
+        data: {
+          amount: budget,
+          uniqueCode: validCode,
+          totalPayable,
         },
       });
     }

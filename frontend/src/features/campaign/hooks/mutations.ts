@@ -17,13 +17,16 @@ import type {
   Campaign,
   CampaignEditInput,
   InitializeCampaignResponse,
+  WizardStepSlug,
 } from '../types';
+import { GetWizardStepPath } from '../config/wizard-steps';
 import { ResolveCampaignWizardStepPath } from '../utils';
 
 export type InitializeCampaignMutationOptions = Omit<UseMutationOptions<InitializeCampaignResponse, Error, void>, 'mutationFn'>;
 
 export type EditCampaignMutationOptions = Omit<UseMutationOptions<Campaign, Error, CampaignEditInput>, 'mutationFn'> & {
   successMessage?: string;
+  nextStepSlug?: WizardStepSlug;
 };
 
 /**
@@ -109,7 +112,10 @@ export function UseEditCampaignMutation(
       const message = options?.successMessage ?? 'Informasi dasar berhasil disimpan.';
       toast.success(message);
 
-      const targetPath = ResolveCampaignWizardStepPath(updatedCampaign);
+      const targetPath = options?.nextStepSlug
+        ? GetWizardStepPath(options.nextStepSlug, updatedCampaign.id)
+        : ResolveCampaignWizardStepPath(updatedCampaign);
+
       navigate(targetPath, {
         state: { campaignId: updatedCampaign.id },
       });

@@ -69,11 +69,6 @@ function CampaignWizardLayout() {
     return <Navigate to="/brand-dashboard/brand-campaigns?status=IN_REVIEW" replace />;
   }
 
-  if (campaign?.campaignStatus === 'AWAITING_PAYMENT' && !location.pathname.includes('step-6')) {
-    const step6Path = GetWizardStepPath('step-6', id);
-    return <Navigate to={step6Path} replace />;
-  }
-
   if (isForbiddenStep) {
     const fallbackStep = CAMPAIGN_WIZARD_STEPS[highestAllowedStep - 1] ?? CAMPAIGN_WIZARD_STEPS[0];
     const fallbackPath = GetWizardStepPath(fallbackStep.slug, id);

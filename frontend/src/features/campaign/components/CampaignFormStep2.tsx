@@ -29,6 +29,7 @@ export function CampaignFormStep2() {
 
   const editMutation = UseEditCampaignMutation(id, {
     successMessage: 'Materi & aset berhasil disimpan.',
+    nextStepSlug: 'step-3',
   });
 
   const initialMaterials = useMemo(() => GetInitialMaterials(campaign), [campaign]);

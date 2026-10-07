@@ -40,7 +40,9 @@ export function CampaignFormStep1() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const { campaign } = UseCampaignWizardContext();
-  const editMutation = UseEditCampaignMutation(id);
+  const editMutation = UseEditCampaignMutation(id, {
+    nextStepSlug: 'step-2',
+  });
 
   const initialValues = useMemo(() => GetInitialBasicInfo(campaign), [campaign]);
 

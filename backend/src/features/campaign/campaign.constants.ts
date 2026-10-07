@@ -279,4 +279,5 @@ export const CAMPAIGN_MESSAGES = {
   REJECTION_REASON_REQUIRED: 'Rejection reason is required when rejecting payment.',
   ADMIN_ACTION_INVALID: 'Invalid admin verification action. Allowed values: APPROVE, REJECT.',
   ADMIN_NOT_FOUND: 'Admin profile not found.',
+  BUDGET_LOCKED_AFTER_PAYMENT: 'Budget and CPM cannot be modified because campaign payment has already been approved.',
 } as const;
