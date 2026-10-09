@@ -131,7 +131,7 @@
 - Keep modifications minimal and strictly scoped to the task: do not introduce speculative abstractions or opportunistic refactors outside
   the assigned scope.
 - Never execute git mutations (commit, push, checkout, stash) unless the user explicitly requests it.
-- Align code with product specifications: treat `PRD.md` as the definitive functional specification, and proactively update the PRD if scope
+- Align code with product specifications: treat `README.md` as the definitive product specification, and proactively update the README if scope
   or architecture decisions evolve.
 
 # Continuous Learning & Lessons Learned Capture

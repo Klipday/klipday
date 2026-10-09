@@ -2,8 +2,6 @@
 
 A performance-driven short-form video clipping marketplace connecting brands and creators in Indonesia. Brands receive organic reach with escrow budget protection; clippers monetize edits per verified view (CPM).
 
-> **Interactive Documentation**: Open [`documentation.html`](file:///C:/Projects/klipday/documentation.html) in your browser for the local interactive documentation experience with visual architecture and navigation.
-
 ---
 
 ## About Klipday
@@ -128,7 +126,6 @@ klipday/
 │       ├── lib/                 # Axios API client & global utility helpers
 │       ├── App.tsx              # Router configuration & route tree
 │       └── main.tsx             # React DOM root render
-├── documentation.html           # Local interactive developer documentation
 └── README.md                    # Main project documentation
 ```
 
