@@ -1,30 +1,25 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Klipday Documentation - Marketplace Kreator & Brand</title>
+  <title>Klipday — Product & Architecture Documentation</title>
   <style>
     :root {
-      --bg: #f8fafc;
-      --card-bg: #ffffff;
-      --border: #e2e8f0;
-      --border-subtle: #f1f5f9;
-      --text: #0f172a;
-      --text-muted: #64748b;
-      --text-soft: #94a3b8;
-      --primary: #2563eb;
-      --primary-light: #eff6ff;
-      --primary-dark: #1d4ed8;
-      --success: #10b981;
-      --success-light: #ecfdf5;
-      --accent: #f59e0b;
-      --accent-light: #fffbeb;
-      --code-bg: #0f172a;
-      --code-text: #f8fafc;
-      --radius: 10px;
-      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --bg: #09090b;
+      --sidebar-bg: #0c0c0f;
+      --card-bg: #121216;
+      --card-hover: #17171d;
+      --border: #202026;
+      --border-subtle: #17171c;
+      --text: #f4f4f5;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.12);
+      --code-bg: #0d0d12;
+      --code-border: #1e1e26;
+      --radius: 8px;
     }
 
     * {
@@ -33,152 +28,162 @@
       padding: 0;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, Helvetica, Arial, sans-serif;
       background-color: var(--bg);
       color: var(--text);
-      line-height: 1.65;
-      font-size: 15px;
+      line-height: 1.7;
+      font-size: 14.5px;
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     /* Layout */
-    .container {
+    .app-layout {
       display: flex;
-      max-width: 1280px;
+      max-width: 1240px;
       margin: 0 auto;
       min-height: 100vh;
     }
 
-    /* Sidebar Navigation */
+    /* Sidebar */
     .sidebar {
-      width: 280px;
+      width: 260px;
       position: sticky;
       top: 0;
       height: 100vh;
       overflow-y: auto;
       padding: 32px 24px;
-      background-color: #ffffff;
+      background-color: var(--sidebar-bg);
       border-right: 1px solid var(--border);
       flex-shrink: 0;
     }
 
-    .brand-logo {
+    .brand {
       display: flex;
       align-items: center;
       gap: 10px;
-      font-weight: 700;
-      font-size: 20px;
-      color: var(--text);
-      margin-bottom: 8px;
+      margin-bottom: 28px;
       text-decoration: none;
+      color: var(--text);
     }
 
-    .brand-badge {
-      display: inline-block;
+    .brand-mark {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 11px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.05em;
+    }
+
+    .brand-name {
+      font-size: 16px;
       font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: var(--primary-light);
-      color: var(--primary);
-      margin-bottom: 24px;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-tag {
+      font-size: 10.5px;
+      font-family: ui-monospace, monospace;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-left: auto;
     }
 
     .nav-group {
       margin-bottom: 24px;
     }
 
-    .nav-label {
+    .nav-header {
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 600;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-soft);
+      color: var(--text-dim);
       margin-bottom: 8px;
+      padding-left: 8px;
     }
 
-    .nav-links {
+    .nav-list {
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
     }
 
-    .nav-link {
+    .nav-item a {
       display: block;
-      padding: 6px 12px;
+      padding: 6px 10px;
       color: var(--text-muted);
       text-decoration: none;
-      font-size: 13.5px;
-      border-radius: 6px;
-      transition: all 0.15s ease;
+      font-size: 13px;
+      border-radius: 5px;
+      transition: all 0.12s ease;
     }
 
-    .nav-link:hover {
-      background-color: var(--bg);
-      color: var(--primary);
+    .nav-item a:hover {
+      color: var(--text);
+      background-color: var(--card-bg);
     }
 
-    .nav-link.active {
-      background-color: var(--primary-light);
-      color: var(--primary);
-      font-weight: 600;
+    .nav-item a.active {
+      color: #ffffff;
+      background-color: var(--card-bg);
+      font-weight: 500;
+      border-left: 2px solid var(--accent);
+      border-radius: 0 5px 5px 0;
     }
 
-    /* Main Content */
-    .main-content {
+    /* Content Area */
+    .content-area {
       flex: 1;
-      padding: 40px 56px 80px;
-      max-width: 960px;
+      padding: 48px 64px 96px;
+      max-width: 860px;
     }
 
-    /* Header Hero */
+    /* Hero */
     .hero {
       margin-bottom: 48px;
       padding-bottom: 32px;
       border-bottom: 1px solid var(--border);
     }
 
-    .hero-meta {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-
-    .tag {
+    .hero-pre {
+      font-family: ui-monospace, monospace;
       font-size: 12px;
-      font-weight: 600;
-      padding: 3px 10px;
-      border-radius: 6px;
-      background: var(--border-subtle);
-      color: var(--text-muted);
-    }
-
-    .tag.primary {
-      background: var(--primary-light);
-      color: var(--primary);
-    }
-
-    .tag.success {
-      background: var(--success-light);
-      color: var(--success);
+      color: var(--accent);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .hero h1 {
-      font-size: 34px;
-      font-weight: 800;
-      letter-spacing: -0.025em;
-      color: var(--text);
-      margin-bottom: 8px;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+      margin-bottom: 12px;
+      line-height: 1.2;
     }
 
-    .hero p.tagline {
-      font-size: 18px;
+    .hero p.lead {
+      font-size: 16px;
       color: var(--text-muted);
+      line-height: 1.6;
       max-width: 720px;
-      line-height: 1.5;
     }
 
     /* Sections */
@@ -187,35 +192,32 @@
       scroll-margin-top: 40px;
     }
 
-    .section-header {
-      margin-bottom: 20px;
-    }
-
     .section-title {
-      font-size: 24px;
-      font-weight: 700;
-      letter-spacing: -0.015em;
-      color: var(--text);
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #ffffff;
       margin-bottom: 4px;
     }
 
     .section-subtitle {
-      font-size: 14.5px;
-      color: var(--primary);
-      font-weight: 600;
-      margin-bottom: 8px;
+      font-size: 13px;
+      font-family: ui-monospace, monospace;
+      color: var(--accent);
+      margin-bottom: 12px;
     }
 
-    .section-description {
+    .section-desc {
       color: var(--text-muted);
-      font-size: 15px;
-      line-height: 1.6;
+      font-size: 14.5px;
+      margin-bottom: 20px;
+      line-height: 1.65;
     }
 
-    /* Content Cards */
-    .card-grid {
+    /* Minimalist Cards & Grids */
+    .grid-2 {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: 1fr 1fr;
       gap: 16px;
       margin: 20px 0;
     }
@@ -225,195 +227,231 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 20px;
-      box-shadow: var(--shadow-sm);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      transition: border-color 0.15s ease;
     }
 
     .card:hover {
-      box-shadow: var(--shadow-md);
-      transform: translateY(-1px);
+      border-color: #33333d;
     }
 
-    .card h4 {
-      font-size: 16px;
+    .card-title {
+      font-size: 14.5px;
       font-weight: 600;
-      color: var(--text);
+      color: #ffffff;
       margin-bottom: 6px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    .card p {
+    .card-badge {
+      font-size: 10px;
+      font-family: ui-monospace, monospace;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--border);
+      color: var(--text-muted);
+    }
+
+    .card-badge.green {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .card-text {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Linear Flow List */
+    .flow-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 18px 0;
+    }
+
+    .flow-item {
+      display: flex;
+      gap: 16px;
+      padding: 16px 18px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      align-items: flex-start;
+    }
+
+    .flow-index {
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      color: var(--accent);
+      background: var(--accent-glow);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .flow-content h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .flow-content p {
       font-size: 13.5px;
       color: var(--text-muted);
       line-height: 1.55;
     }
 
-    /* Step Timeline */
-    .steps-container {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+    /* Minimal Tables */
+    .table-wrapper {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
       margin: 20px 0;
     }
 
-    .step-item {
-      display: flex;
-      gap: 16px;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px 20px;
-      align-items: flex-start;
-    }
-
-    .step-number {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      background: var(--primary-light);
-      color: var(--primary);
-      font-weight: 700;
-      font-size: 14px;
-      border-radius: 8px;
-      flex-shrink: 0;
-    }
-
-    .step-body h4 {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
-
-    .step-body p {
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
       font-size: 13.5px;
+    }
+
+    th {
+      background: #0f0f13;
+      padding: 12px 16px;
+      font-weight: 600;
+      color: #ffffff;
+      border-bottom: 1px solid var(--border);
+      font-size: 12.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    td {
+      padding: 12px 16px;
       color: var(--text-muted);
-      line-height: 1.5;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--card-bg);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
     }
 
     /* Code Blocks */
-    .code-block-wrapper {
-      position: relative;
-      margin: 16px 0;
-      border-radius: 8px;
-      overflow: hidden;
+    .code-box {
+      border: 1px solid var(--code-border);
       background: var(--code-bg);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 16px 0;
     }
 
-    .code-block-header {
+    .code-top {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 16px;
-      background: #1e293b;
-      color: #94a3b8;
-      font-size: 12px;
-      font-weight: 600;
-      font-family: monospace;
-      border-bottom: 1px solid #334155;
+      padding: 8px 14px;
+      background: #111116;
+      border-bottom: 1px solid var(--code-border);
+      font-family: ui-monospace, monospace;
+      font-size: 11.5px;
+      color: var(--text-dim);
     }
 
     .copy-btn {
-      background: #334155;
-      color: #f8fafc;
-      border: none;
-      padding: 4px 10px;
+      background: #1e1e26;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
       border-radius: 4px;
       font-size: 11px;
       cursor: pointer;
-      font-weight: 500;
-      transition: background 0.15s ease;
+      transition: all 0.12s ease;
+      font-family: inherit;
     }
 
     .copy-btn:hover {
-      background: #475569;
+      background: #272732;
+      color: #ffffff;
     }
 
     pre {
       padding: 16px;
       overflow-x: auto;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 13px;
-      color: var(--code-text);
-      line-height: 1.5;
+      font-family: ui-monospace, "SF Mono", Monaco, "Cascadia Code", monospace;
+      font-size: 12.5px;
+      color: #e2e8f0;
+      line-height: 1.6;
     }
 
     code {
       font-family: inherit;
     }
 
-    .inline-code {
-      font-family: ui-monospace, SFMono-Regular, monospace;
-      font-size: 12.5px;
-      padding: 2px 6px;
-      background: #e2e8f0;
-      color: #0f172a;
+    code.inline {
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      padding: 1px 5px;
+      background: #16161e;
+      border: 1px solid #282834;
+      color: #93c5fd;
       border-radius: 4px;
     }
 
-    /* Comparison / Table */
-    .custom-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 18px 0;
-      background: var(--card-bg);
-      border-radius: var(--radius);
-      overflow: hidden;
-      border: 1px solid var(--border);
+    /* List */
+    ul.doc-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 14px 0;
     }
 
-    .custom-table th, .custom-table td {
-      padding: 12px 16px;
-      text-align: left;
-      font-size: 13.5px;
-      border-bottom: 1px solid var(--border);
+    ul.doc-list li {
+      position: relative;
+      padding-left: 20px;
+      font-size: 14px;
+      color: var(--text-muted);
     }
 
-    .custom-table th {
-      background: var(--border-subtle);
-      font-weight: 600;
+    ul.doc-list li::before {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 10px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    ul.doc-list li strong {
       color: var(--text);
     }
 
-    .custom-table tr:last-child td {
-      border-bottom: none;
-    }
-
-    /* Status indicator */
-    .status-pill {
-      display: inline-flex;
+    /* Footer */
+    footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 12.5px;
+      color: var(--text-dim);
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 6px;
-      font-size: 11.5px;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 999px;
-    }
-
-    .status-pill.done {
-      background: #dcfce7;
-      color: #166534;
-    }
-
-    .status-pill.planned {
-      background: #f1f5f9;
-      color: #475569;
-    }
-
-    .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: currentColor;
     }
 
     /* Responsive */
-    @media (max-width: 900px) {
-      .container {
+    @media (max-width: 860px) {
+      .app-layout {
         flex-direction: column;
       }
       .sidebar {
@@ -424,297 +462,336 @@
         border-bottom: 1px solid var(--border);
         padding: 20px;
       }
-      .main-content {
-        padding: 24px 20px 60px;
+      .content-area {
+        padding: 32px 20px 64px;
+      }
+      .grid-2 {
+        grid-template-columns: 1fr;
       }
     }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <!-- Sidebar -->
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
     <aside class="sidebar">
-      <a href="#overview" class="brand-logo">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="5 3 19 12 5 21 5 3"></polygon>
-        </svg>
-        <span>Klipday</span>
+      <a href="#overview" class="brand">
+        <div class="brand-mark">K</div>
+        <div class="brand-name">Klipday</div>
+        <div class="brand-tag">v0.1</div>
       </a>
-      <div class="brand-badge">Marketplace Documentation v0.1</div>
 
       <nav>
         <div class="nav-group">
-          <div class="nav-label">Tentang Platform</div>
-          <ul class="nav-links">
-            <li><a href="#about" class="nav-link">Tentang Klipday</a></li>
-            <li><a href="#target-users" class="nav-link">Pengguna & Peran</a></li>
-            <li><a href="#how-it-works" class="nav-link">Cara Kerja Marketplace</a></li>
+          <div class="nav-header">Overview</div>
+          <ul class="nav-list">
+            <li class="nav-item"><a href="#overview">Product Brief</a></li>
+            <li class="nav-item"><a href="#value-prop">Core Dynamic</a></li>
+            <li class="nav-item"><a href="#campaign-types">Campaign Types</a></li>
+            <li class="nav-item"><a href="#user-roles">User Roles</a></li>
           </ul>
         </div>
 
         <div class="nav-group">
-          <div class="nav-label">Fitur Utama</div>
-          <ul class="nav-links">
-            <li><a href="#features-auth" class="nav-link">Autentikasi & Akun</a></li>
-            <li><a href="#features-wallet" class="nav-link">Dompet & Dana Escrow</a></li>
-            <li><a href="#features-campaign" class="nav-link">Pembuatan Kampanye Brand</a></li>
-            <li><a href="#features-social" class="nav-link">Verifikasi Akun TikTok</a></li>
-            <li><a href="#features-submission" class="nav-link">Pengajuan Video Kreator</a></li>
+          <div class="nav-header">Workflows</div>
+          <ul class="nav-list">
+            <li class="nav-item"><a href="#brand-workflow">Brand Flow</a></li>
+            <li class="nav-item"><a href="#clipper-workflow">Clipper Flow</a></li>
           </ul>
         </div>
 
         <div class="nav-group">
-          <div class="nav-label">Teknik & Arsitektur</div>
-          <ul class="nav-links">
-            <li><a href="#tech-stack" class="nav-link">Teknologi Stack</a></li>
-            <li><a href="#project-structure" class="nav-link">Struktur Direktori</a></li>
-            <li><a href="#getting-started" class="nav-link">Panduan Instalasi & Jalankan</a></li>
-            <li><a href="#roadmap" class="nav-link">Roadmap Masa Depan</a></li>
+          <div class="nav-header">System & Features</div>
+          <ul class="nav-list">
+            <li class="nav-item"><a href="#features">Feature Inventory</a></li>
+            <li class="nav-item"><a href="#tech-stack">Tech Stack</a></li>
+            <li class="nav-item"><a href="#codebase">Codebase Layout</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-header">Engineering</div>
+          <ul class="nav-list">
+            <li class="nav-item"><a href="#quickstart">Quickstart</a></li>
+            <li class="nav-item"><a href="#roadmap">Roadmap</a></li>
           </ul>
         </div>
       </nav>
     </aside>
 
-    <!-- Main Content Area -->
-    <main class="main-content">
+    <!-- Main Content -->
+    <main class="content-area">
       <!-- Hero -->
-      <header class="hero" id="overview">
-        <div class="hero-meta">
-          <span class="tag primary">MVP Active</span>
-          <span class="tag success">Pasar Indonesia</span>
-          <span class="tag">TikTok Video Clipping</span>
+      <section class="hero" id="overview">
+        <div class="hero-pre">
+          <span>MARKETPLACE</span> &bull; <span>INDONESIA</span> &bull; <span>TIKTOK-FIRST</span>
         </div>
         <h1>Klipday Platform</h1>
-        <p class="tagline">
-          Marketplace dua arah yang menghubungkan brand (produk, konten digital, dan jasa) dengan para kreator video pendek (clippers) di Indonesia berbasis kompensasi penayangan nyata (Pay-per-View / CPM).
+        <p class="lead">
+          A performance-driven clipping marketplace connecting brands with short-form video creators in Indonesia. Brands get organic viral reach with escrow budget protection; clippers monetize edits per verified view (CPM).
         </p>
-      </header>
+      </section>
 
-      <!-- Section: About Klipday -->
-      <section class="doc-section" id="about">
-        <div class="section-header">
-          <h2 class="section-title">Tentang Klipday</h2>
-          <div class="section-subtitle">Solusi Pemasaran Organik & Peluang Monetisasi Kreator</div>
-          <p class="section-description">
-            Klipday hadir untuk memecahkan dua masalah utama dalam ekosistem konten video pendek di Indonesia:
-          </p>
-        </div>
+      <!-- Section: Core Dynamic -->
+      <section class="doc-section" id="value-prop">
+        <h2 class="section-title">Core Dynamic</h2>
+        <div class="section-subtitle">01 / MARKET MODEL</div>
+        <p class="section-desc">
+          Klipday bridges the gap between commercial demand for viral social media clips and creators looking to earn without waiting for individual sponsorship deals.
+        </p>
 
-        <div class="card-grid">
+        <div class="grid-2">
           <div class="card">
-            <h4>Bagi Brand & UMKM</h4>
-            <p>
-              Mendapatkan jangkauan promosi viral di media sosial tanpa harus membayar retainer agensi yang mahal atau risiko endorse tanpa hasil. Brand hanya membayar untuk hasil performa tayangan valid (views) yang nyata.
+            <div class="card-title">
+              <span>Brands & MSMEs</span>
+            </div>
+            <p class="card-text">
+              Eliminate expensive agency retainers and unmeasured influencer spend. Brands set a target CPM (e.g. Rp15,000 / 1K views) and pay strictly for real, verified view performance.
             </p>
           </div>
           <div class="card">
-            <h4>Bagi Kreator & Clippers</h4>
-            <p>
-              Mendapatkan penghasilan sampingan langsung dari keahlian mengedit dan mendistribusikan video pendek. Kreator tidak perlu menunggu tawaran endorse pribadi—cukup pilih kampanye, buat klip, dan dapatkan bayaran bergaransi escrow.
+            <div class="card-title">
+              <span>Clippers & Creators</span>
+            </div>
+            <p class="card-text">
+              Monetize editing skills immediately. Anyone who can produce engaging short-form TikTok content can join open campaigns, post to their own channels, and earn guaranteed payouts backed by escrow.
             </p>
           </div>
         </div>
-
-        <div class="card" style="margin-top: 16px;">
-          <h4>Kategori Kampanye yang Didukung</h4>
-          <p style="margin-bottom: 8px;">Brand dapat mendaftarkan kampanye untuk tiga jenis penawaran:</p>
-          <ul style="padding-left: 20px; font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">
-            <li><strong>Produk Fisik (Physical Products):</strong> Skincare, fashion, kuliner/F&B, gadget, dan barang konsumen harian.</li>
-            <li><strong>Konten Digital:</strong> Kursus online, podcast, media berita, aplikasi web/mobile, dan webinar.</li>
-            <li><strong>Layanan & Jasa (Services):</strong> Jasa profesional, edukasi, travel & hospitality, dan event.</li>
-          </ul>
-        </div>
       </section>
 
-      <!-- Section: Target Users -->
-      <section class="doc-section" id="target-users">
-        <div class="section-header">
-          <h2 class="section-title">Peran Pengguna (Roles)</h2>
-          <div class="section-subtitle">Sistem Akses Multi-Peran Terisolasi</div>
-          <p class="section-description">
-            Platform mengisolasi alur kerja dan navigasi berdasarkan peran pengguna yang dipilih saat pendaftaran.
-          </p>
-        </div>
+      <!-- Section: Campaign Types -->
+      <section class="doc-section" id="campaign-types">
+        <h2 class="section-title">Campaign Types</h2>
+        <div class="section-subtitle">02 / ENTITY COVERAGE</div>
+        <p class="section-desc">
+          Brands can launch campaigns for three distinct types of commercial offerings:
+        </p>
 
-        <table class="custom-table">
-          <thead>
-            <tr>
-              <th>Peran</th>
-              <th>Deskripsi Singkat</th>
-              <th>Akses & Kemampuan Utama</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>BRAND</strong></td>
-              <td>Pemilik bisnis, UMKM, atau pemasar produk/jasa.</td>
-              <td>Top-up dompet, buat kampanye via wizard 6-langkah, kunci dana escrow, kurasi dan ulas video masuk kreator.</td>
-            </tr>
-            <tr>
-              <td><strong>CREATOR</strong></td>
-              <td>Editor video pendek / clippers di media sosial.</td>
-              <td>Eksplorasi kampanye, hubungkan akun TikTok via kode bio, kirim link video live, lacak status penayangan & estimasi earning.</td>
-            </tr>
-            <tr>
-              <td><strong>ADMIN</strong></td>
-              <td>Pengelola internal platform Klipday.</td>
-              <td>Ulas penerbitan kampanye baru, pantau verifikasi pembayaran/top-up dompet, verifikasi settlement akhir, dan eksekusi pencairan saldo.</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
-      <!-- Section: How It Works -->
-      <section class="doc-section" id="how-it-works">
-        <div class="section-header">
-          <h2 class="section-title">Cara Kerja Marketplace</h2>
-          <div class="section-subtitle">Alur End-to-End Dari Pembuatan Hingga Pencairan</div>
-          <p class="section-description">
-            Berikut adalah alur lengkap perjalanan kampanye dari sisi Brand dan sisi Kreator.
-          </p>
-        </div>
-
-        <h3 style="font-size: 17px; margin-bottom: 12px; font-weight: 600;">1. Alur Brand</h3>
-        <div class="steps-container">
-          <div class="step-item">
-            <div class="step-number">1</div>
-            <div class="step-body">
-              <h4>Top-up Saldo Dompet Brand</h4>
-              <p>Brand mengisi saldo dompet melalui metode transfer bank, Virtual Account, atau QRIS untuk mendanai anggaran kampanye.</p>
+        <div class="flow-list">
+          <div class="flow-item">
+            <div class="flow-index">01</div>
+            <div class="flow-content">
+              <h4>Physical Products</h4>
+              <p>E-commerce goods, skincare, fashion, food & beverage, electronics, and daily consumer products. Creators receive raw footage or product hooks to produce shoppable-style clips.</p>
             </div>
           </div>
-          <div class="step-item">
-            <div class="step-number">2</div>
-            <div class="step-body">
-              <h4>Buat & Konfigurasi Kampanye</h4>
-              <p>Menentukan brief kreatif, aturan narasi, aset video/materi mentah, tarif CPM (Rp per 1.000 views), batas minimum dan maksimum views, serta total anggaran.</p>
+          <div class="flow-item">
+            <div class="flow-index">02</div>
+            <div class="flow-content">
+              <h4>Digital Content</h4>
+              <p>Online educational courses, podcasts, media publications, software applications, and webinars. Creators highlight engaging moments, clips, or quotes.</p>
             </div>
           </div>
-          <div class="step-item">
-            <div class="step-number">3</div>
-            <div class="step-body">
-              <h4>Penguncian Anggaran di Escrow</h4>
-              <p>Total dana kampanye dikunci secara aman di rekening penampung (escrow) agar kreator mendapatkan kepastian pembayaran.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-number">4</div>
-            <div class="step-body">
-              <h4>Kurasi Pengajuan Video</h4>
-              <p>Brand meninjau video yang disubmit kreator: Setujui (Approve), Minta Revisi (maksimal 2 putaran), atau Tolak (Reject).</p>
-            </div>
-          </div>
-        </div>
-
-        <h3 style="font-size: 17px; margin: 28px 0 12px; font-weight: 600;">2. Alur Kreator (Clipper)</h3>
-        <div class="steps-container">
-          <div class="step-item">
-            <div class="step-number">1</div>
-            <div class="step-body">
-              <h4>Pilih Kampanye & Unduh Materi</h4>
-              <p>Kreator menjelajahi daftar kampanye aktif, membaca pedoman brief, dan mengunduh aset materi video atau referensi.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-number">2</div>
-            <div class="step-body">
-              <h4>Hubungkan & Verifikasi Akun TikTok</h4>
-              <p>Memasukkan username TikTok dan menaruh kode verifikasi unik sementara (<code>KD-XXXX</code>) di bio profil TikTok untuk membuktikan kepemilikan akun.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-number">3</div>
-            <div class="step-body">
-              <h4>Unggah Video ke TikTok (Post-First Model)</h4>
-              <p>Kreator memproduksi video klip dan mengunggahnya langsung ke akun TikTok pribadi sesuai panduan brief, hashtag, dan hook yang ditentukan.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-number">4</div>
-            <div class="step-body">
-              <h4>Kirim Link Video di Dialog Klipday</h4>
-              <p>Memilih video yang baru diunggah melalui galeri profil TikTok atau memasukkan link URL video live ke modal pengajuan Klipday.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <div class="step-number">5</div>
-            <div class="step-body">
-              <h4>Dapatkan Penghasilan Berdasarkan Tayangan</h4>
-              <p>Setelah video disetujui, jumlah penayangan valid dihitung dan dikalikan dengan tarif CPM kampanye hingga batas kuota anggaran terpenuhi.</p>
+          <div class="flow-item">
+            <div class="flow-index">03</div>
+            <div class="flow-content">
+              <h4>Services</h4>
+              <p>Professional services, health & wellness clinics, travel agencies, and event organizers seeking localized engagement in Indonesia.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Section: Implemented Features -->
-      <section class="doc-section" id="features-auth">
-        <div class="section-header">
-          <h2 class="section-title">Fitur-Fitur yang Sudah Terimplementasi</h2>
-          <div class="section-subtitle">Status Modul Fungsional di Kode Program</div>
-          <p class="section-description">
-            Modul-modul berikut telah dibangun secara lengkap di sisi backend (Express/Prisma) dan frontend (React 19).
-          </p>
+      <!-- Section: User Roles -->
+      <section class="doc-section" id="user-roles">
+        <h2 class="section-title">User Roles</h2>
+        <div class="section-subtitle">03 / PERMISSION BOUNDARIES</div>
+        <p class="section-desc">
+          The system maintains strict tenant isolation across three roles defined during authentication:
+        </p>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Context</th>
+                <th>Key Responsibilities</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code class="inline">BRAND</code></td>
+                <td>Business / Advertiser</td>
+                <td>Top-up wallet balance, build 6-step campaigns, lock escrow funds, curate & review creator video submissions.</td>
+              </tr>
+              <tr>
+                <td><code class="inline">CREATOR</code></td>
+                <td>Clipper / Content Producer</td>
+                <td>Browse active marketplace, link & verify TikTok profile via bio code, post videos directly to TikTok, submit live links, track earnings.</td>
+              </tr>
+              <tr>
+                <td><code class="inline">ADMIN</code></td>
+                <td>Internal Ops</td>
+                <td>Review new campaigns, audit top-up proof slips, verify settlement view reports, and approve creator withdrawal disbursements.</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </section>
 
-        <div class="card-grid">
-          <div class="card" id="features-auth">
-            <h4>
-              <span>Autentikasi & Akun</span>
-              <span class="status-pill done"><span class="dot"></span>Selesai</span>
-            </h4>
-            <p>
-              Pendaftaran & masuk dengan email + password. Password di-hash menggunakan Bcrypt. Autentikasi berbasis JWT yang disimpan di HTTP-only cookie dengan isolasi role guard otomatis (<code>BRAND</code>, <code>CREATOR</code>, <code>ADMIN</code>).
-            </p>
+      <!-- Section: Brand Workflow -->
+      <section class="doc-section" id="brand-workflow">
+        <h2 class="section-title">Brand Workflow</h2>
+        <div class="section-subtitle">04 / END-TO-END ADVERTISER JOURNEY</div>
+        <p class="section-desc">
+          How a brand launches and manages a campaign from inception to completion:
+        </p>
+
+        <div class="flow-list">
+          <div class="flow-item">
+            <div class="flow-index">Step 1</div>
+            <div class="flow-content">
+              <h4>Wallet Deposit</h4>
+              <p>Brand tops up account balance via Indonesian bank transfer, Virtual Account, or QRIS. The platform logs the pending deposit request for admin approval.</p>
+            </div>
           </div>
-
-          <div class="card" id="features-wallet">
-            <h4>
-              <span>Dompet Brand & Escrow</span>
-              <span class="status-pill done"><span class="dot"></span>Selesai</span>
-            </h4>
-            <p>
-              Manajemen saldo dompet brand, pengajuan isi ulang (top-up), riwayat transaksi, penguncian saldo ke escrow saat kampanye dibuat, serta fitur permintaan penarikan dana (withdrawal).
-            </p>
+          <div class="flow-item">
+            <div class="flow-index">Step 2</div>
+            <div class="flow-content">
+              <h4>Campaign Creation (6-Step Wizard)</h4>
+              <p>Brand specifies campaign details, creative brief (narrative, hooks, mandatory hashtags), reward rules (CPM rate, min views threshold, max views cap, total budget), and raw video footage/assets.</p>
+            </div>
           </div>
-
-          <div class="card" id="features-campaign">
-            <h4>
-              <span>Wizard Pembuatan Kampanye</span>
-              <span class="status-pill done"><span class="dot"></span>Selesai</span>
-            </h4>
-            <p>
-              Formulir multi-tahap (6 langkah): Info Dasar, Brief & Aturan, Model Imbalan CPM & View, Materi & Tautan Footage, Rangkuman Ulasan, dan Pembayaran Escrow via dompet brand dengan proteksi penyimpanan draft otomatis.
-            </p>
+          <div class="flow-item">
+            <div class="flow-index">Step 3</div>
+            <div class="flow-content">
+              <h4>Escrow Budget Lock</h4>
+              <p>The total campaign budget is immediately deducted from the brand's wallet balance and committed to escrow, guaranteeing that approved creator work is pre-funded.</p>
+            </div>
           </div>
-
-          <div class="card" id="features-social">
-            <h4>
-              <span>Verifikasi Bio Akun TikTok</span>
-              <span class="status-pill done"><span class="dot"></span>Selesai</span>
-            </h4>
-            <p>
-              Handshake verifikasi anti-pembajakan: kode unik sekali pakai <code>KD-XXXX</code> (kadaluarsa 10 menit) dimasukkan ke bio TikTok, diperiksa otomatis oleh scraper, dan dikunci permanen pada database (<code>unique([platform, username])</code>).
-            </p>
+          <div class="flow-item">
+            <div class="flow-index">Step 4</div>
+            <div class="flow-content">
+              <h4>Submission Review & Curation</h4>
+              <p>Brand evaluates submitted live videos in the review queue: Approve (enters view tracking), Request Revision (up to 2 revision rounds with specific notes), or Reject.</p>
+            </div>
           </div>
+          <div class="flow-item">
+            <div class="flow-index">Step 5</div>
+            <div class="flow-content">
+              <h4>Settlement & Final Report</h4>
+              <p>When the budget is exhausted or the deadline passes, views are tallied, earnings credited to creators, and unused escrow balances returned to the brand.</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-          <div class="card" id="features-submission">
-            <h4>
-              <span>Pengajuan Video Post-First</span>
-              <span class="status-pill done"><span class="dot"></span>Selesai</span>
-            </h4>
-            <p>
-              Dialog pengajuan video 2-kolom langsung di halaman detail kampanye: Pengecekan Brief &rarr; Konfirmasi Akun &rarr; Pemilih Video TikTok atau Link Langsung &rarr; Rangkuman Pengajuan dengan draft auto-recovery.
+      <!-- Section: Clipper Workflow -->
+      <section class="doc-section" id="clipper-workflow">
+        <h2 class="section-title">Clipper Workflow</h2>
+        <div class="section-subtitle">05 / END-TO-END CREATOR JOURNEY</div>
+        <p class="section-desc">
+          How a creator discovers campaigns, connects accounts, and earns payouts:
+        </p>
+
+        <div class="flow-list">
+          <div class="flow-item">
+            <div class="flow-index">Step 1</div>
+            <div class="flow-content">
+              <h4>Campaign Discovery & Materials</h4>
+              <p>Creator explores available campaigns on the marketplace, reviews narrative guidelines, and downloads raw footage or asset folders.</p>
+            </div>
+          </div>
+          <div class="flow-item">
+            <div class="flow-index">Step 2</div>
+            <div class="flow-content">
+              <h4>TikTok Bio Verification Handshake</h4>
+              <p>Creator submits their TikTok username. The system generates a temporary verification token (<code class="inline">KD-XXXX</code>, 10-minute expiry). The creator pastes it into their TikTok bio, and an automated scraper verifies ownership. Once confirmed, the account is permanently tied (<code class="inline">@@unique([platform, username])</code>).</p>
+            </div>
+          </div>
+          <div class="flow-item">
+            <div class="flow-index">Step 3</div>
+            <div class="flow-content">
+              <h4>Produce & Post to TikTok (Post-First Model)</h4>
+              <p>Following modern market standards (Konten.com, Clippo.id), creators edit clips and publish them directly to TikTok first using the mandatory tags and audio guidelines.</p>
+            </div>
+          </div>
+          <div class="flow-item">
+            <div class="flow-index">Step 4</div>
+            <div class="flow-content">
+              <h4>In-Context Video Submission</h4>
+              <p>On the campaign page, the creator opens the submission modal dialog, selects the recently published TikTok video from a live feed picker (or inputs the live link directly), and submits.</p>
+            </div>
+          </div>
+          <div class="flow-item">
+            <div class="flow-index">Step 5</div>
+            <div class="flow-content">
+              <h4>View Tracking & Payout</h4>
+              <p>Once approved by the brand, the clip earns money based on verified view counts multiplied by the campaign CPM. Earnings can be withdrawn directly to Indonesian bank accounts or e-wallets.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Features Inventory -->
+      <section class="doc-section" id="features">
+        <h2 class="section-title">Feature Inventory</h2>
+        <div class="section-subtitle">06 / IMPLEMENTED SUBSYSTEMS</div>
+        <p class="section-desc">
+          Subsystems currently functional across both backend and frontend:
+        </p>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">
+              <span>Authentication & Session</span>
+              <span class="card-badge green">Complete</span>
+            </div>
+            <p class="card-text">
+              Credential auth (email + Bcrypt hashed password), role-guarded JWT payloads, secure HTTP-only cookies, and role-based route redirects.
             </p>
           </div>
 
           <div class="card">
-            <h4>
-              <span>Antrean Kurasi Pengajuan Brand</span>
-              <span class="status-pill done"><span class="dot"></span>Selesai</span>
-            </h4>
-            <p>
-              Tabel dan kartu ulasan video untuk brand: putusan Setujui, Minta Revisi dengan catatan terstruktur, atau Tolak, lengkap dengan filter status dan riwayat pengajuan.
+            <div class="card-title">
+              <span>Brand Wallet & Escrow</span>
+              <span class="card-badge green">Complete</span>
+            </div>
+            <p class="card-text">
+              Real-time balance tracking, pending deposit verification requests, withdrawal requests, transaction ledgers, and atomic campaign escrow deductions.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>6-Step Campaign Creation Wizard</span>
+              <span class="card-badge green">Complete</span>
+            </div>
+            <p class="card-text">
+              Multi-step wizard with local autosave, draft recovery, character count trackers, reward math validation (CPM, min/max views, budget), and escrow confirmation.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>TikTok Account Linking & Handshake</span>
+              <span class="card-badge green">Complete</span>
+            </div>
+            <p class="card-text">
+              Bio verification token (<code class="inline">KD-XXXX</code>) generator, automated live bio scraping, anti-hijacking constraints, and permanent avatar storage on Supabase Storage.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>Post-First Video Submission Dialog</span>
+              <span class="card-badge green">Complete</span>
+            </div>
+            <p class="card-text">
+              Split modal dialog on campaign detail page: Brief acceptance &rarr; Verified handle selection &rarr; TikTok video picker &rarr; Live preview and submission stamp.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>Brand Curation & Review Queue</span>
+              <span class="card-badge green">Complete</span>
+            </div>
+            <p class="card-text">
+              Interactive queue for brand advertisers to inspect live submitted videos, approve clips, request revisions with notes (max 2 rounds), or reject invalid submissions.
             </p>
           </div>
         </div>
@@ -722,250 +799,220 @@
 
       <!-- Section: Tech Stack -->
       <section class="doc-section" id="tech-stack">
-        <div class="section-header">
-          <h2 class="section-title">Teknologi Stack</h2>
-          <div class="section-subtitle">Fondasi Perangkat Lunak Modern & Handal</div>
-          <p class="section-description">
-            Dibangun dengan arsitektur monorepo terstruktur, memisahkan backend API dan frontend SPA dengan TypeScript end-to-end.
-          </p>
-        </div>
+        <h2 class="section-title">Technology Stack</h2>
+        <div class="section-subtitle">07 / ARCHITECTURE FOUNDATION</div>
+        <p class="section-desc">
+          Built with an enterprise-grade TypeScript stack across backend services and frontend clients:
+        </p>
 
-        <div class="card-grid">
+        <div class="grid-2">
           <div class="card">
-            <h4>Backend (backend/)</h4>
-            <p style="margin-bottom: 8px;">REST API modular berbasis Express dan Prisma:</p>
-            <ul style="padding-left: 18px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+            <div class="card-title">
+              <span>Backend Core (<code class="inline">backend/</code>)</span>
+            </div>
+            <ul class="doc-list" style="margin-top: 10px;">
               <li><strong>Runtime:</strong> Node.js & TypeScript</li>
-              <li><strong>Framework:</strong> Express 5.1</li>
-              <li><strong>Database ORM:</strong> Prisma 7.9 dengan PostgreSQL</li>
-              <li><strong>Validasi Data:</strong> Zod 4.4</li>
-              <li><strong>Keamanan:</strong> Helmet, CORS, Cookie-parser, Bcrypt, JWT</li>
-              <li><strong>Database Hosting:</strong> Supabase PostgreSQL (Session Pooler)</li>
+              <li><strong>API Framework:</strong> Express 5.1</li>
+              <li><strong>ORM:</strong> Prisma ORM 7.9</li>
+              <li><strong>Database:</strong> PostgreSQL (hosted on Supabase)</li>
+              <li><strong>Data Validation:</strong> Zod 4.4</li>
+              <li><strong>Security:</strong> Helmet, CORS, Cookie-parser, Bcrypt, JWT</li>
+              <li><strong>Asset Storage:</strong> Supabase Storage (thumbnails, avatars)</li>
             </ul>
           </div>
 
           <div class="card">
-            <h4>Frontend (frontend/)</h4>
-            <p style="margin-bottom: 8px;">Single Page Application modern berbasis React:</p>
-            <ul style="padding-left: 18px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-              <li><strong>Framework:</strong> React 19 dengan TypeScript</li>
-              <li><strong>Bundler:</strong> Vite 8</li>
+            <div class="card-title">
+              <span>Frontend Client (<code class="inline">frontend/</code>)</span>
+            </div>
+            <ul class="doc-list" style="margin-top: 10px;">
+              <li><strong>Framework:</strong> React 19 & TypeScript</li>
+              <li><strong>Build Tool:</strong> Vite 8</li>
               <li><strong>Styling:</strong> Tailwind CSS v4 & Lucide Icons</li>
-              <li><strong>State & Data Fetching:</strong> TanStack Query v5 & Axios</li>
-              <li><strong>Formulir:</strong> React Hook Form & Zod Resolver</li>
-              <li><strong>UI Primitives:</strong> Radix UI & shadcn/ui</li>
-              <li><strong>Routing:</strong> React Router v8 (Data Router & Code Splitting)</li>
+              <li><strong>Query & Caching:</strong> TanStack Query v5</li>
+              <li><strong>HTTP Client:</strong> Axios with centralized error mapping</li>
+              <li><strong>Forms:</strong> React Hook Form + Zod Resolvers</li>
+              <li><strong>Primitives:</strong> Radix UI & shadcn/ui components</li>
+              <li><strong>Routing:</strong> React Router v8 (Data Router + Code Splitting)</li>
             </ul>
           </div>
         </div>
       </section>
 
-      <!-- Section: Project Structure -->
-      <section class="doc-section" id="project-structure">
-        <div class="section-header">
-          <h2 class="section-title">Struktur Direktori Proyek</h2>
-          <div class="section-subtitle">Organisasi Modul Berdasarkan Fitur (Feature-Driven Architecture)</div>
-          <p class="section-description">
-            Kode backend dan frontend disusun rapi berdasarkan domain fitur (bukan berdasarkan lapisan teknis), mempermudah pemeliharaan dan skalabilitas.
-          </p>
-        </div>
+      <!-- Section: Codebase Layout -->
+      <section class="doc-section" id="codebase">
+        <h2 class="section-title">Codebase Layout</h2>
+        <div class="section-subtitle">08 / FEATURE-DRIVEN STRUCTURE</div>
+        <p class="section-desc">
+          Both backend and frontend follow a strict feature-module architecture:
+        </p>
 
-        <div class="code-block-wrapper">
-          <div class="code-block-header">
-            <span>Struktur Repositori Klipday</span>
-            <button class="copy-btn" onclick="copyCode(this)">Salin</button>
+        <div class="code-box">
+          <div class="code-top">
+            <span>Directory Tree</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
           </div>
           <pre><code>klipday/
 ├── backend/
 │   ├── prisma/
-│   │   └── schema.prisma        # Definisi skema basis data PostgreSQL
+│   │   └── schema.prisma        # Database models & enums
 │   ├── src/
-│   │   ├── features/            # Modul fitur mandiri
-│   │   │   ├── authentication/  # Login, signup, token & auth middleware
-│   │   │   ├── campaign/        # CRUD kampanye, wizard step & validasi
-│   │   │   ├── health/          # Health check endpoint
-│   │   │   ├── social-account/  # Handshake verifikasi akun TikTok
-│   │   │   ├── submission/      # Pengajuan video klip & kurasi brand
-│   │   │   └── wallet/          # Topup, mutasi saldo & escrow
-│   │   ├── middleware/          # Error handling & authentication guard
-│   │   ├── app.ts               # Setup Express & registrasi rute
-│   │   └── index.ts             # Server entry point
+│   │   ├── features/            # Isolated feature packages
+│   │   │   ├── authentication/  # Login, signup, tokens & role guards
+│   │   │   ├── campaign/        # Campaign CRUD, 6-step wizard & validation
+│   │   │   ├── health/          # System health check routes
+│   │   │   ├── social-account/  # TikTok scraper & bio handshake
+│   │   │   ├── submission/      # Post-first video submission & curation
+│   │   │   └── wallet/          # Balance top-up, withdrawal & escrow locking
+│   │   ├── middleware/          # Central error & auth handlers
+│   │   ├── app.ts               # Express configuration & route mounting
+│   │   └── index.ts             # Process bootstrapper
 │   └── package.json
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── components/ui/       # Primitif UI bersama (shadcn/ui, Radix)
-│   │   ├── features/            # Fitur frontend modular
-│   │   │   ├── authentication/  # Halaman & form Sign In / Sign Up
-│   │   │   ├── campaign/        # Wizard kampanye (6 step), kartu & detail
-│   │   │   ├── dashboard/       # Dashboard peran Brand, Kreator, Admin
-│   │   │   ├── home/            # Halaman beranda utama
-│   │   │   ├── submission/      # Dialog modal pengajuan video TikTok
-│   │   │   └── wallet/          # Halaman dompet brand, topup & mutasi
-│   │   ├── lib/                 # Konfigurasi client API & utilitas
-│   │   ├── App.tsx              # Konfigurasi Data Router React Router v8
-│   │   └── main.tsx             # Entry point React
-│   ├── vite.config.ts           # Konfigurasi Vite & proxy API backend
+│   │   ├── components/ui/       # Shared design system primitives (shadcn/ui)
+│   │   ├── features/            # Feature modules (components, hooks, pages)
+│   │   │   ├── authentication/  # Sign In / Sign Up flows
+│   │   │   ├── campaign/        # Campaign discovery, wizard & detail views
+│   │   │   ├── dashboard/       # Role-specific dashboards (Brand, Creator, Admin)
+│   │   │   ├── home/            # Public landing view
+│   │   │   ├── submission/      # In-context video submission modal & review
+│   │   │   └── wallet/          # Brand wallet management & transaction history
+│   │   ├── lib/                 # Shared client utilities (api-client)
+│   │   ├── App.tsx              # Data Router setup
+│   │   └── main.tsx             # React DOM root
+│   ├── vite.config.ts           # Bundler config & backend API reverse proxy
 │   └── package.json
 │
-├── documentation.html           # Dokumentasi web interaktif (dokumen ini)
-└── README.md                    # Dokumentasi utama repositori GitHub</code></pre>
+├── documentation.html           # Dark-themed documentation (this page)
+└── README.md                    # Root repository readme</code></pre>
         </div>
       </section>
 
-      <!-- Section: Getting Started -->
-      <section class="doc-section" id="getting-started">
-        <div class="section-header">
-          <h2 class="section-title">Panduan Instalasi & Menjalankan Proyek</h2>
-          <div class="section-subtitle">Langkah Cepat Memulai Pengembangan Lokal</div>
-          <p class="section-description">
-            Ikuti instruksi berikut untuk menjalankan server backend dan client frontend di komputer lokal Anda.
-          </p>
-        </div>
-
-        <h3 style="font-size: 16px; margin: 18px 0 8px; font-weight: 600;">1. Persiapan Lingkungan (Prerequisites)</h3>
-        <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 16px;">
-          Pastikan perangkat Anda telah terpasang:
-          <strong>Node.js</strong> (&ge; 20.x), <strong>npm</strong> (&ge; 10.x), dan akses ke basis data <strong>PostgreSQL</strong> (lokal atau instance cloud Supabase).
+      <!-- Section: Quickstart -->
+      <section class="doc-section" id="quickstart">
+        <h2 class="section-title">Quickstart Guide</h2>
+        <div class="section-subtitle">09 / LOCAL ENVIRONMENT SETUP</div>
+        <p class="section-desc">
+          Run both services locally in under 3 minutes:
         </p>
 
-        <h3 style="font-size: 16px; margin: 20px 0 8px; font-weight: 600;">2. Menjalankan Backend</h3>
-        <div class="code-block-wrapper">
-          <div class="code-block-header">
-            <span>Terminal (Backend Setup)</span>
-            <button class="copy-btn" onclick="copyCode(this)">Salin</button>
+        <h3 style="font-size: 14.5px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">1. Start the Backend API</h3>
+        <div class="code-box">
+          <div class="code-top">
+            <span>Terminal &mdash; backend</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
           </div>
-          <pre><code># Masuk ke folder backend
-cd backend
-
-# Pasang dependensi
+          <pre><code>cd backend
 npm install
-
-# Buat file konfigurasi environment
 cp .env.example .env
-
-# Generate client Prisma & sinkronkan skema database
 npx prisma generate
 npx prisma db push
-
-# Jalankan server backend dalam mode pengembangan (port 3000)
 npm run dev</code></pre>
         </div>
+        <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 20px;">
+          The Express server will start on <code class="inline">http://localhost:3000</code>.
+        </p>
 
-        <h3 style="font-size: 16px; margin: 24px 0 8px; font-weight: 600;">3. Menjalankan Frontend</h3>
-        <div class="code-block-wrapper">
-          <div class="code-block-header">
-            <span>Terminal (Frontend Setup)</span>
-            <button class="copy-btn" onclick="copyCode(this)">Salin</button>
+        <h3 style="font-size: 14.5px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">2. Start the Frontend Client</h3>
+        <div class="code-box">
+          <div class="code-top">
+            <span>Terminal &mdash; frontend</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
           </div>
-          <pre><code># Buka terminal baru dan masuk ke folder frontend
-cd frontend
-
-# Pasang dependensi
+          <pre><code>cd frontend
 npm install
-
-# Jalankan server pengembangan Vite (port 5173 dengan proxy otomatis ke backend)
 npm run dev</code></pre>
         </div>
-
-        <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 12px;">
-          Setelah berjalan, buka browser di alamat <code>http://localhost:5173</code> untuk mengakses antarmuka aplikasi web Klipday.
+        <p style="font-size: 13px; color: var(--text-dim);">
+          Open <code class="inline">http://localhost:5173</code> in your browser. All API requests are proxied automatically to port 3000.
         </p>
       </section>
 
       <!-- Section: Roadmap -->
       <section class="doc-section" id="roadmap">
-        <div class="section-header">
-          <h2 class="section-title">Roadmap Fitur Masa Depan</h2>
-          <div class="section-subtitle">Rencana Pengembangan Tahap Lanjutan</div>
-          <p class="section-description">
-            Fitur-fitur tambahan yang direncanakan setelah fase peluncuran awal pasar TikTok selesai divalidasi:
-          </p>
-        </div>
+        <h2 class="section-title">Roadmap</h2>
+        <div class="section-subtitle">10 / UPCOMING MILESTONES</div>
+        <p class="section-desc">
+          Subsequent milestones planned after the TikTok pilot validation phase:
+        </p>
 
-        <div class="card-grid">
-          <div class="card">
-            <h4>
-              <span>Ekspansi Multi-Platform</span>
-              <span class="status-pill planned"><span class="dot"></span>Tahap 2</span>
-            </h4>
-            <p>
-              Dukungan integrasi pengajuan dan pelacakan video pendek untuk platform <strong>Instagram Reels</strong> dan <strong>YouTube Shorts</strong>.
-            </p>
+        <div class="flow-list">
+          <div class="flow-item">
+            <div class="flow-index">Phase 2</div>
+            <div class="flow-content">
+              <h4>Multi-Platform Expansion</h4>
+              <p>Add verification and submission support for <strong>Instagram Reels</strong> and <strong>YouTube Shorts</strong>.</p>
+            </div>
           </div>
-
-          <div class="card">
-            <h4>
-              <span>Pencairan Dana Otomatis</span>
-              <span class="status-pill planned"><span class="dot"></span>Tahap 2</span>
-            </h4>
-            <p>
-              Integrasi payout otomatis (disbursement gateway) ke rekening bank lokal (BCA, Mandiri, BRI) dan e-wallet (GoPay, OVO, Dana).
-            </p>
+          <div class="flow-item">
+            <div class="flow-index">Phase 2</div>
+            <div class="flow-content">
+              <h4>Automated Payout Disbursements</h4>
+              <p>Direct API integration with Indonesian disbursement gateways (Xendit / Midtrans) for automated withdrawals to local banks (BCA, Mandiri, BRI) and e-wallets (GoPay, OVO, Dana).</p>
+            </div>
           </div>
-
-          <div class="card">
-            <h4>
-              <span>Mesin Pelacak View Otomatis</span>
-              <span class="status-pill planned"><span class="dot"></span>Tahap 2</span>
-            </h4>
-            <p>
-              Pengumpulan data penayangan harian secara otomatis melalui scraper API pihak ketiga terjadwal serta audit deteksi view palsu/bot.
-            </p>
+          <div class="flow-item">
+            <div class="flow-index">Phase 3</div>
+            <div class="flow-content">
+              <h4>Automated Daily View Scraper Engine</h4>
+              <p>Scheduled background cron workers to aggregate view performance daily, compute running view delta tallies, and flag invalid or botted traffic.</p>
+            </div>
           </div>
         </div>
       </section>
 
-      <footer style="margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-soft); text-align: center;">
-        &copy; 2026 Klipday Platform. Dokumentasi Arsitektur & Produk.
+      <!-- Footer -->
+      <footer>
+        <div>&copy; 2026 Klipday Platform. All rights reserved.</div>
+        <div style="font-family: ui-monospace, monospace;">Minimalist Dark Edition</div>
       </footer>
     </main>
   </div>
 
   <script>
-    // Copy code snippet function
-    function copyCode(button) {
-      const codeElement = button.closest('.code-block-wrapper').querySelector('code');
-      const textToCopy = codeElement.innerText;
-      
-      navigator.clipboard.writeText(textToCopy).then(() => {
-        const originalText = button.innerText;
-        button.innerText = 'Tersalin!';
-        button.style.backgroundColor = '#10b981';
+    // Copy code snippet helper
+    function copyCode(btn) {
+      const code = btn.closest('.code-box').querySelector('code').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const prev = btn.innerText;
+        btn.innerText = 'Copied';
+        btn.style.color = '#34d399';
         setTimeout(() => {
-          button.innerText = originalText;
-          button.style.backgroundColor = '';
-        }, 2000);
+          btn.innerText = prev;
+          btn.style.color = '';
+        }, 1800);
       });
     }
 
-    // Active navigation scroll spy
+    // Scrollspy for navigation links
     window.addEventListener('DOMContentLoaded', () => {
-      const links = document.querySelectorAll('.nav-link');
+      const links = document.querySelectorAll('.nav-item a');
       const sections = document.querySelectorAll('.doc-section, .hero');
 
-      function updateActiveNav() {
-        let currentSectionId = '';
-        const scrollPosition = window.scrollY + 100;
+      function onScroll() {
+        let currentId = '';
+        const scrollY = window.scrollY + 120;
 
-        sections.forEach(section => {
-          const sectionTop = section.offsetTop;
-          const sectionHeight = section.offsetHeight;
-          if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
-            currentSectionId = section.getAttribute('id');
+        sections.forEach(sec => {
+          const top = sec.offsetTop;
+          const height = sec.offsetHeight;
+          if (scrollY >= top && scrollY < top + height) {
+            currentId = sec.getAttribute('id');
           }
         });
 
         links.forEach(link => {
           link.classList.remove('active');
-          if (link.getAttribute('href') === `#${currentSectionId}`) {
+          if (link.getAttribute('href') === `#${currentId}`) {
             link.classList.add('active');
           }
         });
       }
 
-      window.addEventListener('scroll', updateActiveNav);
-      updateActiveNav();
+      window.addEventListener('scroll', onScroll);
+      onScroll();
     });
   </script>
 </body>

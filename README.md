@@ -1,116 +1,106 @@
 # Klipday
 
-Marketplace dua arah yang menghubungkan brand dan kreator video pendek (clippers) di Indonesia berbasis imbalan penayangan nyata (Pay-per-View / CPM).
+A performance-driven short-form video clipping marketplace connecting brands and creators in Indonesia. Brands receive organic viral reach with escrow budget protection; clippers monetize edits per verified view (CPM).
 
-> **Dokumentasi Visual Lengkap**: Buka file [`documentation.html`](file:///C:/Projects/klipday/documentation.html) langsung di browser Anda untuk membaca panduan interaktif dengan tata letak visual, alur diagram peran, dan navigasi yang lebih nyaman.
-
----
-
-## Tentang Klipday
-
-### Solusi Pemasaran Organik & Peluang Monetisasi Kreator
-Klipday adalah platform marketplace yang menjembatani pemilik bisnis (brand dan UMKM) dengan para kreator konten video pendek (clippers). Brand dapat membuat kampanye promosi untuk produk fisik, konten digital, maupun layanan/jasa dengan anggaran yang diamankan dalam sistem escrow. Para kreator bergabung ke dalam kampanye, memproduksi video klip promosi, dan mengunggahnya ke akun TikTok pribadi mereka. Penghasilan kreator dihitung secara transparan berdasarkan jumlah tayangan terverifikasi (verified views), memastikan brand hanya membayar untuk hasil nyata dan kreator mendapat jaminan pembayaran atas karya mereka.
+> **Interactive Documentation**: Open [`documentation.html`](file:///C:/Projects/klipday/documentation.html) in your web browser for the clean, minimalist dark-themed developer documentation experience with interactive navigation and workflow breakdowns.
 
 ---
 
-## Peran Pengguna
+## Overview
 
-### Sistem Akses Berbasis Peran (Roles)
-Platform memisahkan hak akses dan navigasi ke dalam tiga peran utama:
+### The Market Model
+Klipday connects commercial demand for viral social media content with video editors and clippers looking to monetize their short-form production skills.
+- **Brands & MSMEs**: Avoid expensive agency retainers and unmeasured influencer costs. Set a target CPM (e.g. Rp15,000 / 1K views) and pay strictly for verified view performance.
+- **Clippers & Creators**: Earn by creating engaging TikTok edits from brand assets. No need to wait for individual sponsorship deals; earn guaranteed payouts backed by escrow.
 
-- **Brand**: Pemilik produk, bisnis, atau agensi yang mendanai kampanye melalui dompet digital, menentukan brief kreatif dan tarif CPM, serta mengulas video yang masuk.
-- **Creator (Clipper)**: Pengguna yang mengedit dan mendistribusikan video promosi ke akun TikTok pribadi mereka untuk mendapatkan kompensasi per tayangan.
-- **Admin**: Tim internal platform yang memverifikasi kampanye baru, meninjau permohonan isi ulang saldo/pencairan dana, dan mengelola penyelesaian akhir (settlement).
-
----
-
-## Cara Kerja Platform
-
-### Alur Kerja untuk Brand
-1. **Isi Ulang Saldo**: Brand mengisi dompet saldo melalui transfer bank atau QRIS.
-2. **Buat Kampanye**: Mengisi detail kampanye, brief kreatif, materi video mentah, serta parameter kompensasi (tarif CPM, batas minimum views, batas maksimum views, dan total anggaran).
-3. **Kunci Anggaran di Escrow**: Anggaran kampanye dikunci secara aman di rekening escrow saat kampanye disubmit.
-4. **Kurasi Pengajuan**: Brand meninjau video yang diajukan oleh kreator (Setujui, Minta Revisi, atau Tolak).
-5. **Laporan & Hasil**: Anggaran terdistribusi otomatis sesuai performa penayangan video yang valid.
-
-### Alur Kerja untuk Kreator
-1. **Pilih Kampanye**: Menemukan kampanye yang sesuai di marketplace dan mengunduh materi yang disediakan.
-2. **Verifikasi Akun TikTok**: Menghubungkan akun TikTok melalui kode verifikasi sementara (`KD-XXXX`) di bio profil untuk memastikan kepemilikan akun.
-3. **Unggah Video ke TikTok**: Mengedit video dan mengunggahnya langsung ke akun TikTok pribadi sesuai panduan brief (Post-First Model).
-4. **Kirim Video di Klipday**: Memilih video dari daftar profil atau menempelkan link video live ke dialog pengajuan di platform.
-5. **Dapatkan Pembayaran**: Setelah video disetujui, setiap tayangan valid dikonversi menjadi penghasilan sesuai tarif CPM kampanye.
+### Campaign Types
+- **Physical Products**: E-commerce, skincare, fashion, F&B, consumer electronics.
+- **Digital Content**: Online courses, podcasts, media publications, software products.
+- **Services**: Professional services, clinics, educational institutions, travel & hospitality.
 
 ---
 
-## Fitur yang Sudah Terimplementasi
+## User Roles & Workflows
 
-### Modul Fungsional Utama
-- **Autentikasi & Otorisasi**: Pendaftaran dan login dengan email dan kata sandi yang di-hash aman via Bcrypt. Sesi diamankan dengan HTTP-only cookie dan JWT dengan proteksi peran otomatis.
-- **Dompet Brand & Sistem Escrow**: Manajemen saldo terintegrasi, riwayat transaksi, permintaan top-up, permintaan penarikan dana (withdrawal), dan penguncian anggaran kampanye secara otomatis.
-- **Wizard Pembuatan Kampanye 6 Langkah**: Alur terstruktur untuk brand mulai dari Informasi Dasar, Brief & Pedoman Konten, Skema Imbalan CPM/Views, Unggah Aset Materi, Rangkuman Ulasan, hingga Pembayaran Escrow via saldo dompet.
-- **Verifikasi Akun TikTok Anti-Pembajakan**: Handshake satu kali menggunakan kode token sementara di bio TikTok untuk memastikan kreator benar-benar pemilik akun, dengan proteksi keunikan akun di tingkat database (`unique([platform, username])`).
-- **Dialog Pengajuan Video Terintegrasi**: Modal 2-kolom langsung pada halaman detail kampanye (Konfirmasi Brief -> Cek Akun TikTok -> Pemilih Video Galeri TikTok / Link URL -> Pratinjau & Kirim).
-- **Antrean Kurasi Pengajuan**: Antarmuka review bagi brand untuk menyetujui video, meminta revisi dengan catatan terstruktur, atau menolak pengajuan.
+### User Roles
+- `BRAND`: Funds wallet, configures campaigns, deposits escrow, and curates video submissions.
+- `CREATOR`: Discovers campaigns, connects TikTok account via bio code verification, posts clips, and submits live links.
+- `ADMIN`: Audits campaigns, reviews deposit slips, verifies view reports, and executes withdrawals.
+
+### Brand Flow
+1. **Wallet Deposit**: Top up account balance via Indonesian bank transfer, Virtual Account, or QRIS.
+2. **Campaign Creation**: Build campaign guidelines, set CPM rate, view thresholds, budget, and raw video footage via a 6-step wizard.
+3. **Escrow Lock**: Campaign budget is immediately deducted from the wallet and locked in escrow.
+4. **Submission Curation**: Review creator videos: Approve, Request Revision (up to 2 rounds), or Reject.
+5. **Settlement**: Performance-based payout to creators; unspent escrow funds return to the brand.
+
+### Clipper Flow
+1. **Campaign Discovery**: Browse active campaigns and download raw media assets.
+2. **TikTok Bio Handshake**: Link TikTok account using a temporary bio token (`KD-XXXX`, 10-minute expiry) verified via scrapers (`@@unique([platform, username])`).
+3. **Produce & Post (Post-First Model)**: Publish video edits directly to TikTok adhering to brief guidelines.
+4. **Submit Video**: Select the clip via the in-context submission dialog on the campaign page.
+5. **Earn Payout**: Receive earnings calculated from verified views × CPM once approved.
 
 ---
 
-## Teknologi yang Digunakan
+## Implemented Features
+
+- **Authentication & Roles**: Email + Bcrypt password authentication, JWT claims, HTTP-only cookie sessions, and role guards (`BRAND`, `CREATOR`, `ADMIN`).
+- **Brand Wallet & Escrow**: Balance ledger, deposit slip tracking, withdrawal requests, and transactional escrow locking.
+- **6-Step Campaign Creation Wizard**: Information, Brief & Guidelines, CPM & View Model, Media Assets, Review Summary, and Escrow Checkout.
+- **TikTok Bio Verification Handshake**: Ownership proof token generator, live bio scraping, anti-hijacking database constraints, and permanent asset storage on Supabase Storage.
+- **Post-First Video Submission Dialog**: In-context modal with brief agreement, handle confirmation, TikTok feed video picker / URL fallback, and submission status tracking.
+- **Brand Curation Queue**: Dedicated management interface for approving clips, requesting revisions, or rejecting submissions.
+
+---
+
+## Tech Stack & Architecture
 
 ### Backend (`backend/`)
-- **Runtime**: Node.js & TypeScript
-- **Framework Web**: Express 5.1
-- **Database & ORM**: PostgreSQL (Supabase) dengan Prisma ORM 7.9
-- **Validasi Data**: Zod 4.4
-- **Keamanan**: Helmet, CORS, Cookie-parser, Bcrypt, JsonWebToken
+- **Runtime & Language**: Node.js & TypeScript
+- **Framework**: Express 5.1
+- **Database & ORM**: PostgreSQL (Supabase) with Prisma ORM 7.9
+- **Validation & Security**: Zod 4.4, Helmet, CORS, Cookie-parser, Bcrypt, JWT
 
 ### Frontend (`frontend/`)
-- **Library UI**: React 19 & TypeScript
-- **Build Tool**: Vite 8
-- **Styling**: Tailwind CSS v4 & Lucide Icons
-- **Manajemen State & Data**: TanStack Query v5 & Axios
-- **Formulir**: React Hook Form & Zod
-- **Komponen Desain**: Radix UI & shadcn/ui
-- **Navigasi**: React Router v8 (Data Router dengan Code Splitting)
+- **Framework & Language**: React 19 & TypeScript
+- **Bundler & Tooling**: Vite 8
+- **Styling**: Tailwind CSS v4, Lucide Icons
+- **State & Data Fetching**: TanStack Query v5 & Axios
+- **Forms & UI**: React Hook Form, Zod, Radix UI & shadcn/ui primitives
+- **Routing**: React Router v8 (Data Router with route code splitting)
 
----
-
-## Struktur Proyek
-
-### Organisasi Berbasis Fitur (Feature Modules)
+### Directory Structure
 ```text
 klipday/
 ├── backend/
-│   ├── prisma/
-│   │   └── schema.prisma        # Skema basis data PostgreSQL
-│   ├── src/
-│   │   ├── features/            # Modul fitur mandiri (auth, campaign, wallet, submission, social-account)
-│   │   ├── middleware/          # Penanganan error & auth guard
-│   │   ├── app.ts               # Setup Express & registrasi rute
-│   │   └── index.ts             # Server entry point
-│   └── package.json
-│
+│   ├── prisma/schema.prisma     # PostgreSQL schema & enums
+│   └── src/
+│       ├── features/            # Feature packages (authentication, campaign, wallet, submission, social-account)
+│       ├── middleware/          # Global error handling & auth guards
+│       ├── app.ts               # Express configuration & routes
+│       └── index.ts             # Server entry point
 ├── frontend/
-│   ├── src/
-│   │   ├── components/ui/       # Primitif UI bersama (shadcn/ui, Radix)
-│   │   ├── features/            # Modul fitur frontend (auth, campaign, dashboard, submission, wallet)
-│   │   ├── lib/                 # Konfigurasi client API & utilitas
-│   │   ├── App.tsx              # Router & layout orchestrator
-│   │   └── main.tsx             # Entry point React
-│   ├── vite.config.ts           # Konfigurasi Vite & proxy backend
-│   └── package.json
-│
-├── documentation.html           # Dokumentasi web interaktif mandiri
-└── README.md                    # Dokumentasi utama repositori
+│   └── src/
+│       ├── components/ui/       # Shared UI primitives (shadcn/ui, Radix)
+│       ├── features/            # Feature modules (authentication, campaign, dashboard, submission, wallet)
+│       ├── lib/                 # API client & helpers
+│       ├── App.tsx              # React router tree & layouts
+│       └── main.tsx             # Root render
+├── documentation.html           # Minimalist dark-themed interactive documentation
+└── README.md                    # Root repository documentation
 ```
 
 ---
 
-## Panduan Instalasi & Menjalankan Proyek
+## Quickstart Guide
 
-### 1. Persiapan
-Pastikan komputer Anda memiliki Node.js (>= 20.x), npm, dan akses ke database PostgreSQL (lokal atau cloud Supabase).
+### 1. Prerequisites
+- Node.js (>= 20.x)
+- npm (>= 10.x)
+- PostgreSQL database (local or Supabase)
 
-### 2. Menjalankan Backend
+### 2. Backend Setup
 ```bash
 cd backend
 npm install
@@ -119,21 +109,20 @@ npx prisma generate
 npx prisma db push
 npm run dev
 ```
-Server backend akan berjalan di `http://localhost:3000`.
+Server runs at `http://localhost:3000`.
 
-### 3. Menjalankan Frontend
+### 3. Frontend Setup
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Aplikasi web akan berjalan di `http://localhost:5173` dengan proxy otomatis ke backend.
+Web client runs at `http://localhost:5173` with automated API proxying to port 3000.
 
 ---
 
-## Rencana Fitur Lanjutan (Roadmap)
+## Roadmap
 
-### Pengembangan Tahap Berikutnya
-- **Dukungan Platform Tambahan**: Integrasi pengajuan video untuk Instagram Reels dan YouTube Shorts.
-- **Pencairan Saldo Otomatis**: Integrasi payment gateway untuk pencairan dana otomatis ke bank lokal Indonesia dan e-wallet.
-- **Pelacakan Tayangan Otomatis**: Mesin pengumpul tayangan video harian otomatis dengan audit deteksi kecurangan tayangan (view fraud detection).
+- **Phase 2**: Multi-platform support for Instagram Reels and YouTube Shorts.
+- **Phase 2**: Automated payout disbursement integration for Indonesian banks and e-wallets.
+- **Phase 3**: Automated view scraping engine with fraud detection and daily delta reconciliation.
