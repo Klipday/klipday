@@ -245,6 +245,9 @@ model Admin {
   // relation to verified campaign payments
   verifiedPayments CampaignPayment[]
 
+  // relation to verified top up requests
+  verifiedTopUps TopUpRequest[]
+
   @@map("admins")
 }
 
@@ -604,6 +607,7 @@ model Wallet {
   // relations
   transactions   WalletTransaction[]
   payoutRequests PayoutRequest[]
+  topUpRequests  TopUpRequest[]
 
   @@map("wallets")
 }
@@ -677,6 +681,10 @@ model PayoutRequest {
   transferProofUrl String?      @map("transfer_proof_url")
   adminNote        String?      @map("admin_note")
 
+  // cancellation request tracking
+  cancellationRequestedAt DateTime? @map("cancellation_requested_at")
+  cancellationReason      String?   @map("cancellation_reason")
+
   // relation to processing admin
   processedByAdmin   Admin?    @relation(fields: [processedByAdminId], references: [id])
   processedByAdminId String?   @map("processed_by_admin_id")
@@ -735,4 +743,52 @@ model CampaignPayment {
   @@index([paymentStatus, createdAt(sort: Desc)])
   @@map("campaign_payments")
 }
+
+model TopUpRequest {
+  // id is the primary key for the top-up request, and is generated as a UUID.
+  id String @id @default(uuid())
+
+  // reference code for bank transfer remark (e.g. TU-2610-8912)
+  referenceCode String @unique @map("reference_code")
+
+  // relation to wallet
+  wallet   Wallet @relation(fields: [walletId], references: [id])
+  walletId String @map("wallet_id")
+
+  // financial details
+  amount       Decimal @db.Decimal(15, 2)
+  uniqueCode   Int     @map("unique_code")
+  totalPayable Decimal @map("total_payable") @db.Decimal(15, 2)
+
+  // destination bank account details (snapshot for invoice)
+  destinationBank       String @default("BCA") @map("destination_bank")
+  destinationAccount    String @default("1234567890") @map("destination_account")
+  destinationHolderName String @default("PT Klipday Media Kreasi") @map("destination_holder_name")
+
+  // sender details
+  senderBank         String? @map("sender_bank")
+  senderAccountName  String? @map("sender_account_name")
+  transferProofUrl   String? @map("transfer_proof_url")
+
+  // top-up lifecycle status
+  status          PaymentStatus @default(PENDING) @map("status")
+  rejectionReason String?       @map("rejection_reason")
+
+  // relation to verifying admin
+  verifiedByAdmin   Admin?    @relation(fields: [verifiedByAdminId], references: [id])
+  verifiedByAdminId String?   @map("verified_by_admin_id")
+  verifiedAt        DateTime? @map("verified_at")
+
+  // status for soft-delete
+  recordStatus Status @default(ACTIVE) @map("record_status")
+
+  // timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([walletId])
+  @@index([status, createdAt(sort: Desc)])
+  @@map("top_up_requests")
+}
+
 
