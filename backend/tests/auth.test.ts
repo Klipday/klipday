@@ -21,8 +21,11 @@ import {
   ValidateLoginBody,
   ValidateRegisterBody,
 } from '../src/features/authentication/auth.validators.js';
+import {
+  BuildInitialWalletCreateData,
+} from '../src/features/authentication/auth.helper.js';
 import { Prisma } from '../src/generated/prisma/client.js';
-import { Industry, Role } from '../src/generated/prisma/enums.js';
+import { Industry, Role, Status } from '../src/generated/prisma/enums.js';
 import { RequireAuth } from '../src/middleware/auth.middleware.js';
 import { prisma } from '../src/utils/prisma.js';
 import {
@@ -46,6 +49,13 @@ describe('Authentication Feature Module', () => {
     process.env.JWT_SECRET = 'test-secret-key-12345';
     process.env.NODE_ENV = 'test';
     jest.clearAllMocks();
+    jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(null as never);
+    jest.spyOn(prisma.wallet, 'create').mockResolvedValue({
+      id: 'mock-wallet-id',
+      accountId: 'mock-account-id',
+      balance: new Prisma.Decimal(0),
+      status: Status.ACTIVE,
+    } as never);
   });
 
   afterAll(() => {
@@ -256,9 +266,16 @@ describe('Authentication Feature Module', () => {
                   industry: validBrandRegisterPayload.industry,
                 },
               },
+              wallet: {
+                create: {
+                  balance: expect.any(Prisma.Decimal),
+                  status: Status.ACTIVE,
+                },
+              },
             }),
           }),
         );
+        expect(prisma.wallet.create).not.toHaveBeenCalled();
         expect(statusMock).toHaveBeenCalledWith(201);
         expect(jsonMock).toHaveBeenCalledWith({
           status: 'success',
@@ -302,9 +319,16 @@ describe('Authentication Feature Module', () => {
                   fullName: validCreatorRegisterPayload.fullName,
                 },
               },
+              wallet: {
+                create: {
+                  balance: expect.any(Prisma.Decimal),
+                  status: Status.ACTIVE,
+                },
+              },
             }),
           }),
         );
+        expect(prisma.wallet.create).not.toHaveBeenCalled();
         expect(statusMock).toHaveBeenCalledWith(201);
         expect(jsonMock).toHaveBeenCalledWith({
           status: 'success',
@@ -811,5 +835,96 @@ describe('Authentication Feature Module', () => {
         });
       });
     });
+
+    describe('Authentication Helpers & Wallet Provisioning', () => {
+      it('BuildInitialWalletCreateData builds active 0-balance wallet for Role.BRAND', () => {
+        const result = BuildInitialWalletCreateData(Role.BRAND);
+        expect(result).toBeDefined();
+        expect(result).toEqual({
+          create: {
+            balance: new Prisma.Decimal(0),
+            status: Status.ACTIVE,
+          },
+        });
+      });
+
+      it('BuildInitialWalletCreateData builds active 0-balance wallet for Role.CREATOR', () => {
+        const result = BuildInitialWalletCreateData(Role.CREATOR);
+        expect(result).toBeDefined();
+        expect(result).toEqual({
+          create: {
+            balance: new Prisma.Decimal(0),
+            status: Status.ACTIVE,
+          },
+        });
+      });
+
+      it('BuildInitialWalletCreateData returns undefined for non-financial Role.ADMIN', () => {
+        const result = BuildInitialWalletCreateData(Role.ADMIN);
+        expect(result).toBeUndefined();
+      });
+
+      it('BuildInitialWalletCreateData returns undefined for undefined or invalid roles', () => {
+        const undefinedResult = BuildInitialWalletCreateData(undefined as unknown as Role);
+        const invalidResult = BuildInitialWalletCreateData('UNKNOWN' as Role);
+        expect(undefinedResult).toBeUndefined();
+        expect(invalidResult).toBeUndefined();
+      });
+
+      it('RegisterAccount builds an atomic payload and creates Account, Profile, and Wallet in a single DB query', async () => {
+        const req = CreateMockRequest({ body: validBrandRegisterPayload });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.account, 'findFirst').mockResolvedValue(null);
+        jest.spyOn(bcrypt, 'hash').mockResolvedValue('mock-hashed-password' as never);
+
+        const createdAccount = {
+          id: 'acc-atomic-brand',
+          email: validBrandRegisterPayload.email,
+          role: Role.BRAND,
+          createdAt: new Date('2026-01-01T00:00:00Z'),
+        };
+        const createAccountSpy = jest
+          .spyOn(prisma.account, 'create')
+          .mockResolvedValue(createdAccount as never);
+        const createWalletSpy = jest.spyOn(prisma.wallet, 'create');
+
+        await RegisterAccount(req, res, next);
+
+        expect(createAccountSpy).toHaveBeenCalledWith({
+          data: {
+            email: validBrandRegisterPayload.email,
+            passwordHash: 'mock-hashed-password',
+            role: Role.BRAND,
+            brand: {
+              create: {
+                companyName: validBrandRegisterPayload.companyName,
+                phoneNumber: validBrandRegisterPayload.phoneNumber,
+                industry: validBrandRegisterPayload.industry,
+              },
+            },
+            wallet: {
+              create: {
+                balance: expect.any(Prisma.Decimal),
+                status: Status.ACTIVE,
+              },
+            },
+          },
+          select: { id: true, email: true, role: true, createdAt: true },
+        });
+
+        // Verifies zero separate wallet queries are triggered (pure relational payload builder pattern)
+        expect(createWalletSpy).not.toHaveBeenCalled();
+        expect(statusMock).toHaveBeenCalledWith(201);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'success',
+          data: createdAccount,
+          message: AUTH_MESSAGES.REGISTER_SUCCESS,
+        });
+        expect(next).not.toHaveBeenCalled();
+      });
+    });
   });
 });
+

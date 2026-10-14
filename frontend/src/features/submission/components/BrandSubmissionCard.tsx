@@ -43,7 +43,7 @@ export function BrandSubmissionCard({ submission, onReview, className }: BrandSu
                 referrerPolicy="no-referrer"
               />
             ) : null}
-            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{creatorInitial}</AvatarFallback>
+            <AvatarFallback className="bg-muted text-muted-foreground text-xs font-semibold">{creatorInitial}</AvatarFallback>
           </Avatar>
 
           <div className="min-w-0 space-y-0.5">

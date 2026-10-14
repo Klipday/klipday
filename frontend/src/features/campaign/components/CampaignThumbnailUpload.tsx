@@ -237,7 +237,7 @@ export function CampaignThumbnailUpload({ value, onChange, campaignId, disabled 
                 href={sanitizedThumbnailUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-primary hover:underline font-medium">
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline font-medium transition-colors">
                 <span>Lihat Ukuran Penuh</span>
                 <ExternalLink className="size-3" />
               </a>

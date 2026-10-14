@@ -26,6 +26,7 @@ export { CampaignFormStep5 } from './CampaignFormStep5';
 export { CampaignFormStep5 as ReviewSummary } from './CampaignFormStep5';
 export { CampaignFormStep6 } from './CampaignFormStep6';
 export { CampaignPaymentTransferOption } from './CampaignPaymentTransferOption';
+export { CampaignPaymentSenderAssistant } from './CampaignPaymentSenderAssistant';
 export { CampaignPaymentWalletOption } from './CampaignPaymentWalletOption';
 export { AdminPaymentReviewCard } from './AdminPaymentReviewCard';
 export { CampaignReviewBasicInfo } from './CampaignReviewBasicInfo';

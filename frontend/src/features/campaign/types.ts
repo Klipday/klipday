@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from 'react';
 import type { Control } from 'react-hook-form';
+import type { BrandPayoutAccount } from '@/features/brand/types';
 import type { MaterialsFormValues } from './schemas';
 
 export interface ApiResponse<T> {
@@ -696,5 +697,11 @@ export interface AdminPaymentReviewCardProps {
   onVerificationSuccess?: () => void;
 }
 
-
-
+export interface CampaignPaymentSenderAssistantProps {
+  accounts: readonly BrandPayoutAccount[];
+  selectedProvider: string;
+  selectedAccountName: string;
+  onSelectAccount: (account: BrandPayoutAccount) => void;
+  disabled?: boolean;
+  className?: string;
+}

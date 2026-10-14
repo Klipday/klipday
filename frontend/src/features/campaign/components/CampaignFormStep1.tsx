@@ -277,7 +277,7 @@ export function CampaignFormStep1() {
                       href={sanitizedMediaUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-medium">
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors">
                       <span>Uji Tautan</span>
                       <ExternalLink className="size-3" />
                     </a>

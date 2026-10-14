@@ -1400,18 +1400,13 @@ export async function VerifyCampaignPayment(req: Request, res: Response, next: N
     }
 
     if (input.action === 'APPROVE') {
-      let brandWallet = await prisma.wallet.findFirst({
+      const brandWallet = await prisma.wallet.findFirst({
         where: { accountId: campaign.brand.accountId, status: Status.ACTIVE },
       });
 
       if (!brandWallet) {
-        brandWallet = await prisma.wallet.create({
-          data: {
-            accountId: campaign.brand.accountId,
-            balance: 0,
-            status: Status.ACTIVE,
-          },
-        });
+        SendError(res, CAMPAIGN_MESSAGES.WALLET_NOT_FOUND, 404);
+        return;
       }
 
       const refCode = GenerateWalletTransactionReferenceCode();

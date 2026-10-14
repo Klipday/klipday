@@ -39,12 +39,15 @@ export function CreateCampaignDialog({ children }: CreateCampaignDialogProps) {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [draftCountOnOpen, setDraftCountOnOpen] = useState(0);
 
   const { data: counts } = UseCampaignStatusCountsQuery();
-  const draftCount = counts?.DRAFT ?? 0;
+  const currentDraftCount = counts?.DRAFT ?? 0;
+
+  const hasDrafts = draftCountOnOpen >= 1;
 
   const { data: draftsData } = UseCampaignsQuery(
-    isOpen && draftCount > 0
+    isOpen && hasDrafts
       ? {
           campaignStatus: 'DRAFT',
           sort: 'latest',
@@ -64,33 +67,43 @@ export function CreateCampaignDialog({ children }: CreateCampaignDialogProps) {
   const latestDraftProgress = GetDraftStepProgress(latestDraft);
   const latestDraftDate = FormatDraftDate(latestDraft?.updatedAt);
 
-  const handleContinueLatest = () => {
+  const HandleOpenChange = (open: boolean) => {
+    if (open) {
+      setDraftCountOnOpen(currentDraftCount);
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+    }
+  };
+
+  const HandleContinueLatest = () => {
     if (!latestDraft) return;
     setIsOpen(false);
     const targetPath = ResolveCampaignWizardStepPath(latestDraft);
     navigate(targetPath);
   };
 
-  const handleOpenSheet = () => {
+  const HandleOpenSheet = () => {
     setIsOpen(false);
     setIsSheetOpen(true);
   };
 
-  const handleCreateNew = () => {
+  const HandleCreateNew = () => {
+    setIsOpen(false);
     initializeMutation.mutate();
   };
 
   return (
     <>
-      <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+      <AlertDialog open={isOpen} onOpenChange={HandleOpenChange}>
         <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
         <AlertDialogContent>
-          {draftCount >= 1 ? (
+          {hasDrafts ? (
             <>
               <AlertDialogHeader>
                 <AlertDialogTitle>Lanjutkan Draf Sebelumnya?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Anda masih memiliki {draftCount} draf yang belum selesai. Mau lanjutkan draf sebelumnya atau buat kampanye baru?
+                  Anda masih memiliki {draftCountOnOpen} draf yang belum selesai. Mau lanjutkan draf sebelumnya atau buat kampanye baru?
                 </AlertDialogDescription>
               </AlertDialogHeader>
 
@@ -114,7 +127,7 @@ export function CreateCampaignDialog({ children }: CreateCampaignDialogProps) {
                 <Button
                   type="button"
                   className="h-9 w-full justify-center gap-1.5 px-3.5 text-xs font-medium"
-                  onClick={handleContinueLatest}
+                  onClick={HandleContinueLatest}
                   disabled={!latestDraft}
                 >
                   <span>Lanjutkan Draf Terakhir</span>
@@ -126,16 +139,16 @@ export function CreateCampaignDialog({ children }: CreateCampaignDialogProps) {
                     type="button"
                     variant="outline"
                     className="h-9 text-xs"
-                    onClick={handleOpenSheet}
+                    onClick={HandleOpenSheet}
                   >
-                    <span>Lihat Semua Draf ({draftCount})</span>
+                    <span>Lihat Semua Draf ({draftCountOnOpen})</span>
                   </Button>
 
                   <Button
                     type="button"
                     variant="outline"
                     className="h-9 text-xs"
-                    onClick={handleCreateNew}
+                    onClick={HandleCreateNew}
                     disabled={initializeMutation.isPending}
                   >
                     {initializeMutation.isPending ? (
@@ -168,7 +181,7 @@ export function CreateCampaignDialog({ children }: CreateCampaignDialogProps) {
                   Batal
                 </AlertDialogCancel>
                 <Button
-                  onClick={handleCreateNew}
+                  onClick={HandleCreateNew}
                   disabled={initializeMutation.isPending}
                   className="flex items-center gap-2"
                 >

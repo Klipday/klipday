@@ -56,7 +56,7 @@ export function CampaignReviewMaterials({ materials, onEdit }: CampaignReviewMat
                       href={sanitizedUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="ml-4 inline-flex items-center gap-1 text-xs text-primary hover:underline shrink-0">
+                      className="ml-4 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline shrink-0 transition-colors">
                       Buka Aset <ExternalLink className="h-3 w-3" />
                     </a>
                   ) : (

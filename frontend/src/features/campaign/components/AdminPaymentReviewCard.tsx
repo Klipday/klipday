@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { SUPPORTED_BANKS, SUPPORTED_EWALLETS } from '@/features/brand/constants';
 import { cn } from '@/lib/utils';
 import { UseVerifyCampaignPaymentMutation } from '../hooks';
 import type { AdminPaymentReviewCardProps } from '../types';
@@ -47,6 +48,15 @@ export function AdminPaymentReviewCard({
   if (!latestPayment || latestPayment.paymentStatus !== 'SUBMITTED') {
     return null;
   }
+
+  const allSupportedProviders = [...SUPPORTED_BANKS, ...SUPPORTED_EWALLETS];
+  const matchedSenderProvider = latestPayment.senderProviderName
+    ? allSupportedProviders.find(
+        (p) =>
+          p.code.toUpperCase() === latestPayment.senderProviderName?.toUpperCase() ||
+          p.name.toUpperCase() === latestPayment.senderProviderName?.toUpperCase(),
+      )?.name ?? latestPayment.senderProviderName
+    : '-';
 
   const isPending = verifyMutation.isPending;
 
@@ -91,7 +101,9 @@ export function AdminPaymentReviewCard({
           <div className="space-y-3 rounded-xl border border-border/60 bg-background/80 p-4 text-xs">
             <div className="flex justify-between py-1 border-b border-border/40">
               <span className="text-muted-foreground">Bank/E-Wallet Pengirim:</span>
-              <span className="font-semibold text-foreground">{latestPayment.senderProviderName || '-'}</span>
+              <span className="font-semibold text-foreground">
+                {matchedSenderProvider}
+              </span>
             </div>
 
             <div className="flex justify-between py-1 border-b border-border/40">
@@ -146,7 +158,7 @@ export function AdminPaymentReviewCard({
                 href={latestPayment.transferProofUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors">
                 <span>Buka Bukti Gambar Ukuran Penuh</span>
                 <ExternalLink className="size-3" />
               </a>

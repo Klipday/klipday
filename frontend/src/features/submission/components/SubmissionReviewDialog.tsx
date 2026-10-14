@@ -139,7 +139,7 @@ function SubmissionReviewDialogInner({
                   referrerPolicy="no-referrer"
                 />
               ) : null}
-              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+              <AvatarFallback className="bg-muted text-muted-foreground text-xs font-semibold">
                 {creatorInitial}
               </AvatarFallback>
             </Avatar>

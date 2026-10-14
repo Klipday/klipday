@@ -91,12 +91,14 @@ export interface BrandLocationComboboxProps {
 }
 
 export interface BrandBankComboboxProps {
-  accountType: PayoutAccountType;
+  id?: string;
+  accountType?: PayoutAccountType | 'ALL';
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
   className?: string;
   hasError?: boolean;
+  placeholder?: string;
 }
 
 export interface BrandProfileInfoFormProps {

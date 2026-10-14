@@ -590,7 +590,7 @@ export async function CreateBrandPayoutAccount(
     }
 
     // Ensure wallet exists
-    let wallet = await prisma.wallet.findFirst({
+    const wallet = await prisma.wallet.findFirst({
       where: {
         accountId: account.sub,
         status: Status.ACTIVE,
@@ -598,12 +598,8 @@ export async function CreateBrandPayoutAccount(
     });
 
     if (!wallet) {
-      wallet = await prisma.wallet.create({
-        data: {
-          accountId: account.sub,
-          balance: new Prisma.Decimal(0),
-        },
-      });
+      SendError(res, BRAND_MESSAGES.WALLET_NOT_FOUND, 404);
+      return;
     }
 
     // Check count of active payout accounts

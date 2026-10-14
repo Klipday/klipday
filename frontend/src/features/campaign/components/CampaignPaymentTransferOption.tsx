@@ -4,11 +4,16 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { BrandBankCombobox } from '@/features/brand/components';
+import { SUPPORTED_EWALLETS } from '@/features/brand/constants';
+import { UseBrandPayoutAccountsQuery } from '@/features/brand/hooks';
+import type { BrandPayoutAccount } from '@/features/brand/types';
 import { cn } from '@/lib/utils';
 import { UploadPaymentProof } from '../api';
 import { UseConfirmBankTransferPaymentMutation } from '../hooks';
 import type { CampaignPaymentTransferOptionProps } from '../types';
 import { FormatRupiah } from '../utils';
+import { CampaignPaymentSenderAssistant } from './CampaignPaymentSenderAssistant';
 
 /**
  * Manual bank transfer payment option component for Step 6 of campaign wizard.
@@ -34,6 +39,47 @@ export function CampaignPaymentTransferOption({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [copiedField, setCopiedField] = useState<'account' | 'amount' | null>(null);
+
+  const initialIsEwallet = Boolean(
+    existingPayment?.senderProviderName &&
+      SUPPORTED_EWALLETS.some(
+        (wallet) =>
+          wallet.code.toUpperCase() === existingPayment.senderProviderName?.toUpperCase() ||
+          wallet.name.toUpperCase() === existingPayment.senderProviderName?.toUpperCase(),
+      ),
+  );
+  const [accountType, setAccountType] = useState<'BANK_TRANSFER' | 'E_WALLET'>(
+    initialIsEwallet ? 'E_WALLET' : 'BANK_TRANSFER',
+  );
+
+  const { data: payoutAccounts = [] } = UseBrandPayoutAccountsQuery();
+  const availableKycAccounts = payoutAccounts.filter(
+    (acc) => acc.verificationStatus !== 'REJECTED',
+  );
+
+  const HandleSelectQuickAccount = (account: BrandPayoutAccount) => {
+    setAccountType(account.accountType);
+    setSenderProviderName(account.provider);
+    setSenderAccountName(account.accountHolderName);
+    toast.success(
+      `Data pengirim otomatis diisi dari ${account.provider} (a.n. ${account.accountHolderName}).`,
+    );
+  };
+
+  const HandleAccountTypeChange = (type: 'BANK_TRANSFER' | 'E_WALLET') => {
+    if (type === accountType) return;
+    setAccountType(type);
+    const isCurrentEwallet = SUPPORTED_EWALLETS.some(
+      (wallet) =>
+        wallet.code.toUpperCase() === senderProviderName.toUpperCase() ||
+        wallet.name.toUpperCase() === senderProviderName.toUpperCase(),
+    );
+    if (type === 'BANK_TRANSFER' && isCurrentEwallet) {
+      setSenderProviderName('');
+    } else if (type === 'E_WALLET' && !isCurrentEwallet && senderProviderName) {
+      setSenderProviderName('');
+    }
+  };
 
   const confirmMutation = UseConfirmBankTransferPaymentMutation(campaignId, {
     onSuccess: () => {
@@ -104,9 +150,12 @@ export function CampaignPaymentTransferOption({
     event.preventDefault();
     if (!canSubmit) return;
 
+    const trimmedProvider = senderProviderName.trim();
+    const trimmedAccount = senderAccountName.trim();
+
     confirmMutation.mutate({
-      senderProviderName: senderProviderName.trim(),
-      senderAccountName: senderAccountName.trim(),
+      senderProviderName: trimmedProvider,
+      senderAccountName: trimmedAccount,
       transferProofUrl,
     });
   };
@@ -182,38 +231,95 @@ export function CampaignPaymentTransferOption({
 
         {/* ROW 3: SENDER DETAILS & RECEIPT PROOF FORM */}
         <div className="p-5 sm:p-6 space-y-5">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Konfirmasi Pengirim & Bukti Transfer
-          </h4>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Konfirmasi Pengirim & Bukti Transfer
+            </h4>
+            <span className="text-[11px] text-muted-foreground">
+              Transfer dapat dilakukan dari rekening bank atau e-wallet mana saja
+            </span>
+          </div>
+
+          {/* Smart Assistant: Quick-select from registered KYC accounts */}
+          {availableKycAccounts.length > 0 ? (
+            <CampaignPaymentSenderAssistant
+              accounts={availableKycAccounts}
+              selectedProvider={senderProviderName}
+              selectedAccountName={senderAccountName}
+              onSelectAccount={HandleSelectQuickAccount}
+              disabled={isPending}
+            />
+          ) : null}
+
+          {/* Segmented Edge-to-Edge Control: Bank Transfer vs E-Wallet */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-foreground">Metode Transfer Pengirim</Label>
+            <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-border/70 p-0 divide-x divide-border/60 bg-muted/20">
+              <button
+                type="button"
+                onClick={() => HandleAccountTypeChange('BANK_TRANSFER')}
+                disabled={isPending}
+                className={cn(
+                  'flex items-center justify-center py-2.5 text-xs font-medium transition-colors cursor-pointer first:rounded-l-xl',
+                  accountType === 'BANK_TRANSFER'
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                  isPending && 'opacity-50 cursor-not-allowed',
+                )}>
+                <span>Transfer Bank</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => HandleAccountTypeChange('E_WALLET')}
+                disabled={isPending}
+                className={cn(
+                  'flex items-center justify-center py-2.5 text-xs font-medium transition-colors cursor-pointer last:rounded-r-xl',
+                  accountType === 'E_WALLET'
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                  isPending && 'opacity-50 cursor-not-allowed',
+                )}>
+                <span>E-Wallet</span>
+              </button>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="senderProviderName" className="text-xs font-medium text-foreground">
-                Bank / E-Wallet Pengirim <span className="text-destructive">*</span>
+                {accountType === 'BANK_TRANSFER' ? 'Bank Pengirim' : 'E-Wallet Pengirim'}{' '}
+                <span className="text-destructive">*</span>
               </Label>
-              <Input
+              <BrandBankCombobox
                 id="senderProviderName"
-                placeholder="Contoh: BCA, Mandiri, BRI, DANA"
+                accountType={accountType}
                 value={senderProviderName}
-                onChange={(e) => setSenderProviderName(e.target.value)}
+                onChange={(val) => setSenderProviderName(val)}
                 disabled={isPending}
-                required
-                className="h-10 text-xs sm:text-sm bg-background border-border/60"
+                className="h-10 rounded-xl border-border/60 bg-background text-xs"
+                placeholder={
+                  accountType === 'BANK_TRANSFER'
+                    ? 'Pilih Bank Pengirim'
+                    : 'Pilih E-Wallet Pengirim'
+                }
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="senderAccountName" className="text-xs font-medium text-foreground">
-                Nama Pemilik Rekening Pengirim <span className="text-destructive">*</span>
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="senderAccountName" className="text-xs font-medium text-foreground">
+                  Nama Pemilik Rekening Pengirim <span className="text-destructive">*</span>
+                </Label>
+                <span className="text-[10px] text-muted-foreground">Dapat diedit</span>
+              </div>
               <Input
                 id="senderAccountName"
-                placeholder="Nama sesuai pada buku tabungan / akun"
+                placeholder="Nama sesuai pada buku tabungan / akun pengirim"
                 value={senderAccountName}
                 onChange={(e) => setSenderAccountName(e.target.value)}
                 disabled={isPending}
                 required
-                className="h-10 text-xs sm:text-sm bg-background border-border/60"
+                className="h-10 rounded-xl border-border/60 bg-background text-xs sm:text-sm"
               />
             </div>
           </div>

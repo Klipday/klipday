@@ -76,7 +76,7 @@ function CampaignWizardLayout() {
   }
 
   return (
-    <div className="w-full max-w-5xl space-y-6 pb-12">
+    <div className="w-full max-w-5xl min-w-0 space-y-6 pb-12">
       <div className="flex flex-col gap-4">
         <CampaignWizardHeader />
         <div className="pt-2">

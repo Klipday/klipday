@@ -133,7 +133,7 @@ export function MaterialFieldGroup({ index, control, canRemove, onRemove, disabl
                           href={sanitizedUrl}
                           target="_blank"
                           rel="noreferrer noopener"
-                          className="flex items-center gap-1 text-[11px] font-medium text-primary hover:underline transition-colors">
+                          className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors">
                           <span>Uji Tautan</span>
                           <ExternalLink className="size-3" />
                         </a>

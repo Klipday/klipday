@@ -86,7 +86,7 @@ export function CampaignReviewBasicInfo({ campaign, onEdit }: CampaignReviewBasi
                   href={sanitizedMediaUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                  className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors">
                   Buka Tautan <ExternalLink className="h-3 w-3" />
                 </a>
               </div>

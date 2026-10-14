@@ -15,6 +15,7 @@ import {
 } from './auth.constants.js';
 import type { BrandProfileDto, CreatorProfileDto, CurrentAccountProfile } from './auth.types.js';
 import { ValidateLoginBody, ValidateRegisterBody } from './auth.validators.js';
+import { BuildInitialWalletCreateData } from './auth.helper.js';
 
 /**
  * Handles `POST /auth/register`: validates request payload, hashes password with
@@ -47,7 +48,7 @@ export async function RegisterAccount(req: Request, res: Response, next: NextFun
 
     const passwordHash = await bcrypt.hash(input.password, AUTH_SALT_ROUNDS);
 
-    // Nested create keeps account + profile in a single atomic write
+    // Nested create keeps account + profile + wallet in a single atomic write
     const profileData =
       input.role === Role.BRAND
         ? {
@@ -67,12 +68,15 @@ export async function RegisterAccount(req: Request, res: Response, next: NextFun
             },
           };
 
+    const walletData = BuildInitialWalletCreateData(input.role);
+
     const createPayload = {
       data: {
         email: input.email,
         passwordHash,
         role: input.role,
         ...profileData,
+        ...(walletData ? { wallet: walletData } : {}),
       },
       select: { id: true, email: true, role: true, createdAt: true },
     };

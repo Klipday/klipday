@@ -417,7 +417,7 @@ function SidebarLogoutButton({ collapsed, onItemClick }: SidebarLogoutButtonProp
             type="button"
             onClick={HandleLogout}
             disabled={logoutMutation.isPending}
-            className="flex size-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
+            className="flex size-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer mx-auto"
             aria-label="Keluar">
             <LogOut className="h-5 w-5 shrink-0" />
             <span className="sr-only">Keluar</span>
@@ -453,7 +453,7 @@ function SidebarFooter({ collapsed }: SidebarFooterProps) {
   const { CloseMobileMenu } = UseNavbar();
 
   return (
-    <div className={cn('shrink-0 pt-1', collapsed ? 'p-3' : 'px-4 pb-4 sm:px-5 sm:pb-5')}>
+    <div className={cn('shrink-0 pt-1', collapsed ? 'p-3 flex justify-center items-center' : 'px-4 pb-4 sm:px-5 sm:pb-5')}>
       <SidebarLogoutButton collapsed={collapsed} onItemClick={CloseMobileMenu} />
     </div>
   );

@@ -415,7 +415,7 @@ export function BrandTopUpDialog({
                       href={activeTopUp.transferProofUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 font-medium text-xs text-primary hover:underline cursor-pointer">
+                      className="inline-flex items-center gap-1 font-medium text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors cursor-pointer">
                       Lihat Berkas
                       <ExternalLink className="size-3" />
                     </a>

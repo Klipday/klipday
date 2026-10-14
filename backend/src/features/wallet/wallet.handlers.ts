@@ -79,18 +79,13 @@ export async function GetBrandWalletSummary(
       return;
     }
 
-    let wallet = await prisma.wallet.findFirst({
+    const wallet = await prisma.wallet.findFirst({
       where: { accountId: account.sub, status: Status.ACTIVE },
     });
 
     if (!wallet) {
-      wallet = await prisma.wallet.create({
-        data: {
-          accountId: account.sub,
-          balance: new Prisma.Decimal(0),
-          status: Status.ACTIVE,
-        },
-      });
+      SendError(res, WALLET_MESSAGES.WALLET_NOT_FOUND, 404);
+      return;
     }
 
     // Calculate total verified creator payouts for this brand's campaigns
@@ -201,18 +196,13 @@ export async function CreateTopUpRequest(
 
     const payload = validationResult.data;
 
-    let wallet = await prisma.wallet.findFirst({
+    const wallet = await prisma.wallet.findFirst({
       where: { accountId: account.sub, status: Status.ACTIVE },
     });
 
     if (!wallet) {
-      wallet = await prisma.wallet.create({
-        data: {
-          accountId: account.sub,
-          balance: new Prisma.Decimal(0),
-          status: Status.ACTIVE,
-        },
-      });
+      SendError(res, WALLET_MESSAGES.WALLET_NOT_FOUND, 404);
+      return;
     }
 
     const referenceCode = GenerateTopUpReferenceCode();
@@ -438,18 +428,13 @@ export async function GetBrandTransactions(
 
     const { type, page, limit, search } = validationResult.data;
 
-    let wallet = await prisma.wallet.findFirst({
+    const wallet = await prisma.wallet.findFirst({
       where: { accountId: account.sub, status: Status.ACTIVE },
     });
 
     if (!wallet) {
-      wallet = await prisma.wallet.create({
-        data: {
-          accountId: account.sub,
-          balance: new Prisma.Decimal(0),
-          status: Status.ACTIVE,
-        },
-      });
+      SendError(res, WALLET_MESSAGES.WALLET_NOT_FOUND, 404);
+      return;
     }
 
     const brandAllowedTypes = [

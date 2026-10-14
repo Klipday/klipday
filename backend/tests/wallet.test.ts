@@ -36,7 +36,9 @@ import {
   GenerateTopUpUniqueCode,
   GenerateWalletTransactionReferenceCode,
   GenerateWithdrawalReferenceCode,
+  ProvisionAccountWallet,
 } from '../src/features/wallet/wallet.helper.js';
+import { BuildInitialWalletCreateData } from '../src/features/authentication/auth.helper.js';
 
 import { prisma } from '../src/utils/prisma.js';
 import {
@@ -192,42 +194,26 @@ describe('Brand Wallet Feature Module', () => {
       });
     });
 
-    it('auto-creates wallet when brand does not have a wallet record yet', async () => {
+    it('returns 404 when brand wallet is not found', async () => {
       const req = CreateMockRequest({
         account: { sub: mockAccountId, role: Role.BRAND },
       });
-      const { res, jsonMock } = CreateMockResponse();
+      const { res, statusMock, jsonMock } = CreateMockResponse();
       const next = CreateMockNext();
 
       jest.spyOn(prisma.brand, 'findFirst').mockResolvedValue(mockBrand as never);
       jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(null);
-      jest.spyOn(prisma.wallet, 'create').mockResolvedValue({
-        id: 'new-wallet-id',
-        accountId: mockAccountId,
-        balance: new Prisma.Decimal(0),
-        status: Status.ACTIVE,
-      } as never);
-      jest.spyOn(prisma.submission, 'findMany').mockResolvedValue([]);
-      jest.spyOn(prisma.campaign, 'findMany').mockResolvedValue([]);
+      const createWalletSpy = jest.spyOn(prisma.wallet, 'create');
 
       await GetBrandWalletSummary(req, res, next);
 
-      expect(prisma.wallet.create).toHaveBeenCalledWith({
-        data: {
-          accountId: mockAccountId,
-          balance: expect.any(Prisma.Decimal),
-          status: Status.ACTIVE,
-        },
+      expect(statusMock).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        data: null,
+        message: WALLET_MESSAGES.WALLET_NOT_FOUND,
       });
-      expect(jsonMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: 'success',
-          data: expect.objectContaining({
-            walletId: 'new-wallet-id',
-            balance: 0,
-          }),
-        }),
-      );
+      expect(createWalletSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -379,6 +365,30 @@ describe('Brand Wallet Feature Module', () => {
           }),
         }),
       );
+    });
+
+    it('returns 404 when brand wallet is not found', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, role: Role.BRAND },
+        body: {
+          amount: 1000000,
+          senderBank: 'BCA',
+          senderAccountName: 'John Doe',
+        },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(null);
+
+      await CreateTopUpRequest(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        data: null,
+        message: WALLET_MESSAGES.WALLET_NOT_FOUND,
+      });
     });
   });
 
@@ -591,6 +601,28 @@ describe('Brand Wallet Feature Module', () => {
         },
         message: WALLET_MESSAGES.TRANSACTIONS_FETCH_SUCCESS,
       });
+    });
+
+    it('returns 404 when brand wallet is not found', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, role: Role.BRAND },
+        query: { page: '1', limit: '10' },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(null);
+      const createWalletSpy = jest.spyOn(prisma.wallet, 'create');
+
+      await GetBrandTransactions(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        data: null,
+        message: WALLET_MESSAGES.WALLET_NOT_FOUND,
+      });
+      expect(createWalletSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -1502,5 +1534,249 @@ describe('Brand Wallet Feature Module', () => {
       );
     });
   });
+
+  // ===========================================================================
+  // 17. ProvisionAccountWallet Helper
+  // ===========================================================================
+  describe('ProvisionAccountWallet Helper', () => {
+    it('eagerly creates a new active wallet with 0 balance for Role.BRAND', async () => {
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(null);
+      const createdWalletMock = {
+        id: 'new-wallet-brand',
+        accountId: 'acc-brand-999',
+        balance: new Prisma.Decimal(0),
+        status: Status.ACTIVE,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        accountProvider: null,
+        accountNumber: null,
+        accountHolderName: null,
+      };
+      jest.spyOn(prisma.wallet, 'create').mockResolvedValue(createdWalletMock as never);
+
+      const result = await ProvisionAccountWallet('acc-brand-999', Role.BRAND);
+
+      expect(prisma.wallet.create).toHaveBeenCalledWith({
+        data: {
+          accountId: 'acc-brand-999',
+          balance: expect.any(Prisma.Decimal),
+          status: Status.ACTIVE,
+        },
+      });
+      expect(result).toEqual(createdWalletMock);
+    });
+
+    it('eagerly creates a new active wallet with 0 balance for Role.CREATOR', async () => {
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(null);
+      const createdWalletMock = {
+        id: 'new-wallet-creator',
+        accountId: 'acc-creator-999',
+        balance: new Prisma.Decimal(0),
+        status: Status.ACTIVE,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        accountProvider: null,
+        accountNumber: null,
+        accountHolderName: null,
+      };
+      jest.spyOn(prisma.wallet, 'create').mockResolvedValue(createdWalletMock as never);
+
+      const result = await ProvisionAccountWallet('acc-creator-999', Role.CREATOR);
+
+      expect(prisma.wallet.create).toHaveBeenCalledWith({
+        data: {
+          accountId: 'acc-creator-999',
+          balance: expect.any(Prisma.Decimal),
+          status: Status.ACTIVE,
+        },
+      });
+      expect(result).toEqual(createdWalletMock);
+    });
+
+    it('returns null and does not query or create a wallet for Role.ADMIN', async () => {
+      const findWalletSpy = jest.spyOn(prisma.wallet, 'findFirst');
+      const createWalletSpy = jest.spyOn(prisma.wallet, 'create');
+
+      const result = await ProvisionAccountWallet('acc-admin-999', Role.ADMIN);
+
+      expect(result).toBeNull();
+      expect(findWalletSpy).not.toHaveBeenCalled();
+      expect(createWalletSpy).not.toHaveBeenCalled();
+    });
+
+    it('returns existing wallet without calling create if wallet already exists (idempotency)', async () => {
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as never);
+      const createWalletSpy = jest.spyOn(prisma.wallet, 'create');
+
+      const result = await ProvisionAccountWallet(mockAccountId, Role.BRAND);
+
+      expect(result).toEqual(mockWallet);
+      expect(createWalletSpy).not.toHaveBeenCalled();
+    });
+
+    it('resolves role from database when role argument is omitted', async () => {
+      jest.spyOn(prisma.account, 'findFirst').mockResolvedValue({
+        id: 'acc-lookup-1',
+        role: Role.CREATOR,
+      } as never);
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(null);
+      const createdWalletMock = {
+        id: 'new-wallet-resolved',
+        accountId: 'acc-lookup-1',
+        balance: new Prisma.Decimal(0),
+        status: Status.ACTIVE,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        accountProvider: null,
+        accountNumber: null,
+        accountHolderName: null,
+      };
+      jest.spyOn(prisma.wallet, 'create').mockResolvedValue(createdWalletMock as never);
+
+      const result = await ProvisionAccountWallet('acc-lookup-1');
+
+      expect(prisma.account.findFirst).toHaveBeenCalledWith({
+        where: { id: 'acc-lookup-1', status: Status.ACTIVE },
+        select: { role: true },
+      });
+      expect(prisma.wallet.create).toHaveBeenCalledWith({
+        data: {
+          accountId: 'acc-lookup-1',
+          balance: expect.any(Prisma.Decimal),
+          status: Status.ACTIVE,
+        },
+      });
+      expect(result).toEqual(createdWalletMock);
+    });
+
+    it('returns null when role is omitted and account does not exist in database', async () => {
+      jest.spyOn(prisma.account, 'findFirst').mockResolvedValue(null);
+      const createWalletSpy = jest.spyOn(prisma.wallet, 'create');
+
+      const result = await ProvisionAccountWallet('non-existent-acc');
+
+      expect(result).toBeNull();
+      expect(createWalletSpy).not.toHaveBeenCalled();
+    });
+
+    it('supports passing custom transaction client (tx)', async () => {
+      const txMock = {
+        account: { findFirst: jest.fn() },
+        wallet: {
+          findFirst: jest.fn().mockResolvedValue(null as never),
+          create: jest.fn().mockResolvedValue(mockWallet as never),
+        },
+      };
+
+      const result = await ProvisionAccountWallet(
+        'acc-tx-1',
+        Role.BRAND,
+        txMock as never,
+      );
+
+      expect(txMock.wallet.findFirst).toHaveBeenCalled();
+      expect(txMock.wallet.create).toHaveBeenCalledWith({
+        data: {
+          accountId: 'acc-tx-1',
+          balance: expect.any(Prisma.Decimal),
+          status: Status.ACTIVE,
+        },
+      });
+      expect(result).toEqual(mockWallet);
+    });
+
+    it('returns null when accountId is empty string, whitespace, or invalid', async () => {
+      const findWalletSpy = jest.spyOn(prisma.wallet, 'findFirst');
+      const createWalletSpy = jest.spyOn(prisma.wallet, 'create');
+
+      const emptyResult = await ProvisionAccountWallet('', Role.BRAND);
+      const whitespaceResult = await ProvisionAccountWallet('   ', Role.BRAND);
+      const nullResult = await ProvisionAccountWallet(null as unknown as string, Role.BRAND);
+
+      expect(emptyResult).toBeNull();
+      expect(whitespaceResult).toBeNull();
+      expect(nullResult).toBeNull();
+      expect(findWalletSpy).not.toHaveBeenCalled();
+      expect(createWalletSpy).not.toHaveBeenCalled();
+    });
+
+    it('recovers gracefully from concurrent P2002 race condition and returns concurrent wallet', async () => {
+      // First findFirst returns null (both threads think wallet is missing)
+      jest.spyOn(prisma.wallet, 'findFirst')
+        .mockResolvedValueOnce(null) // initial check
+        .mockResolvedValueOnce(mockWallet as never); // race recovery check
+
+      const p2002Error = new Prisma.PrismaClientKnownRequestError(
+        'Unique constraint failed on the fields: (`accountId`)',
+        { code: 'P2002', clientVersion: '7.9.1' },
+      );
+      jest.spyOn(prisma.wallet, 'create').mockRejectedValue(p2002Error);
+
+      const result = await ProvisionAccountWallet(mockAccountId, Role.BRAND);
+
+      expect(result).toEqual(mockWallet);
+    });
+
+    it('re-throws error if db.wallet.create fails with non-P2002 error', async () => {
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(null);
+      const dbError = new Error('Database connection lost');
+      jest.spyOn(prisma.wallet, 'create').mockRejectedValue(dbError);
+
+      await expect(
+        ProvisionAccountWallet(mockAccountId, Role.BRAND),
+      ).rejects.toThrow('Database connection lost');
+    });
+
+    it('re-throws P2002 error if concurrent wallet lookup yields null', async () => {
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(null);
+      const p2002Error = new Prisma.PrismaClientKnownRequestError(
+        'Unique constraint failed',
+        { code: 'P2002', clientVersion: '7.9.1' },
+      );
+      jest.spyOn(prisma.wallet, 'create').mockRejectedValue(p2002Error);
+
+      await expect(
+        ProvisionAccountWallet(mockAccountId, Role.BRAND),
+      ).rejects.toThrow(p2002Error);
+    });
+  });
+
+  // ===========================================================================
+  // 18. BuildInitialWalletCreateData Helper (Pure Relational Payload Builder)
+  // ===========================================================================
+  describe('BuildInitialWalletCreateData Helper', () => {
+    it('returns initial active wallet creation payload with 0 balance for Role.BRAND', () => {
+      const result = BuildInitialWalletCreateData(Role.BRAND);
+      expect(result).toBeDefined();
+      expect(result).toEqual({
+        create: {
+          balance: new Prisma.Decimal(0),
+          status: Status.ACTIVE,
+        },
+      });
+    });
+
+    it('returns initial active wallet creation payload with 0 balance for Role.CREATOR', () => {
+      const result = BuildInitialWalletCreateData(Role.CREATOR);
+      expect(result).toBeDefined();
+      expect(result).toEqual({
+        create: {
+          balance: new Prisma.Decimal(0),
+          status: Status.ACTIVE,
+        },
+      });
+    });
+
+    it('returns undefined for non-financial Role.ADMIN', () => {
+      const result = BuildInitialWalletCreateData(Role.ADMIN);
+      expect(result).toBeUndefined();
+    });
+
+    it('returns undefined for invalid or undefined roles', () => {
+      expect(BuildInitialWalletCreateData(undefined as unknown as Role)).toBeUndefined();
+      expect(BuildInitialWalletCreateData('INVALID_ROLE' as Role)).toBeUndefined();
+    });
+  });
 });
+
 

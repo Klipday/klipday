@@ -48,9 +48,11 @@ export function UseInitializeCampaignMutation(
     ...restOptions,
     mutationFn: InitializeCampaign,
     onSuccess: async (data, variables, onMutateResult, context) => {
+      onSuccess?.(data, variables, onMutateResult, context);
+
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
-      toast.success('Campaign created successfully');
+      toast.success('Draf kampanye baru berhasil dibuat.');
 
       try {
         const campaign = await GetCampaignById(data.id);
@@ -65,8 +67,6 @@ export function UseInitializeCampaignMutation(
         const message = error instanceof Error ? error.message : 'Gagal memuat detail kampanye.';
         toast.error(message);
       }
-
-      onSuccess?.(data, variables, onMutateResult, context);
     },
 
     onError: (error, variables, onMutateResult, context) => {
