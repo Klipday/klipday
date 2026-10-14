@@ -58,6 +58,7 @@ export interface PayoutRequestRecord {
   accountNumber: string;
   accountHolderName: string;
   payoutStatus: PayoutStatus;
+  payoutAccountId?: string | null;
   rejectionReason: string | null;
   transferProofUrl: string | null;
   adminNote: string | null;

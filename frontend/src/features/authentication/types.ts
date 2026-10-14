@@ -47,11 +47,13 @@ export interface BrandProfile {
   companyName: string;
   phoneNumber?: string | null;
   industry?: string | null;
+  logoUrl?: string | null;
 }
 
 export interface CreatorProfile {
   id: string;
   fullName: string;
+  avatarUrl?: string | null;
 }
 
 export interface AdminProfile {
@@ -64,6 +66,7 @@ export interface CurrentAccountProfile {
   email: string;
   role: AuthRole;
   name: string;
+  avatarUrl?: string | null;
   isEmailVerified: boolean;
   brand?: BrandProfile | null;
   creator?: CreatorProfile | null;

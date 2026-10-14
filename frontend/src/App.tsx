@@ -20,6 +20,8 @@ const AdminDashboard = lazy(() => import('@/features/dashboard/pages/AdminDashbo
 const BrandCampaigns = lazy(() => import('@/features/campaign/pages/BrandCampaigns'));
 const CreatorCampaigns = lazy(() => import('@/features/campaign/pages/CreatorCampaigns'));
 const BrandWalletPage = lazy(() => import('@/features/wallet/pages/BrandWalletPage'));
+const CreatorWalletPage = lazy(() => import('@/features/wallet/pages/CreatorWalletPage'));
+
 const CampaignStep1 = lazy(() => import('@/features/campaign/pages/steps/CampaignStep1'));
 const CampaignStep2 = lazy(() => import('@/features/campaign/pages/steps/CampaignStep2'));
 const CampaignStep3 = lazy(() => import('@/features/campaign/pages/steps/CampaignStep3'));
@@ -27,6 +29,7 @@ const CampaignStep4 = lazy(() => import('@/features/campaign/pages/steps/Campaig
 const CampaignStep5 = lazy(() => import('@/features/campaign/pages/steps/CampaignStep5'));
 const CampaignStep6 = lazy(() => import('@/features/campaign/pages/steps/CampaignStep6'));
 const CampaignDetail = lazy(() => import('@/features/campaign/pages/CampaignDetail'));
+const BrandProfilePage = lazy(() => import('@/features/brand/pages/BrandProfilePage'));
 
 
 
@@ -63,9 +66,12 @@ const router = createBrowserRouter(
         <Route path="creator-dashboard" element={<DashboardLayout />}>
           <Route index element={<CreatorDashboard />} />
           <Route path="creator-campaigns" element={<CreatorCampaigns />} />
+          <Route path="wallet" element={<CreatorWalletPage />} />
         </Route>
         <Route path="creator-campaigns" element={<Navigate to="/creator-dashboard/creator-campaigns" replace />} />
         <Route path="dashboard/campaigns" element={<Navigate to="/creator-dashboard/creator-campaigns" replace />} />
+        <Route path="dashboard/wallet" element={<Navigate to="/creator-dashboard/wallet" replace />} />
+        <Route path="creator-wallet" element={<Navigate to="/creator-dashboard/wallet" replace />} />
         <Route path="campaigns/:id/submit/*" element={<SubmissionWizardIndexRedirect />} />
         <Route path="campaigns/:id/submit" element={<SubmissionWizardIndexRedirect />} />
       </Route>
@@ -80,6 +86,7 @@ const router = createBrowserRouter(
           <Route path="brand-campaigns" element={<BrandCampaigns />} />
           <Route path="brand-campaigns/:id" element={<CampaignDetail />} />
           <Route path="wallet" element={<BrandWalletPage />} />
+          <Route path="profile" element={<BrandProfilePage />} />
           <Route path="brand-campaigns/create" element={<CampaignWizardLayout />}>
             <Route index element={<Navigate to="step-1" replace />} />
             <Route path="step-1" element={<CampaignStep1 />} />
@@ -103,6 +110,9 @@ const router = createBrowserRouter(
         <Route path="brand-campaigns" element={<Navigate to="/brand-dashboard/brand-campaigns" replace />} />
         <Route path="brand-campaign" element={<Navigate to="/brand-dashboard/brand-campaigns" replace />} />
         <Route path="brand-wallet" element={<Navigate to="/brand-dashboard/wallet" replace />} />
+        <Route path="brand-profile" element={<Navigate to="/brand-dashboard/profile" replace />} />
+        <Route path="profile" element={<Navigate to="/brand-dashboard/profile" replace />} />
+        <Route path="dashboard/profile" element={<Navigate to="/brand-dashboard/profile" replace />} />
       </Route>
       <Route element={<ProtectedRoute allowedRoles={['BRAND', 'CREATOR', 'ADMIN']} />}>
         <Route path="dashboard" element={<DashboardRoleRedirect />} />

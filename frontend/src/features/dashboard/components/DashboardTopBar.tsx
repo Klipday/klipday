@@ -7,7 +7,7 @@ import { UserNav } from './UserNav';
 
 /**
  * Top bar header component positioned to the right of the sidebar.
- * Displays mobile menu controls on mobile screens and the user profile menu on the right.
+ * Displays mobile menu controls on mobile screens and the static user profile indicator on the right.
  * Consumes UseNavbar to trigger mobile drawer visibility.
  *
  * @param props - Top bar properties including profile details.

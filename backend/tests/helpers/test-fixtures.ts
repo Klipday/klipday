@@ -14,6 +14,7 @@ export const mockBrandAccount = {
     companyName: 'PT Brand Keren',
     phoneNumber: '081234567890',
     industry: Industry.TECHNOLOGY,
+    logoUrl: null,
   },
   creator: null,
   admin: null,
@@ -32,6 +33,8 @@ export const mockCreatorAccount = {
   creator: {
     id: 'creator-456',
     fullName: 'Budi Santoso',
+    avatarUrl: null,
+    socialAccounts: [],
   },
   admin: null,
 };

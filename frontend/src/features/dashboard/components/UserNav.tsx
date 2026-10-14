@@ -1,17 +1,4 @@
-import { LogOut, Settings, User } from 'lucide-react';
-import { Link } from 'react-router';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { UseLogoutMutation } from '@/features/authentication/hooks';
 import type { UserNavProps } from '../types';
 
 /**
@@ -37,67 +24,57 @@ function GetInitials(name?: string | null): string {
 }
 
 /**
- * User account navigation component rendering an avatar with fallback initials
- * and an interactive dropdown menu for profile management and sign-out.
+ * Formats a user role string into a user-friendly account type label.
  *
- * @param props - User profile properties including name, email, role, and avatarUrl.
- * @returns The user avatar trigger and dropdown menu.
+ * @param role - The authenticated user's role identifier.
+ * @returns Human-readable account type label.
  */
-export function UserNav({ name, email, role, avatarUrl }: UserNavProps) {
-  const logoutMutation = UseLogoutMutation();
-  const displayName = name?.trim() || 'Pengguna';
-  const displayEmail = email?.trim() || '';
-  const initials = GetInitials(name);
+function FormatAccountType(role?: string | null): string {
+  if (!role) {
+    return 'Akun Pengguna';
+  }
 
-  const HandleLogout = () => {
-    logoutMutation.mutate();
-  };
+  const normalizedRole = role.trim().toUpperCase();
+  if (normalizedRole === 'BRAND') {
+    return 'Brand';
+  }
+  if (normalizedRole === 'CREATOR') {
+    return 'Creator';
+  }
+  if (normalizedRole === 'ADMIN') {
+    return 'Admin';
+  }
+
+  return role;
+}
+
+/**
+ * Static user profile display component for the dashboard top bar.
+ * Purely informational and static (non-interactive): renders the user's
+ * profile avatar photo, display name, and designated account type.
+ *
+ * @param props - User profile properties including name, role, and avatarUrl.
+ * @returns The static profile display element.
+ */
+export function UserNav({ name, role, avatarUrl }: UserNavProps) {
+  const displayName = name?.trim() || 'Pengguna';
+  const initials = GetInitials(name);
+  const accountType = FormatAccountType(role);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="relative h-10 w-auto gap-2.5 rounded-full px-2 py-1.5 hover:bg-muted/80"
-          aria-label="Menu akun pengguna">
-          <Avatar className="h-8 w-8 ring-2 ring-primary/20">
-            {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
-            <AvatarFallback className="bg-primary/10 font-medium text-primary text-xs">{initials}</AvatarFallback>
-          </Avatar>
-          <div className="hidden flex-col items-start text-left md:flex">
-            <span className="text-xs font-semibold leading-none">{displayName}</span>
-            {role ? <span className="mt-0.5 text-[10px] text-muted-foreground uppercase tracking-wider">{role}</span> : null}
-          </div>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" sideOffset={8}>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{displayName}</p>
-            {displayEmail ? <p className="text-xs leading-none text-muted-foreground">{displayEmail}</p> : null}
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link to="/dashboard/profile" className="cursor-pointer">
-              <User className="mr-2 h-4 w-4" />
-              <span>Profil Akun</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link to="/dashboard/settings" className="cursor-pointer">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Pengaturan</span>
-            </Link>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onClick={HandleLogout} className="cursor-pointer text-destructive">
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Keluar</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center gap-2.5 sm:gap-3 select-none py-1">
+      <Avatar className="size-9 border border-border/60 shrink-0">
+        {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} className="object-cover" /> : null}
+        <AvatarFallback className="bg-primary/10 font-medium text-primary text-xs">{initials}</AvatarFallback>
+      </Avatar>
+      <div className="flex flex-col items-start min-w-0">
+        <span className="text-xs sm:text-sm font-semibold leading-none text-foreground truncate max-w-[120px] sm:max-w-[180px]">
+          {displayName}
+        </span>
+        <span className="mt-1 text-[10px] sm:text-[11px] font-medium text-muted-foreground leading-none">
+          {accountType}
+        </span>
+      </div>
+    </div>
   );
 }

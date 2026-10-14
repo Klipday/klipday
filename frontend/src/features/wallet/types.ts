@@ -185,6 +185,7 @@ export interface PayoutRequestRecord {
   accountNumber: string;
   accountHolderName: string;
   payoutStatus: PayoutStatus;
+  payoutAccountId?: string | null;
   rejectionReason: string | null;
   transferProofUrl: string | null;
   adminNote: string | null;
@@ -200,9 +201,10 @@ export interface RequestWithdrawalCancellationPayload {
 
 export interface CreateWithdrawalPayload {
   amount: number;
-  accountProvider: string;
-  accountNumber: string;
-  accountHolderName: string;
+  payoutAccountId?: string;
+  accountProvider?: string;
+  accountNumber?: string;
+  accountHolderName?: string;
 }
 
 export interface SimulateWithdrawalResult {
@@ -247,4 +249,151 @@ export interface BrandWithdrawalDialogProps {
     accountHolderName?: string;
   };
 }
+
+// =============================================================================
+// Creator Wallet Types
+// =============================================================================
+
+export interface CreatorWalletMetrics {
+  activeBalance: number;
+  totalEarnings: number;
+  totalWithdrawn: number;
+  pendingWithdrawalsCount: number;
+}
+
+export interface CreatorWalletSummary {
+  walletId: string;
+  balance: number;
+  metrics: CreatorWalletMetrics;
+}
+
+export interface CreatorTransactionItem {
+  id: string;
+  referenceCode: string | null;
+  type: 'CAMPAIGN_EARNING' | 'WITHDRAWAL';
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  description: string;
+  transactionDate: string;
+  createdAt: string;
+  campaignId: string | null;
+  campaignTitle: string | null;
+  cpmRate: number | null;
+  submissionId: string | null;
+  videoUrl: string | null;
+  verifiedViews: number | null;
+}
+
+export interface PaginatedCreatorTransactionsResponse {
+  transactions: CreatorTransactionItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface CreatorTransactionQueryParams {
+  type?: 'ALL' | 'CAMPAIGN_EARNING' | 'WITHDRAWAL';
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+export interface CreatorPayoutAccountRecord {
+  id: string;
+  walletId: string;
+  accountType: 'BANK_TRANSFER' | 'E_WALLET';
+  provider: string;
+  accountNumber: string;
+  accountHolderName: string;
+  proofUrl: string;
+  isPrimary: boolean;
+  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCreatorPayoutAccountPayload {
+  accountType: 'BANK_TRANSFER' | 'E_WALLET';
+  provider: string;
+  accountNumber: string;
+  accountHolderName: string;
+  proofUrl: string;
+  isPrimary?: boolean;
+}
+
+export interface CreateCreatorWithdrawalPayload {
+  amount: number;
+  payoutAccountId: string;
+}
+
+export interface CreatorWalletHeaderProps {
+  onOpenWithdrawal: () => void;
+  hasVerifiedAccount: boolean;
+  className?: string;
+}
+
+export interface CreatorWalletMetricsCardsProps {
+  summary?: CreatorWalletSummary;
+  isLoading?: boolean;
+  className?: string;
+}
+
+export interface CreatorPendingWithdrawalBannerProps {
+  activeWithdrawals: PayoutRequestRecord[];
+  onCancelRequest?: (id: string) => void;
+  className?: string;
+}
+
+export interface CreatorPayoutAccountsSectionProps {
+  accounts: CreatorPayoutAccountRecord[];
+  isLoading: boolean;
+  onAddNewAccount: () => void;
+  onSetPrimary: (id: string) => void;
+  onDeleteAccount: (id: string) => void;
+  className?: string;
+}
+
+export interface CreatorTransactionTypeFilterProps {
+  activeType: 'ALL' | 'CAMPAIGN_EARNING' | 'WITHDRAWAL';
+  onTypeChange: (type: 'ALL' | 'CAMPAIGN_EARNING' | 'WITHDRAWAL') => void;
+  className?: string;
+}
+
+export interface CreatorTransactionTableProps {
+  transactions: CreatorTransactionItem[];
+  isLoading: boolean;
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  searchQuery?: string;
+  onResetSearch?: () => void;
+  className?: string;
+}
+
+export interface CreatorTransactionEmptyStateProps {
+  hasFilter?: boolean;
+  onResetFilter?: () => void;
+  className?: string;
+}
+
+export interface CreatorWithdrawalDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  activeBalance: number;
+  payoutAccounts: CreatorPayoutAccountRecord[];
+  onWithdrawalSuccess?: () => void;
+  onAddNewAccount?: () => void;
+}
+
+export interface CreatorAddPayoutAccountDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
+}
+
 

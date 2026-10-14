@@ -104,10 +104,10 @@ export function BrandPendingWithdrawalBanner({
                         size="sm"
                         disabled={requestCancelMutation.isPending}
                         className="h-9 px-3 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer">
-                        <span>Ajukan Batal</span>
+                        <span>Ajukan Pembatalan</span>
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent size="sm">
+                    <AlertDialogContent className="sm:max-w-md">
                       <AlertDialogHeader>
                         <AlertDialogTitle>Ajukan Pembatalan Penarikan?</AlertDialogTitle>
                         <AlertDialogDescription>
@@ -121,14 +121,17 @@ export function BrandPendingWithdrawalBanner({
                           Saldo aktif akan dikembalikan setelah pembatalan disetujui.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel disabled={requestCancelMutation.isPending}>
+                      <AlertDialogFooter className="gap-2 sm:gap-2.5">
+                        <AlertDialogCancel
+                          disabled={requestCancelMutation.isPending}
+                          className="w-full sm:w-auto sm:min-w-[90px] cursor-pointer">
                           Kembali
                         </AlertDialogCancel>
                         <AlertDialogAction
                           variant="destructive"
                           onClick={HandleConfirmRequestCancel}
-                          disabled={requestCancelMutation.isPending}>
+                          disabled={requestCancelMutation.isPending}
+                          className="w-full sm:w-auto px-5 sm:min-w-[200px] font-medium cursor-pointer">
                           {requestCancelMutation.isPending ? (
                             <>
                               <Loader2 className="mr-1.5 size-3.5 animate-spin" />

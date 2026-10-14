@@ -22,12 +22,19 @@ function DashboardLayout() {
     mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [location.pathname]);
 
+  const avatarUrl = userProfile?.avatarUrl ?? userProfile?.brand?.logoUrl ?? userProfile?.creator?.avatarUrl ?? null;
+
   return (
     <NavbarProvider>
       <div className="fixed inset-0 flex overflow-hidden bg-background text-foreground">
         <DashboardSidebar role={userProfile?.role} />
         <div className="flex flex-1 flex-col h-full min-h-0 overflow-hidden">
-          <DashboardTopBar userName={userProfile?.name} userEmail={userProfile?.email} userRole={userProfile?.role} />
+          <DashboardTopBar
+            userName={userProfile?.name}
+            userEmail={userProfile?.email}
+            userRole={userProfile?.role}
+            avatarUrl={avatarUrl}
+          />
           <main ref={mainRef} className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto bg-background p-4 sm:p-6 lg:p-8">
             <div className="w-full">
               <Suspense

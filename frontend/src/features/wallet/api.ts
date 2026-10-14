@@ -2,8 +2,14 @@ import { apiClient, ExtractApiError } from '@/lib/api-client';
 import type {
   ApiResponse,
   BrandWalletSummary,
+  CreateCreatorPayoutAccountPayload,
+  CreateCreatorWithdrawalPayload,
   CreateTopUpPayload,
   CreateWithdrawalPayload,
+  CreatorPayoutAccountRecord,
+  CreatorTransactionQueryParams,
+  CreatorWalletSummary,
+  PaginatedCreatorTransactionsResponse,
   PaginatedTransactionsResponse,
   PayoutRequestRecord,
   RequestWithdrawalCancellationPayload,
@@ -317,4 +323,269 @@ export async function SimulateWithdrawalApproval(
     throw apiError;
   }
 }
+
+// =============================================================================
+// Creator Wallet API Functions
+// =============================================================================
+
+/**
+ * Retrieves the creator wallet balance and aggregated metrics (active balance,
+ * total earnings, total withdrawn, pending withdrawals).
+ *
+ * @returns Creator wallet summary with metrics.
+ * @throws Standardized API error if the request fails.
+ */
+export async function GetCreatorWalletSummary(): Promise<CreatorWalletSummary> {
+  try {
+    const response = await apiClient.get<ApiResponse<CreatorWalletSummary>>(
+      '/wallet/creator/summary',
+    );
+    const result = response.data.data;
+    if (!result) {
+      throw new Error('Respon ringkasan dompet kreator tidak valid.');
+    }
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal memuat ringkasan dompet kreator.');
+    throw apiError;
+  }
+}
+
+/**
+ * Retrieves paginated transaction mutations for the authenticated creator,
+ * enriched with campaign and video view details.
+ *
+ * @param params - Optional query filter parameters (type, page, limit, search).
+ * @returns Paginated creator transaction records.
+ * @throws Standardized API error if the request fails.
+ */
+export async function GetCreatorTransactions(
+  params?: CreatorTransactionQueryParams,
+): Promise<PaginatedCreatorTransactionsResponse> {
+  try {
+    const response = await apiClient.get<ApiResponse<PaginatedCreatorTransactionsResponse>>(
+      '/wallet/creator/transactions',
+      { params },
+    );
+    const result = response.data.data;
+    if (!result) {
+      throw new Error('Respon riwayat mutasi kreator tidak valid.');
+    }
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal memuat riwayat mutasi kreator.');
+    throw apiError;
+  }
+}
+
+/**
+ * Retrieves all registered payout accounts (bank and e-wallet) for the authenticated creator.
+ *
+ * @returns List of creator payout account records.
+ * @throws Standardized API error if the request fails.
+ */
+export async function GetCreatorPayoutAccounts(): Promise<CreatorPayoutAccountRecord[]> {
+  try {
+    const response = await apiClient.get<ApiResponse<CreatorPayoutAccountRecord[]>>(
+      '/wallet/creator/payout-accounts',
+    );
+    const result = response.data.data;
+    return result ?? [];
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal memuat daftar rekening penarikan kreator.');
+    throw apiError;
+  }
+}
+
+/**
+ * Registers a new bank account or e-wallet for creator withdrawals.
+ *
+ * @param payload - Payout account details including proof screenshot URL.
+ * @returns Created payout account record.
+ * @throws Standardized API error if the request fails.
+ */
+export async function CreateCreatorPayoutAccount(
+  payload: CreateCreatorPayoutAccountPayload,
+): Promise<CreatorPayoutAccountRecord> {
+  try {
+    const response = await apiClient.post<ApiResponse<CreatorPayoutAccountRecord>>(
+      '/wallet/creator/payout-accounts',
+      payload,
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal mendaftarkan akun penarikan.');
+    throw apiError;
+  }
+}
+
+/**
+ * Streams passbook photo or e-wallet profile screenshot binary to cloud storage.
+ *
+ * @param file - Image file to upload.
+ * @param onProgress - Optional upload progress callback.
+ * @returns Public URL of uploaded proof image.
+ * @throws Standardized API error if upload fails.
+ */
+export async function UploadCreatorPayoutProof(
+  file: File,
+  onProgress?: (percent: number) => void,
+): Promise<string> {
+  try {
+    const response = await apiClient.post<ApiResponse<{ url: string }>>(
+      '/wallet/creator/payout-accounts/proof',
+      file,
+      {
+        headers: {
+          'Content-Type': file.type,
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total && onProgress) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onProgress(percent);
+          }
+        },
+      },
+    );
+    const result = response.data.data.url;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal mengunggah foto bukti akun penarikan.');
+    throw apiError;
+  }
+}
+
+/**
+ * Sets a specific payout account as the primary default account for withdrawals.
+ *
+ * @param accountId - UUID of the payout account.
+ * @returns Updated payout account record.
+ * @throws Standardized API error if request fails.
+ */
+export async function SetPrimaryCreatorPayoutAccount(
+  accountId: string,
+): Promise<CreatorPayoutAccountRecord> {
+  try {
+    const response = await apiClient.patch<ApiResponse<CreatorPayoutAccountRecord>>(
+      `/wallet/creator/payout-accounts/${accountId}/primary`,
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal menetapkan akun utama.');
+    throw apiError;
+  }
+}
+
+/**
+ * Deletes / deactivates a payout account for the authenticated creator.
+ *
+ * @param accountId - UUID of the payout account.
+ * @throws Standardized API error if deletion fails.
+ */
+export async function DeleteCreatorPayoutAccount(accountId: string): Promise<void> {
+  try {
+    await apiClient.delete<ApiResponse<null>>(
+      `/wallet/creator/payout-accounts/${accountId}`,
+    );
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal menghapus akun penarikan.');
+    throw apiError;
+  }
+}
+
+/**
+ * Retrieves active pending withdrawal requests for the authenticated creator.
+ *
+ * @returns List of active payout request records.
+ * @throws Standardized API error if the request fails.
+ */
+export async function GetActiveCreatorWithdrawals(): Promise<PayoutRequestRecord[]> {
+  try {
+    const response = await apiClient.get<ApiResponse<PayoutRequestRecord[]>>(
+      '/wallet/creator/withdrawals/active',
+    );
+    const result = response.data.data;
+    return result ?? [];
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal memuat antrean penarikan aktif.');
+    throw apiError;
+  }
+}
+
+/**
+ * Submits a new withdrawal request for the authenticated creator.
+ *
+ * @param payload - Withdrawal amount and destination payout account ID.
+ * @returns Created payout request record.
+ * @throws Standardized API error if request fails.
+ */
+export async function CreateCreatorWithdrawal(
+  payload: CreateCreatorWithdrawalPayload,
+): Promise<PayoutRequestRecord> {
+  try {
+    const response = await apiClient.post<ApiResponse<PayoutRequestRecord>>(
+      '/wallet/creator/withdraw',
+      payload,
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal mengajukan penarikan saldo.');
+    throw apiError;
+  }
+}
+
+/**
+ * Requests cancellation of a pending withdrawal request for the creator.
+ *
+ * @param withdrawalId - UUID of the payout request.
+ * @param reason - Optional cancellation reason.
+ * @returns Updated payout request record.
+ * @throws Standardized API error if request fails.
+ */
+export async function RequestCreatorWithdrawalCancellation(
+  withdrawalId: string,
+  reason?: string,
+): Promise<PayoutRequestRecord> {
+  try {
+    const response = await apiClient.post<ApiResponse<PayoutRequestRecord>>(
+      `/wallet/creator/withdraw/${withdrawalId}/request-cancel`,
+      { reason },
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal mengajukan pembatalan penarikan.');
+    throw apiError;
+  }
+}
+
+/**
+ * Simulates crediting campaign video views earnings to creator wallet for testing / QA.
+ *
+ * @param payload - Earning details (amount, optional campaignTitle, verifiedViews, cpmRate).
+ * @returns Updated wallet balance.
+ * @throws Standardized API error if simulation fails.
+ */
+export async function SimulateCreatorEarning(payload: {
+  amount: number;
+  campaignTitle?: string;
+  verifiedViews?: number;
+  cpmRate?: number;
+}): Promise<{ balance: number }> {
+  try {
+    const response = await apiClient.post<ApiResponse<{ balance: number }>>(
+      '/wallet/creator/simulate-earning',
+      payload,
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal menyimulasikan perolehan saldo kreator.');
+    throw apiError;
+  }
+}
+
 

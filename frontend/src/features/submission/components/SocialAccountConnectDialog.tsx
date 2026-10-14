@@ -183,6 +183,7 @@ function SocialAccountConnectDialogInner({
       const verified = await verifyBioMutation.mutateAsync({ username: cleanUsername });
       queryClient.setQueryData(['connected-social-account'], verified);
       await queryClient.invalidateQueries({ queryKey: ['connected-social-account'] });
+      queryClient.invalidateQueries({ queryKey: ['current-account'] });
       toast.success(`Akun ${platformDisplayName} berhasil terhubung dan terverifikasi!`);
       onAccountVerified?.(verified);
       onOpenChange(false);

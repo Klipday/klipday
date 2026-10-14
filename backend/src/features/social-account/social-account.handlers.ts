@@ -324,11 +324,28 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
       },
     };
 
-    const [_, __, verifiedAccount] = await prisma.$transaction([
+    const transactionSteps: [
+      ReturnType<typeof prisma.socialVerificationCode.update>,
+      ReturnType<typeof prisma.creatorSocialAccount.updateMany>,
+      ReturnType<typeof prisma.creatorSocialAccount.upsert>,
+      ...Array<ReturnType<typeof prisma.creator.update>>,
+    ] = [
       prisma.socialVerificationCode.update(softDeleteChallengeQuery),
       prisma.creatorSocialAccount.updateMany(deactivateOthersQuery),
       prisma.creatorSocialAccount.upsert(upsertAccountQuery),
-    ]);
+    ];
+
+    if (resolvedAvatarUrl) {
+      transactionSteps.push(
+        prisma.creator.update({
+          where: { id: creator.id },
+          data: { avatarUrl: resolvedAvatarUrl },
+        })
+      );
+    }
+
+    const transactionResults = await prisma.$transaction(transactionSteps);
+    const verifiedAccount = transactionResults[2];
 
     SendSuccess(res, verifiedAccount, SOCIAL_ACCOUNT_MESSAGES.VERIFY_SUCCESS);
   } catch (err) {

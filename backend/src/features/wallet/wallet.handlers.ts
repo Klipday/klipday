@@ -9,6 +9,7 @@ import {
   Role,
   Status,
   SubmissionStatus,
+  VerificationStatus,
   WalletTransactionType,
 } from '../../generated/prisma/enums.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
@@ -986,6 +987,49 @@ export async function CreateWithdrawalRequest(
       return;
     }
 
+    let resolvedProvider = payload.accountProvider?.trim() ?? '';
+    let resolvedNumber = payload.accountNumber?.trim() ?? '';
+    let resolvedHolder = payload.accountHolderName?.trim() ?? '';
+    let resolvedPayoutAccountId: string | null = null;
+
+    if (payload.payoutAccountId) {
+      const payoutAccount = await prisma.brandPayoutAccount.findFirst({
+        where: {
+          id: payload.payoutAccountId,
+          walletId: wallet.id,
+          status: Status.ACTIVE,
+        },
+      });
+
+      if (!payoutAccount) {
+        SendError(res, WALLET_MESSAGES.PAYOUT_ACCOUNT_NOT_FOUND, 404);
+        return;
+      }
+
+      if (payoutAccount.verificationStatus !== VerificationStatus.VERIFIED) {
+        SendError(res, WALLET_MESSAGES.PAYOUT_ACCOUNT_NOT_VERIFIED, 400);
+        return;
+      }
+
+      resolvedProvider = payoutAccount.provider;
+      resolvedNumber = payoutAccount.accountNumber;
+      resolvedHolder = payoutAccount.accountHolderName;
+      resolvedPayoutAccountId = payoutAccount.id;
+    } else {
+      if (!resolvedProvider || resolvedProvider.length < 2) {
+        SendError(res, WALLET_MESSAGES.ACCOUNT_PROVIDER_REQUIRED, 400);
+        return;
+      }
+      if (!resolvedNumber || resolvedNumber.length < 3) {
+        SendError(res, WALLET_MESSAGES.ACCOUNT_NUMBER_REQUIRED, 400);
+        return;
+      }
+      if (!resolvedHolder || resolvedHolder.length < 2) {
+        SendError(res, WALLET_MESSAGES.ACCOUNT_HOLDER_REQUIRED, 400);
+        return;
+      }
+    }
+
     const referenceCode = GenerateWithdrawalReferenceCode();
     const newBalance = currentBalance - payload.amount;
 
@@ -995,9 +1039,9 @@ export async function CreateWithdrawalRequest(
         where: { id: wallet.id },
         data: {
           balance: new Prisma.Decimal(newBalance),
-          accountProvider: payload.accountProvider,
-          accountNumber: payload.accountNumber,
-          accountHolderName: payload.accountHolderName,
+          accountProvider: resolvedProvider,
+          accountNumber: resolvedNumber,
+          accountHolderName: resolvedHolder,
         },
       });
 
@@ -1005,10 +1049,11 @@ export async function CreateWithdrawalRequest(
         data: {
           referenceCode,
           walletId: wallet.id,
+          payoutAccountId: resolvedPayoutAccountId,
           amount: new Prisma.Decimal(payload.amount),
-          accountProvider: payload.accountProvider,
-          accountNumber: payload.accountNumber,
-          accountHolderName: payload.accountHolderName,
+          accountProvider: resolvedProvider,
+          accountNumber: resolvedNumber,
+          accountHolderName: resolvedHolder,
           payoutStatus: PayoutStatus.PENDING,
           status: Status.ACTIVE,
         },
@@ -1024,6 +1069,7 @@ export async function CreateWithdrawalRequest(
       accountNumber: createdPayout.accountNumber,
       accountHolderName: createdPayout.accountHolderName,
       payoutStatus: createdPayout.payoutStatus,
+      payoutAccountId: createdPayout.payoutAccountId,
       rejectionReason: createdPayout.rejectionReason,
       transferProofUrl: createdPayout.transferProofUrl,
       adminNote: createdPayout.adminNote,

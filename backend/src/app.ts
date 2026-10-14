@@ -6,6 +6,7 @@ import { authRouter } from './features/authentication/auth.routes.js';
 import { campaignRouter } from './features/campaign/campaign.routes.js';
 import { healthRouter } from './features/health/health.routes.js';
 import { socialAccountRouter } from './features/social-account/social-account.routes.js';
+import { brandRouter } from './features/brand/brand.routes.js';
 import { campaignSubmissionRouter, submissionRouter } from './features/submission/submission.routes.js';
 import { walletRouter } from './features/wallet/wallet.routes.js';
 import { ErrorHandler } from './middleware/error.middleware.js';
@@ -35,6 +36,7 @@ export function CreateApp() {
   app.use('/auth', authRouter);
   app.use('/social-accounts', socialAccountRouter);
 
+  app.use('/brand', brandRouter);
   app.use('/campaigns', campaignSubmissionRouter);
   app.use('/campaigns', campaignRouter);
   app.use('/submissions', submissionRouter);

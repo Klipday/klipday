@@ -1,0 +1,66 @@
+export const DASHBOARD_MESSAGES = {
+  TITLE: 'Monitoring Brand',
+  SUBTITLE: 'Pantau performa kampanye aktif, validasi penayangan, dan review submisi klip TikTok secara real-time.',
+  ALERT_PENDING_TITLE: 'Video Menunggu Review',
+  ALERT_PENDING_DESC: 'kreator telah mengajukan klip baru. Tinjau dan setujui untuk mempercepat distribusi konten.',
+  ALERT_ZERO_BALANCE_TITLE: 'Saldo Dompet Menipis',
+  ALERT_ZERO_BALANCE_DESC: 'Saldo aktif Anda saat ini Rp 0. Lakukan top-up untuk memastikan kampanye baru dapat segera diluncurkan.',
+  METRICS_TOTAL_VIEWS: 'Total Views Terverifikasi',
+  METRICS_TOTAL_VIEWS_HINT: 'Views organik dari video terverifikasi',
+  METRICS_ACTIVE_CAMPAIGNS: 'Kampanye Aktif',
+  METRICS_TOTAL_SPENT: 'Total Saldo Terpakai',
+  METRICS_TOTAL_SPENT_HINT: 'Reward penayangan kreator',
+  METRICS_WALLET_BALANCE: 'Saldo Siap Pakai',
+  METRICS_WALLET_BALANCE_HINT: 'Saldo aktif di dompet brand',
+  METRICS_LOCKED_BALANCE_PREFIX: 'Saldo terkunci: ',
+  ACTION_REVIEW_NOW: 'Tinjau Sekarang',
+  ACTION_TOP_UP: 'Top-Up Saldo',
+  ACTION_CREATE_CAMPAIGN: 'Buat Kampanye',
+  ACTIVE_CAMPAIGNS_TITLE: 'Performa Kampanye Aktif',
+  ACTIVE_CAMPAIGNS_EMPTY: 'Belum ada kampanye yang sedang aktif.',
+  PENDING_REVIEWS_TITLE: 'Antrean Review Video',
+  PENDING_REVIEWS_EMPTY: 'Semua submisi klip sudah ditinjau.',
+  ACTION_REVIEW: 'Tinjau',
+  TOP_CLIPS_TITLE: 'Video Klip Teratas',
+  TOP_CLIPS_SUBTITLE: 'Video dengan penayangan terverifikasi tertinggi dari kampanye aktif.',
+  TOP_CLIPS_EMPTY: 'Belum ada data klip yang telah diverifikasi.',
+  BUDGET_SPENT_LABEL: 'Anggaran Terpakai',
+  DEFAULT_CATEGORY_LABEL: 'Lainnya',
+  LAUNCHPAD_TITLE: 'Mulai Kampanye Pertama Anda di Klipday',
+  LAUNCHPAD_SUBTITLE: 'Tiga langkah mudah untuk meluncurkan kampanye dan mendapatkan ribuan klip berkualitas dari kreator TikTok.',
+  LAUNCHPAD_STEP_1_TITLE: 'Isi Saldo Dompet',
+  LAUNCHPAD_STEP_1_DESC: 'Top-up saldo untuk alokasi saldo kampanye yang aman dan transparan.',
+  LAUNCHPAD_STEP_2_TITLE: 'Buat Brief Kampanye',
+  LAUNCHPAD_STEP_2_DESC: 'Tentukan panduan konten, hashtag wajib, dan tarif CPM untuk kreator klip.',
+  LAUNCHPAD_STEP_3_TITLE: 'Review & Pantau Penayangan',
+  LAUNCHPAD_STEP_3_DESC: 'Setujui klip terbaik dan pantau pertumbuhan penayangan secara otomatis.',
+  FETCH_ERROR: 'Gagal memuat ringkasan dashboard brand. Silakan coba beberapa saat lagi.',
+} as const;
+
+/**
+ * Localized Indonesian labels for campaign categories and brand industries.
+ * Prevents raw enum strings (e.g. FOOD_BEVERAGE, BEAUTY_SKINCARE) from displaying in the UI.
+ */
+export const DASHBOARD_CATEGORY_MAP: Record<string, string> = {
+  // Category enum
+  BEAUTY_SKINCARE: 'Kecantikan & Skincare',
+  FASHION_STYLE: 'Fashion & Gaya',
+  FOOD_BEVERAGE: 'Makanan & Minuman',
+  HEALTH_FITNESS: 'Kesehatan & Kebugaran',
+  TECHNOLOGY_GADGETS: 'Teknologi & Gadget',
+  LIFESTYLE: 'Gaya Hidup',
+  GAMING: 'Gaming',
+  TRAVEL: 'Travel & Wisata',
+  ENTERTAINMENT: 'Hiburan',
+  EDUCATION: 'Edukasi',
+  OTHER: 'Lainnya',
+
+  // Industry enum
+  E_COMMERCE: 'E-Commerce',
+  FOOD_AND_BEVERAGE: 'Makanan & Minuman',
+  FASHION_AND_BEAUTY: 'Fashion & Kecantikan',
+  TECHNOLOGY: 'Teknologi',
+  FINANCE: 'Keuangan',
+  HEALTH_AND_WELLNESS: 'Kesehatan & Kebugaran',
+  TRAVEL_AND_HOSPITALITY: 'Travel & Perhotelan',
+};

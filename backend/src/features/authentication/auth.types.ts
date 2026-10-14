@@ -19,11 +19,13 @@ export interface BrandProfileDto {
   companyName: string;
   phoneNumber: string | null;
   industry: Industry | null;
+  logoUrl?: string | null;
 }
 
 export interface CreatorProfileDto {
   id: string;
   fullName: string;
+  avatarUrl?: string | null;
 }
 
 export interface AdminProfileDto {
@@ -36,6 +38,7 @@ export interface CurrentAccountProfile {
   email: string;
   role: Role;
   name: string;
+  avatarUrl: string | null;
   isEmailVerified: boolean;
   brand: BrandProfileDto | null;
   creator: CreatorProfileDto | null;

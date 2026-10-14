@@ -5,3 +5,5 @@ export * from './constants';
 export * from './api';
 export * from './utils/wallet-format';
 export { default as BrandWalletPage } from './pages/BrandWalletPage';
+export { default as CreatorWalletPage } from './pages/CreatorWalletPage';
+

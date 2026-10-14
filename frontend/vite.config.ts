@@ -9,32 +9,6 @@ export default defineConfig({
   server: {
     host: true,
     allowedHosts: true,
-    proxy: {
-      '/auth': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-      '/social-accounts': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-      '/campaigns': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-      '/submissions': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-      '/wallet': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-      '/health': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-    },
   },
   resolve: {
     alias: {

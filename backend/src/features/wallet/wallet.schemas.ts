@@ -20,9 +20,10 @@ export const CreateWithdrawalSchema = z.object({
     .int('Nominal harus berupa bilangan bulat')
     .min(WITHDRAWAL_LIMITS.MIN_AMOUNT, WALLET_MESSAGES.INVALID_WITHDRAWAL_AMOUNT)
     .max(WITHDRAWAL_LIMITS.MAX_AMOUNT, WALLET_MESSAGES.INVALID_WITHDRAWAL_AMOUNT),
-  accountProvider: z.string().trim().min(2, WALLET_MESSAGES.ACCOUNT_PROVIDER_REQUIRED),
-  accountNumber: z.string().trim().min(3, WALLET_MESSAGES.ACCOUNT_NUMBER_REQUIRED),
-  accountHolderName: z.string().trim().min(2, WALLET_MESSAGES.ACCOUNT_HOLDER_REQUIRED),
+  payoutAccountId: z.string().uuid('ID akun penarikan tidak valid').optional(),
+  accountProvider: z.string().trim().optional(),
+  accountNumber: z.string().trim().optional(),
+  accountHolderName: z.string().trim().optional(),
 });
 
 export type CreateWithdrawalInput = z.infer<typeof CreateWithdrawalSchema>;

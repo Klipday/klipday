@@ -1,11 +1,11 @@
-import { FileCheck, LayoutDashboard, Megaphone, Settings, ShieldCheck, Wallet } from 'lucide-react';
+import { FileCheck, LayoutDashboard, Megaphone, Settings, ShieldCheck, User, Wallet } from 'lucide-react';
 import type { DashboardNavItem } from '../types';
 
 export type { DashboardNavItem };
 
 export const BRAND_NAV_ITEMS: DashboardNavItem[] = [
   {
-    title: 'Beranda',
+    title: 'Dashboard',
     href: '/brand-dashboard',
     icon: LayoutDashboard,
   },
@@ -19,11 +19,16 @@ export const BRAND_NAV_ITEMS: DashboardNavItem[] = [
     href: '/brand-dashboard/wallet',
     icon: Wallet,
   },
+  {
+    title: 'Profil Akun',
+    href: '/brand-dashboard/profile',
+    icon: User,
+  },
 ];
 
 export const CREATOR_NAV_ITEMS: DashboardNavItem[] = [
   {
-    title: 'Beranda',
+    title: 'Dashboard',
     href: '/creator-dashboard',
     icon: LayoutDashboard,
   },
@@ -32,17 +37,21 @@ export const CREATOR_NAV_ITEMS: DashboardNavItem[] = [
     href: '/creator-dashboard/creator-campaigns',
     icon: Megaphone,
   },
-
   {
     title: 'Pendapatan',
-    href: '/dashboard/wallet',
+    href: '/creator-dashboard/wallet',
     icon: Wallet,
+  },
+  {
+    title: 'Profil Akun',
+    href: '/dashboard/profile',
+    icon: User,
   },
 ];
 
 export const ADMIN_NAV_ITEMS: DashboardNavItem[] = [
   {
-    title: 'Beranda',
+    title: 'Dashboard',
     href: '/admin-dashboard',
     icon: LayoutDashboard,
   },
@@ -62,6 +71,11 @@ export const ADMIN_NAV_ITEMS: DashboardNavItem[] = [
     icon: Wallet,
   },
   {
+    title: 'Profil Akun',
+    href: '/dashboard/profile',
+    icon: User,
+  },
+  {
     title: 'Pengaturan',
     href: '/dashboard/settings',
     icon: Settings,
@@ -70,7 +84,7 @@ export const ADMIN_NAV_ITEMS: DashboardNavItem[] = [
 
 export const DEFAULT_NAV_ITEMS: DashboardNavItem[] = [
   {
-    title: 'Beranda',
+    title: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
   },
@@ -83,5 +97,10 @@ export const DEFAULT_NAV_ITEMS: DashboardNavItem[] = [
     title: 'Dompet',
     href: '/dashboard/wallet',
     icon: Wallet,
+  },
+  {
+    title: 'Profil Akun',
+    href: '/dashboard/profile',
+    icon: User,
   },
 ];

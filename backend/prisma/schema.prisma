@@ -84,6 +84,21 @@ enum PayoutStatus {
   @@map("payout_status")
 }
 
+enum PayoutAccountType {
+  BANK_TRANSFER
+  E_WALLET
+
+  @@map("payout_account_type")
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+
+  @@map("verification_status")
+}
+
 enum WalletTransactionType {
   CAMPAIGN_EARNING
   WITHDRAWAL
@@ -171,6 +186,17 @@ model Brand {
   // industry is the industry of the brand, and is optional.
   industry Industry?
 
+  // logo and brand profile details
+  logoUrl        String?   @map("logo_url")
+  location       String?   @map("location")
+  website        String?   @map("website")
+  description    String?   @map("description") @db.Text
+  instagramHandle String?  @map("instagram_handle")
+  tiktokHandle   String?   @map("tiktok_handle")
+  xHandle        String?   @map("x_handle")
+  threadsHandle  String?   @map("threads_handle")
+  youtubeChannel String?   @map("youtube_channel")
+
   // status is used to determine if the brand's account is active or deleted.
   status Status @default(ACTIVE)
 
@@ -184,6 +210,9 @@ model Brand {
 
   // relation to campaigns 
   campaigns Campaign[]
+
+  // relation to payout accounts
+  payoutAccounts BrandPayoutAccount[]
 
   @@map("brands")
 }
@@ -608,6 +637,7 @@ model Wallet {
   transactions   WalletTransaction[]
   payoutRequests PayoutRequest[]
   topUpRequests  TopUpRequest[]
+  payoutAccounts BrandPayoutAccount[]
 
   @@map("wallets")
 }
@@ -675,6 +705,10 @@ model PayoutRequest {
   accountNumber     String @map("account_number")
   accountHolderName String @map("account_holder_name")
 
+  // relation to payout account (optional relation to saved brand payout account)
+  payoutAccount   BrandPayoutAccount? @relation(fields: [payoutAccountId], references: [id])
+  payoutAccountId String?             @map("payout_account_id")
+
   // payout status lifecycle
   payoutStatus     PayoutStatus @default(PENDING) @map("payout_status")
   rejectionReason  String?      @map("rejection_reason")
@@ -698,7 +732,59 @@ model PayoutRequest {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([payoutStatus, createdAt(sort: Desc)])
+  @@index([payoutAccountId])
   @@map("payout_requests")
+}
+
+model BrandPayoutAccount {
+  // id is the primary key for the brand payout account, and is generated as a UUID.
+  id String @id @default(uuid())
+
+  // relation to wallet
+  wallet   Wallet @relation(fields: [walletId], references: [id])
+  walletId String @map("wallet_id")
+
+  // relation to brand
+  brand   Brand?  @relation(fields: [brandId], references: [id])
+  brandId String? @map("brand_id")
+
+  // type of payout account: BANK_TRANSFER or E_WALLET
+  accountType PayoutAccountType @default(BANK_TRANSFER) @map("account_type")
+
+  // provider name (e.g. BCA, MANDIRI, BRI, BNI, JAGO, SEABANK, GOPAY, OVO, DANA, SHOPEEPAY)
+  provider String @map("provider")
+
+  // account number or mobile phone number for e-wallet
+  accountNumber String @map("account_number")
+
+  // account holder name as written on passbook or e-wallet profile
+  accountHolderName String @map("account_holder_name")
+
+  // uploaded proof photo URL (passbook or e-wallet screenshot)
+  proofUrl String @map("proof_url")
+
+  // whether this account is the primary account for payouts
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  // KYC verification status
+  verificationStatus VerificationStatus @default(PENDING) @map("verification_status")
+  rejectionReason    String?            @map("rejection_reason")
+  verifiedAt         DateTime?          @map("verified_at")
+
+  // relation to payout requests using this account
+  payoutRequests PayoutRequest[]
+
+  // status for soft-delete
+  status Status @default(ACTIVE)
+
+  // timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([walletId])
+  @@index([brandId])
+  @@index([verificationStatus])
+  @@map("brand_payout_accounts")
 }
 
 model CampaignPayment {

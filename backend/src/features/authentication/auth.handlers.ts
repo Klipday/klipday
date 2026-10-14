@@ -13,7 +13,7 @@ import {
   AUTH_SALT_ROUNDS,
   AUTH_TOKEN_EXPIRES_IN,
 } from './auth.constants.js';
-import type { CurrentAccountProfile } from './auth.types.js';
+import type { BrandProfileDto, CreatorProfileDto, CurrentAccountProfile } from './auth.types.js';
 import { ValidateLoginBody, ValidateRegisterBody } from './auth.validators.js';
 
 /**
@@ -207,12 +207,22 @@ export async function GetCurrentAccount(req: Request, res: Response, next: NextF
             companyName: true,
             phoneNumber: true,
             industry: true,
+            logoUrl: true,
           },
         },
         creator: {
           select: {
             id: true,
             fullName: true,
+            avatarUrl: true,
+            socialAccounts: {
+              where: { status: Status.ACTIVE, isVerified: true },
+              orderBy: { verifiedAt: 'desc' as const },
+              take: 1,
+              select: {
+                avatarUrl: true,
+              },
+            },
           },
         },
         admin: {
@@ -232,22 +242,45 @@ export async function GetCurrentAccount(req: Request, res: Response, next: NextF
     }
 
     let displayName = '';
+    let avatarUrl: string | null = null;
     if (account.role === Role.BRAND && account.brand?.companyName) {
       displayName = account.brand.companyName;
+      avatarUrl = account.brand.logoUrl ?? null;
     } else if (account.role === Role.CREATOR && account.creator?.fullName) {
       displayName = account.creator.fullName;
+      const latestSocialAvatar = account.creator.socialAccounts[0]?.avatarUrl ?? null;
+      avatarUrl = account.creator.avatarUrl ?? latestSocialAvatar;
     } else if (account.role === Role.ADMIN && account.admin?.fullName) {
       displayName = account.admin.fullName;
     }
+
+    const brandData: BrandProfileDto | null = account.brand
+      ? {
+          id: account.brand.id,
+          companyName: account.brand.companyName,
+          phoneNumber: account.brand.phoneNumber,
+          industry: account.brand.industry,
+          logoUrl: account.brand.logoUrl,
+        }
+      : null;
+
+    const creatorData: CreatorProfileDto | null = account.creator
+      ? {
+          id: account.creator.id,
+          fullName: account.creator.fullName,
+          avatarUrl: account.creator.avatarUrl ?? account.creator.socialAccounts[0]?.avatarUrl ?? null,
+        }
+      : null;
 
     const profileData: CurrentAccountProfile = {
       id: account.id,
       email: account.email,
       role: account.role,
       name: displayName,
+      avatarUrl,
       isEmailVerified: account.isEmailVerified,
-      brand: account.brand,
-      creator: account.creator,
+      brand: brandData,
+      creator: creatorData,
       admin: account.admin,
     };
 

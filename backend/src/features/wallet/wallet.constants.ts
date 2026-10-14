@@ -71,4 +71,6 @@ export const WALLET_MESSAGES = {
   ACCOUNT_NUMBER_REQUIRED: 'Nomor rekening atau nomor HP tujuan penarikan wajib diisi.',
   ACCOUNT_HOLDER_REQUIRED: 'Nama pemilik rekening tujuan penarikan wajib diisi.',
   WITHDRAWAL_SIMULATION_SUCCESS: 'Simulasi penarikan saldo berhasil disetujui.',
+  PAYOUT_ACCOUNT_NOT_FOUND: 'Akun penarikan tujuan tidak ditemukan.',
+  PAYOUT_ACCOUNT_NOT_VERIFIED: 'Akun penarikan tujuan belum diverifikasi oleh admin Klipday.',
 } as const;
