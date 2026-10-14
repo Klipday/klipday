@@ -45,11 +45,17 @@ export function BrandDashboardSkeleton({
             </div>
             <div className="h-6 w-20 rounded bg-muted/50 animate-pulse" />
           </div>
-          <div className="space-y-4 pt-2">
+          <div className="space-y-3 pt-2">
             {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="space-y-2.5">
-                <div className="flex justify-between">
-                  <div className="h-4 w-40 rounded bg-muted/60 animate-pulse" />
+              <div
+                key={i}
+                className="p-4 rounded-xl border border-border/60 bg-muted/20 space-y-3"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1.5">
+                    <div className="h-4 w-40 rounded bg-muted/60 animate-pulse" />
+                    <div className="h-3 w-28 rounded bg-muted/40 animate-pulse" />
+                  </div>
                   <div className="h-4 w-24 rounded bg-muted/60 animate-pulse" />
                 </div>
                 <div className="h-2 w-full rounded-full bg-muted/40 animate-pulse" />
@@ -67,19 +73,20 @@ export function BrandDashboardSkeleton({
             </div>
           </div>
           <div className="space-y-3 pt-2">
-            {Array.from({ length: 3 }).map((_, i) => (
+            {Array.from({ length: 2 }).map((_, i) => (
               <div
                 key={i}
-                className="p-3 rounded-lg border border-border/60 bg-muted/20 flex items-center justify-between gap-2.5 sm:gap-3"
+                className="p-3.5 rounded-xl border border-border/60 bg-muted/20 space-y-3"
               >
-                <div className="flex-1 min-w-0 flex items-center gap-2.5 sm:gap-3">
-                  <div className="w-12 h-16 rounded-md bg-muted/60 animate-pulse shrink-0" />
+                <div className="flex items-start gap-3">
+                  <div className="w-14 h-20 rounded-lg bg-muted/60 animate-pulse shrink-0" />
                   <div className="space-y-2 flex-1 min-w-0">
                     <div className="h-3.5 w-24 rounded bg-muted/60 animate-pulse" />
-                    <div className="h-3 w-32 rounded bg-muted/40 animate-pulse" />
+                    <div className="h-3 w-28 rounded bg-muted/40 animate-pulse" />
+                    <div className="h-3 w-36 rounded bg-muted/40 animate-pulse" />
                   </div>
                 </div>
-                <div className="h-8 w-16 rounded-md bg-muted/50 animate-pulse shrink-0" />
+                <div className="h-8 w-full rounded-md bg-muted/50 animate-pulse" />
               </div>
             ))}
           </div>
@@ -92,17 +99,20 @@ export function BrandDashboardSkeleton({
           <div className="h-5 w-36 rounded bg-muted/70 animate-pulse" />
           <div className="h-3 w-64 rounded bg-muted/40 animate-pulse" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-3.5 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="rounded-lg border border-border/60 bg-muted/20 p-3 flex items-start gap-3"
+              className="rounded-xl border border-border/60 bg-muted/20 p-3.5 space-y-3"
             >
-              <div className="w-16 h-20 rounded-md bg-muted/50 border border-border/60 shrink-0 animate-pulse" />
-              <div className="flex-1 space-y-2 py-1">
-                <div className="h-3 w-20 rounded bg-muted/60 animate-pulse" />
-                <div className="h-2.5 w-16 rounded bg-muted/40 animate-pulse" />
-                <div className="h-3 w-24 rounded bg-muted/50 animate-pulse mt-4" />
+              <div className="w-full h-48 sm:h-52 rounded-lg bg-muted/50 border border-border/60 animate-pulse" />
+              <div className="space-y-2">
+                <div className="h-3.5 w-28 rounded bg-muted/60 animate-pulse" />
+                <div className="h-3 w-20 rounded bg-muted/40 animate-pulse" />
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                <div className="h-3 w-20 rounded bg-muted/50 animate-pulse" />
+                <div className="h-3 w-12 rounded bg-muted/40 animate-pulse" />
               </div>
             </div>
           ))}

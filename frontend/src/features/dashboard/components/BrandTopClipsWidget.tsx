@@ -51,7 +51,7 @@ export function BrandTopClipsWidget({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {topClips.map((clip) => {
               const creatorInitial =
                 clip.creatorName?.charAt(0).toUpperCase() || 'K';
@@ -64,55 +64,60 @@ export function BrandTopClipsWidget({
               return (
                 <div
                   key={clip.id}
-                  className="rounded-lg border border-border/60 bg-muted/20 p-3 flex items-start gap-3 hover:bg-muted/30 transition-colors"
+                  className="rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/30 transition-colors p-3.5 flex flex-col justify-between space-y-3"
                 >
-                  <div className="w-16 h-20 rounded-md overflow-hidden bg-muted/50 border border-border/60 shrink-0 relative flex items-center justify-center">
-                    {cleanThumbnail ? (
+                  {/* Large Vertical Video Thumbnail */}
+                  <div className="w-full h-48 sm:h-52 rounded-lg overflow-hidden bg-muted/40 border border-border/60 shrink-0 relative flex items-center justify-center">
+                    <Video className="size-8 text-muted-foreground/60 shrink-0" />
+                    {cleanThumbnail && (
                       <img
                         src={cleanThumbnail}
                         alt="Thumbnail video"
-                        className="w-full h-full object-cover"
+                        className="absolute inset-0 w-full h-full object-cover"
                         referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
                       />
-                    ) : (
-                      <Video className="size-6 text-muted-foreground/60" />
                     )}
                   </div>
 
-                  <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch py-0.5">
+                  {/* Creator Info & Performance Footer */}
+                  <div className="space-y-3 flex-1 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <Avatar className="size-4 rounded-full border border-border/60 shrink-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Avatar className="size-5 rounded-full border border-border/60 shrink-0">
                           {cleanAvatar ? (
                             <AvatarImage
                               src={cleanAvatar}
-                              alt={clip.creatorName}
+                              alt={clip.creatorName || DASHBOARD_MESSAGES.DEFAULT_CREATOR_NAME}
                               referrerPolicy="no-referrer"
                             />
                           ) : null}
-                          <AvatarFallback className="bg-muted text-muted-foreground text-[9px] font-medium">
+                          <AvatarFallback className="bg-muted text-muted-foreground text-[10px] font-medium">
                             {creatorInitial}
                           </AvatarFallback>
                         </Avatar>
-                        <p className="text-xs font-medium text-foreground truncate">
-                          {clip.creatorName}
-                        </p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-foreground truncate">
+                            {clip.creatorName || DASHBOARD_MESSAGES.DEFAULT_CREATOR_NAME}
+                          </p>
+                          {clip.socialUsername && (
+                            <p className="text-[11px] text-muted-foreground truncate">
+                              @{clip.socialUsername}
+                            </p>
+                          )}
+                        </div>
                       </div>
-
-                      {clip.socialUsername && (
-                        <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                          @{clip.socialUsername}
-                        </p>
-                      )}
                     </div>
 
-                    <div className="flex items-end justify-between gap-2 pt-1 border-t border-border/30">
+                    <div className="flex items-end justify-between gap-2 pt-2.5 border-t border-border/40">
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-foreground tracking-tight truncate">
-                          {FormatCompactCount(clip.verifiedViews)} views
+                        <p className="text-sm font-semibold text-foreground tracking-tight truncate">
+                          {FormatCompactCount(clip.verifiedViews)} {DASHBOARD_MESSAGES.VIEWS_LABEL}
                         </p>
-                        <p className="text-[10px] text-muted-foreground truncate">
-                          Reward: {FormatRupiah(clip.earnings)}
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {DASHBOARD_MESSAGES.REWARD_PREFIX}{FormatRupiah(clip.earnings)}
                         </p>
                       </div>
 
@@ -121,10 +126,10 @@ export function BrandTopClipsWidget({
                           href={cleanVideoUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 shrink-0"
+                          className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 shrink-0 pb-0.5"
                         >
                           <span>TikTok</span>
-                          <ExternalLink className="size-3" />
+                          <ExternalLink className="size-3.5" />
                         </a>
                       )}
                     </div>

@@ -7,7 +7,8 @@ import type { BrandPendingReviewsQueueProps } from '../types';
 
 /**
  * Action center widget displaying pending submissions requiring brand approval.
- * Formatted with a symmetrical horizontal media layout (thumbnail left, details center, review CTA right).
+ * Formatted with a 2-tier card layout (thumbnail and uncramped details on top, full-width review CTA below)
+ * to ensure creator details and campaign titles never truncate.
  *
  * @param props - Pending submissions array and review selection handler.
  * @returns Rendered action queue component.
@@ -71,31 +72,34 @@ export function BrandPendingReviewsQueue({
               return (
                 <div
                   key={item.id}
-                  className="p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/30 transition-colors flex items-center justify-between gap-2.5 sm:gap-3"
+                  className="p-3.5 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/30 transition-colors space-y-3"
                 >
-                  <div className="flex-1 min-w-0 flex items-center gap-2.5 sm:gap-3">
-                    {/* Video Thumbnail on the left */}
-                    <div className="w-12 h-16 rounded-md overflow-hidden bg-muted/50 border border-border/60 shrink-0 relative flex items-center justify-center">
-                      {cleanThumbnail ? (
+                  {/* Tier 1: Thumbnail + Uncramped Details */}
+                  <div className="flex items-start gap-3">
+                    {/* Video Thumbnail */}
+                    <div className="w-14 h-20 rounded-lg overflow-hidden bg-muted/50 border border-border/60 shrink-0 relative flex items-center justify-center">
+                      <Video className="size-5 text-muted-foreground/60 shrink-0" />
+                      {cleanThumbnail && (
                         <img
                           src={cleanThumbnail}
                           alt="Thumbnail klip"
-                          className="w-full h-full object-cover"
+                          className="absolute inset-0 w-full h-full object-cover"
                           referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
-                      ) : (
-                        <Video className="size-5 text-muted-foreground/60" />
                       )}
                     </div>
 
-                    {/* Middle: Creator details & caption */}
-                    <div className="min-w-0 flex-1 space-y-1">
+                    {/* Details: Ample horizontal width, zero text squishing */}
+                    <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <Avatar className="size-4 rounded-full border border-border/60 shrink-0">
                           {cleanCreatorAvatar ? (
                             <AvatarImage
                               src={cleanCreatorAvatar}
-                              alt={item.creator?.fullName || 'Kreator'}
+                              alt={item.creator?.fullName || DASHBOARD_MESSAGES.DEFAULT_CREATOR_NAME}
                               referrerPolicy="no-referrer"
                             />
                           ) : null}
@@ -103,38 +107,40 @@ export function BrandPendingReviewsQueue({
                             {creatorInitial}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-xs font-medium text-foreground truncate">
-                          {item.creator?.fullName || 'Kreator Klip'}
+                        <span className="text-xs font-semibold text-foreground truncate">
+                          {item.creator?.fullName || DASHBOARD_MESSAGES.DEFAULT_CREATOR_NAME}
                         </span>
-                        {item.socialAccount?.username && (
-                          <span className="text-[11px] text-muted-foreground truncate">
-                            @{item.socialAccount.username}
-                          </span>
-                        )}
                       </div>
+
+                      {item.socialAccount?.username && (
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          @{item.socialAccount.username}
+                        </p>
+                      )}
 
                       {item.campaign?.title && (
                         <p className="text-[11px] text-muted-foreground truncate">
-                          Kampanye: {item.campaign.title}
+                          {DASHBOARD_MESSAGES.CAMPAIGN_LABEL_PREFIX}{item.campaign.title}
                         </p>
                       )}
 
                       {item.videoCaption && (
-                        <p className="text-xs text-foreground/80 line-clamp-1">
+                        <p className="text-xs text-foreground/80 line-clamp-2 pt-0.5 break-words">
                           {item.videoCaption}
                         </p>
                       )}
                     </div>
                   </div>
 
-                  {/* Right: Vertically centered Tinjau button */}
+                  {/* Tier 2: Symmetrical Full-Width Action Button */}
                   <Button
+                    type="button"
                     size="sm"
                     variant="outline"
                     onClick={() => onReviewSubmission(item)}
-                    className="h-8 px-2.5 sm:px-3 shrink-0 text-xs font-medium border-border/80 text-foreground hover:bg-muted/60 gap-1 self-center"
+                    className="w-full h-8 text-xs font-medium border-border/80 text-foreground hover:bg-muted/60 gap-1.5"
                   >
-                    <span>{DASHBOARD_MESSAGES.ACTION_REVIEW}</span>
+                    <span>{DASHBOARD_MESSAGES.ACTION_REVIEW_VIDEO}</span>
                     <ArrowUpRight className="size-3.5" />
                   </Button>
                 </div>

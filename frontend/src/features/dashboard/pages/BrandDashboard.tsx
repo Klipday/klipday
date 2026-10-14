@@ -3,7 +3,6 @@ import { SubmissionReviewDialog } from '@/features/submission/components/Submiss
 import { BrandTopUpDialog } from '@/features/wallet/components/BrandTopUpDialog';
 import {
   BrandActiveCampaignsWidget,
-  BrandDashboardAlerts,
   BrandDashboardErrorState,
   BrandDashboardHeader,
   BrandDashboardLaunchpad,
@@ -57,12 +56,6 @@ function BrandDashboard() {
       {/* Header with greeting and subtitle (no noisy buttons) */}
       <BrandDashboardHeader
         brandName={data.brand?.companyName}
-      />
-
-      {/* Action alerts (rendered only when urgent items exist) */}
-      <BrandDashboardAlerts
-        walletActiveBalance={data.metrics.walletActiveBalance}
-        onTopUpClick={HandleOpenTopUp}
       />
 
       {/* 4-card Bento KPI Hero Strip */}
