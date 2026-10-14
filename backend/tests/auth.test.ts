@@ -859,16 +859,16 @@ describe('Authentication Feature Module', () => {
         });
       });
 
-      it('BuildInitialWalletCreateData returns undefined for non-financial Role.ADMIN', () => {
+      it('BuildInitialWalletCreateData returns null for non-financial Role.ADMIN', () => {
         const result = BuildInitialWalletCreateData(Role.ADMIN);
-        expect(result).toBeUndefined();
+        expect(result).toBeNull();
       });
 
-      it('BuildInitialWalletCreateData returns undefined for undefined or invalid roles', () => {
+      it('BuildInitialWalletCreateData returns null for undefined or invalid roles', () => {
         const undefinedResult = BuildInitialWalletCreateData(undefined as unknown as Role);
         const invalidResult = BuildInitialWalletCreateData('UNKNOWN' as Role);
-        expect(undefinedResult).toBeUndefined();
-        expect(invalidResult).toBeUndefined();
+        expect(undefinedResult).toBeNull();
+        expect(invalidResult).toBeNull();
       });
 
       it('RegisterAccount builds an atomic payload and creates Account, Profile, and Wallet in a single DB query', async () => {

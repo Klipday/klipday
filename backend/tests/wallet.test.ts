@@ -1767,14 +1767,14 @@ describe('Brand Wallet Feature Module', () => {
       });
     });
 
-    it('returns undefined for non-financial Role.ADMIN', () => {
+    it('returns null for non-financial Role.ADMIN', () => {
       const result = BuildInitialWalletCreateData(Role.ADMIN);
-      expect(result).toBeUndefined();
+      expect(result).toBeNull();
     });
 
-    it('returns undefined for invalid or undefined roles', () => {
-      expect(BuildInitialWalletCreateData(undefined as unknown as Role)).toBeUndefined();
-      expect(BuildInitialWalletCreateData('INVALID_ROLE' as Role)).toBeUndefined();
+    it('returns null for invalid or undefined roles', () => {
+      expect(BuildInitialWalletCreateData(undefined as unknown as Role)).toBeNull();
+      expect(BuildInitialWalletCreateData('INVALID_ROLE' as Role)).toBeNull();
     });
   });
 });
