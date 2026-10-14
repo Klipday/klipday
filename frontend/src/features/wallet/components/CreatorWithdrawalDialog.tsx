@@ -34,6 +34,7 @@ import { WITHDRAWAL_LIMITS } from '../constants';
 import { UseCreateCreatorWithdrawalMutation } from '../hooks';
 import type { CreatorWithdrawalDialogProps } from '../types';
 import { FormatNumber, FormatRupiah, ParseFormattedRupiah } from '../utils/wallet-format';
+import { AddPayoutAccountDialog } from './AddPayoutAccountDialog';
 
 /**
  * Withdrawal modal dialog for Creator accounts.
@@ -54,6 +55,7 @@ export function CreatorWithdrawalDialog({
   const [inputValue, setInputValue] = useState<string>('');
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
 
   const createWithdrawalMutation = UseCreateCreatorWithdrawalMutation();
 
@@ -170,8 +172,12 @@ export function CreatorWithdrawalDialog({
                 type="button"
                 size="sm"
                 onClick={() => {
-                  onOpenChange(false);
-                  onAddNewAccount?.();
+                  if (onAddNewAccount) {
+                    onOpenChange(false);
+                    onAddNewAccount();
+                  } else {
+                    setIsAddAccountOpen(true);
+                  }
                 }}
                 className="cursor-pointer text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90">
                 <Plus className="mr-1.5 size-3.5" />
@@ -200,7 +206,7 @@ export function CreatorWithdrawalDialog({
                   onValueChange={(val) => setSelectedAccountId(val)}>
                   <SelectTrigger
                     id="destination-account"
-                    className="h-10 rounded-xl border-border/60 bg-card text-xs cursor-pointer">
+                    className="h-10 w-full rounded-xl border-border/60 bg-card text-xs cursor-pointer">
                     <SelectValue placeholder="Pilih Akun Tujuan" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-border/60 text-xs">
@@ -374,6 +380,16 @@ export function CreatorWithdrawalDialog({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AddPayoutAccountDialog
+        open={isAddAccountOpen}
+        onOpenChange={setIsAddAccountOpen}
+        existingAccountsCount={payoutAccounts.length}
+        role="CREATOR"
+        onSuccess={() => {
+          onWithdrawalSuccess?.();
+        }}
+      />
     </>
   );
 }

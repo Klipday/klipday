@@ -78,7 +78,7 @@ export function BrandProfileInfoForm({ profile }: BrandProfileInfoFormProps) {
     <form onSubmit={handleSubmit(OnSubmit)} className="space-y-8">
       {/* SECTION 1: Informasi Dasar */}
       <div className="space-y-4">
-        <div>
+        <div className="space-y-1.5">
           <h2 className="text-sm font-semibold tracking-tight text-foreground">
             Informasi Dasar Brand
           </h2>
@@ -196,7 +196,7 @@ export function BrandProfileInfoForm({ profile }: BrandProfileInfoFormProps) {
 
       {/* SECTION 2: Media Sosial Resmi */}
       <div className="space-y-4">
-        <div>
+        <div className="space-y-1.5">
           <h2 className="text-sm font-semibold tracking-tight text-foreground">
             Media Sosial Brand
           </h2>
@@ -312,7 +312,7 @@ export function BrandProfileInfoForm({ profile }: BrandProfileInfoFormProps) {
 
       {/* SECTION 3: Akun Kontak Terkunci (Security & Verification Notice) */}
       <div className="space-y-4">
-        <div>
+        <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold tracking-tight text-foreground">
               Kontak Utama Akun

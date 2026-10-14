@@ -390,10 +390,24 @@ export interface CreatorWithdrawalDialogProps {
   onAddNewAccount?: () => void;
 }
 
-export interface CreatorAddPayoutAccountDialogProps {
+export interface BankComboboxProps {
+  id?: string;
+  accountType?: 'BANK_TRANSFER' | 'E_WALLET' | 'ALL';
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  className?: string;
+  hasError?: boolean;
+  placeholder?: string;
+}
+
+export interface AddPayoutAccountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  existingAccountsCount?: number;
   onSuccess?: () => void;
+  role?: 'BRAND' | 'CREATOR';
 }
+
 
 

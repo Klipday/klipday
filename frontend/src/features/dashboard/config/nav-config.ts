@@ -44,7 +44,7 @@ export const CREATOR_NAV_ITEMS: DashboardNavItem[] = [
   },
   {
     title: 'Profil Akun',
-    href: '/dashboard/profile',
+    href: '/creator-dashboard/profile',
     icon: User,
   },
 ];

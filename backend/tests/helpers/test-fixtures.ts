@@ -12,7 +12,7 @@ export const mockBrandAccount = {
   brand: {
     id: 'brand-123',
     companyName: 'PT Brand Keren',
-    phoneNumber: '081234567890',
+    phoneNumber: '6281234567890',
     industry: Industry.TECHNOLOGY,
     logoUrl: null,
   },
@@ -61,7 +61,7 @@ export const validBrandRegisterPayload = {
   email: 'newbrand@example.com',
   password: 'Password123!',
   companyName: 'PT Klipday Brand',
-  phoneNumber: '081234567890',
+  phoneNumber: '6281234567890',
   industry: Industry.TECHNOLOGY,
 };
 

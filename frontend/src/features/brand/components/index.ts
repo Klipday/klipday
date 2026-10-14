@@ -1,5 +1,6 @@
 export { AddPayoutAccountDialog } from './AddPayoutAccountDialog';
 export { BrandBankCombobox } from './BrandBankCombobox';
+export { BankCombobox } from '@/features/wallet/components';
 export { BrandLocationCombobox } from './BrandLocationCombobox';
 export { BrandPayoutAccountsTab } from './BrandPayoutAccountsTab';
 export { BrandProfileHeader } from './BrandProfileHeader';

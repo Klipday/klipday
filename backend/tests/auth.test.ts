@@ -124,7 +124,7 @@ describe('Authentication Feature Module', () => {
           email: '  BRAND@COMPANY.ID ',
           password: 'Password123!',
           companyName: '  PT Klipday Digital  ',
-          phoneNumber: '0812-3456-7890',
+          phoneNumber: '62812-3456-7890',
           industry: Industry.TECHNOLOGY,
         });
 
@@ -134,7 +134,7 @@ describe('Authentication Feature Module', () => {
           expect(result.email).toBe('brand@company.id');
           if (result.role === Role.BRAND) {
             expect(result.companyName).toBe('PT Klipday Digital');
-            expect(result.phoneNumber).toBe('081234567890');
+            expect(result.phoneNumber).toBe('6281234567890');
             expect(result.industry).toBe(Industry.TECHNOLOGY);
           }
         }
@@ -195,12 +195,45 @@ describe('Authentication Feature Module', () => {
         expect(result).toBe(AUTH_MESSAGES.PASSWORD_SYMBOL);
       });
 
-      it('validates brand phone format against Indonesian phone regex', () => {
+      it('validates brand phone format against Indonesian phone regex requiring 62 prefix', () => {
         const invalidPhone = ValidateRegisterBody({
           ...validBrandRegisterPayload,
           phoneNumber: '12345',
         });
         expect(invalidPhone).toBe(AUTH_MESSAGES.PHONE_INVALID);
+
+        const startsWithZero = ValidateRegisterBody({
+          ...validBrandRegisterPayload,
+          phoneNumber: '081234567890',
+        });
+        expect(startsWithZero).toBe(AUTH_MESSAGES.PHONE_INVALID);
+
+        const startsWithZero899 = ValidateRegisterBody({
+          ...validBrandRegisterPayload,
+          phoneNumber: '08998732627',
+        });
+        expect(startsWithZero899).toBe(AUTH_MESSAGES.PHONE_INVALID);
+
+        const startsWithPlus = ValidateRegisterBody({
+          ...validBrandRegisterPayload,
+          phoneNumber: '+628998732627',
+        });
+        expect(startsWithPlus).toBe(AUTH_MESSAGES.PHONE_INVALID);
+
+        const startsWithEight = ValidateRegisterBody({
+          ...validBrandRegisterPayload,
+          phoneNumber: '8998732627',
+        });
+        expect(startsWithEight).toBe(AUTH_MESSAGES.PHONE_INVALID);
+
+        const valid628 = ValidateRegisterBody({
+          ...validBrandRegisterPayload,
+          phoneNumber: '628998732627',
+        });
+        expect(typeof valid628).toBe('object');
+        if (typeof valid628 === 'object' && valid628 !== null && valid628.role === Role.BRAND) {
+          expect(valid628.phoneNumber).toBe('628998732627');
+        }
       });
 
       it('requires company name for brand accounts', () => {

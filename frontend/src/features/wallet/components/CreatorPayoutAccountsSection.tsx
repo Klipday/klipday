@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { CheckCircle2, Clock, Plus, Star, Trash2, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, ExternalLink, Plus, Star, Trash2, XCircle } from 'lucide-react';
+import { Link } from 'react-router';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +20,6 @@ import type { CreatorPayoutAccountsSectionProps } from '../types';
 
 /**
  * In-context payout accounts & e-wallets management card for Creator Wallet.
- * Creators do not have a dedicated payout account tab in profile, so KYC accounts are managed directly here.
  *
  * @param props - Component configuration properties.
  * @returns Rendered payout accounts card.
@@ -57,16 +57,24 @@ export function CreatorPayoutAccountsSection({
               Daftarkan rekening bank atau e-wallet (DANA, GoPay, OVO) untuk menerima pencairan upah video.
             </p>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onAddNewAccount}
-            disabled={accounts.length >= 5}
-            className="cursor-pointer text-xs font-medium border-border/60 hover:bg-muted/40 shrink-0">
-            <Plus className="mr-1.5 size-3.5" />
-            <span>Tambah Akun</span>
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              to="/creator-dashboard/profile?tab=payout-accounts"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mr-1">
+              <span>Kelola di Profil</span>
+              <ExternalLink className="size-3" />
+            </Link>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onAddNewAccount}
+              disabled={accounts.length >= 5}
+              className="cursor-pointer text-xs font-medium border-border/60 hover:bg-muted/40 shrink-0">
+              <Plus className="mr-1.5 size-3.5" />
+              <span>Tambah Akun</span>
+            </Button>
+          </div>
         </CardHeader>
 
         <CardContent className="p-4 sm:p-5">

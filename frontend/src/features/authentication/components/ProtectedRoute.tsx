@@ -8,7 +8,7 @@ import type { ProtectedRouteProps } from '../types';
  * Checks for an active user session via `/auth/me`. If unauthenticated,
  * redirects the user to `/signin` while preserving their intended location in state.
  * If allowedRoles is specified and the user's role does not match,
- * blocks access and redirects the user to `/signin`.
+ * blocks access and redirects the authenticated user to /dashboard.
  *
  * @param props - Protected route properties including optional allowedRoles list.
  * @returns The rendered child route outlet or redirect navigation.
@@ -30,7 +30,7 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps = {}) {
   }
 
   if (allowedRoles && !allowedRoles.includes(account.role)) {
-    return <Navigate to="/signin" state={{ from: location }} replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;

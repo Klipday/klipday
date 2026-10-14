@@ -21,7 +21,8 @@ export * from './CreatorTransactionTypeFilter';
 export * from './CreatorTransactionTable';
 export * from './CreatorTransactionEmptyState';
 export * from './CreatorWithdrawalDialog';
-export * from './CreatorAddPayoutAccountDialog';
+export * from './BankCombobox';
+export * from './AddPayoutAccountDialog';
 export * from './CreatorSimulateEarningDialog';
 
 

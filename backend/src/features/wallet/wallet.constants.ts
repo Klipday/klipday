@@ -74,3 +74,37 @@ export const WALLET_MESSAGES = {
   PAYOUT_ACCOUNT_NOT_FOUND: 'Akun penarikan tujuan tidak ditemukan.',
   PAYOUT_ACCOUNT_NOT_VERIFIED: 'Akun penarikan tujuan belum diverifikasi oleh admin Klipday.',
 } as const;
+
+export const CREATOR_PAYOUT_LIMITS = {
+  MAX_ACCOUNTS: 5,
+  MAX_PROOF_SIZE_BYTES: 5 * 1024 * 1024,
+  MIN_PROVIDER_LENGTH: 2,
+  MIN_ACCOUNT_NUMBER_LENGTH: 4,
+  MAX_ACCOUNT_NUMBER_LENGTH: 30,
+  MIN_ACCOUNT_HOLDER_LENGTH: 2,
+  MAX_ACCOUNT_HOLDER_LENGTH: 100,
+} as const;
+
+export const CREATOR_WALLET_MESSAGES = {
+  AUTH_REQUIRED: 'Autentikasi diperlukan. Harap masuk terlebih dahulu.',
+  CREATOR_ROLE_REQUIRED: 'Akses ditolak. Fitur ini hanya dapat diakses oleh akun kreator.',
+  CREATOR_NOT_FOUND: 'Profil kreator tidak ditemukan.',
+  WALLET_NOT_FOUND: 'Dompet kreator tidak ditemukan.',
+  PAYOUT_ACCOUNTS_FETCH_SUCCESS: 'Daftar rekening penarikan kreator berhasil diambil.',
+  PAYOUT_ACCOUNT_CREATED_SUCCESS: 'Akun penarikan berhasil ditambahkan dan sedang ditinjau.',
+  PAYOUT_ACCOUNT_LIMIT_EXCEEDED: 'Batas maksimal 5 akun penarikan telah tercapai.',
+  PAYOUT_ACCOUNT_DUPLICATE: 'Akun penarikan dengan nomor rekening atau e-wallet tersebut sudah terdaftar.',
+  PAYOUT_ACCOUNT_NOT_FOUND: 'Akun penarikan tidak ditemukan.',
+  PAYOUT_ACCOUNT_PRIMARY_SUCCESS: 'Akun penarikan utama berhasil diperbarui.',
+  PAYOUT_ACCOUNT_MUST_BE_VERIFIED: 'Hanya akun penarikan yang sudah terverifikasi yang dapat dijadikan akun utama.',
+  PAYOUT_ACCOUNT_DELETED_SUCCESS: 'Akun penarikan berhasil dihapus.',
+  PAYOUT_ACCOUNT_ALREADY_VERIFIED: 'Akun penarikan sudah terverifikasi oleh admin dan tidak dapat dibatalkan.',
+  PAYOUT_ACCOUNT_HAS_PENDING_WITHDRAWAL: 'Akun penarikan tidak dapat dihapus karena masih terikat pada permintaan pencairan dana yang sedang diproses.',
+  PAYOUT_PROOF_UPLOAD_SUCCESS: 'Foto bukti akun penarikan berhasil diunggah.',
+  PROVIDER_REQUIRED: 'Nama penyedia bank atau e-wallet wajib diisi.',
+  ACCOUNT_NUMBER_INVALID: 'Nomor rekening atau nomor telepon e-wallet tidak valid.',
+  ACCOUNT_HOLDER_REQUIRED: 'Nama pemilik rekening wajib diisi.',
+  PROOF_URL_REQUIRED: 'URL bukti kepemilikan rekening atau e-wallet wajib disertakan.',
+  INVALID_PAYLOAD: 'Data akun penarikan tidak valid.',
+} as const;
+

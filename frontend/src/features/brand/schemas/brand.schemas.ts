@@ -2,7 +2,6 @@ import { z } from 'zod';
 import {
   BRAND_LIMITS,
   BRAND_MESSAGES,
-  PROVIDER_ACCOUNT_RULES,
 } from '../constants';
 
 export const BrandProfileFormSchema = z.object({
@@ -79,36 +78,7 @@ export const BrandProfileFormSchema = z.object({
 
 export type BrandProfileFormValues = z.infer<typeof BrandProfileFormSchema>;
 
-export const PayoutAccountFormSchema = z
-  .object({
-    accountType: z.enum(['BANK_TRANSFER', 'E_WALLET']),
-    provider: z
-      .string()
-      .trim()
-      .min(BRAND_LIMITS.MIN_PROVIDER_LENGTH, BRAND_MESSAGES.PROVIDER_REQUIRED),
-    accountNumber: z
-      .string()
-      .trim()
-      .min(BRAND_LIMITS.MIN_ACCOUNT_NUMBER_LENGTH, BRAND_MESSAGES.ACCOUNT_NUMBER_MIN)
-      .max(BRAND_LIMITS.MAX_ACCOUNT_NUMBER_LENGTH, BRAND_MESSAGES.ACCOUNT_NUMBER_MAX)
-      .regex(/^[0-9]+$/, BRAND_MESSAGES.ACCOUNT_NUMBER_NUMERIC),
-    accountHolderName: z
-      .string()
-      .trim()
-      .min(BRAND_LIMITS.MIN_ACCOUNT_HOLDER_LENGTH, BRAND_MESSAGES.ACCOUNT_HOLDER_MIN)
-      .max(BRAND_LIMITS.MAX_ACCOUNT_HOLDER_LENGTH, BRAND_MESSAGES.ACCOUNT_HOLDER_MAX),
-    proofUrl: z.string().url(BRAND_MESSAGES.PROOF_URL_REQUIRED),
-    isPrimary: z.boolean(),
-  })
-  .superRefine((data, ctx) => {
-    const providerRule = PROVIDER_ACCOUNT_RULES[data.provider.toUpperCase().trim()];
-    if (providerRule && !providerRule.regex.test(data.accountNumber.trim())) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['accountNumber'],
-        message: providerRule.description,
-      });
-    }
-  });
-
-export type PayoutAccountFormValues = z.infer<typeof PayoutAccountFormSchema>;
+export {
+  PayoutAccountFormSchema,
+  type PayoutAccountFormValues,
+} from '@/features/wallet/schemas/payout-account.schemas';

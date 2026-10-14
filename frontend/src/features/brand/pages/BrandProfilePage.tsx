@@ -3,8 +3,8 @@ import { Building2, CreditCard } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AddPayoutAccountDialog } from '@/features/wallet/components';
 import {
-  AddPayoutAccountDialog,
   BrandPayoutAccountsTab,
   BrandProfileHeader,
   BrandProfileInfoForm,
@@ -120,6 +120,7 @@ export default function BrandProfilePage() {
         open={isAddAccountDialogOpen}
         onOpenChange={setIsAddAccountDialogOpen}
         existingAccountsCount={payoutAccounts.length}
+        role="BRAND"
       />
     </div>
   );

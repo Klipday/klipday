@@ -1,37 +1,27 @@
 import { z } from 'zod';
+import {
+  AUTH_VALIDATION_MESSAGES,
+  INDONESIAN_PHONE_REGEX,
+  INDUSTRY_OPTIONS,
+  type Industry,
+  MIN_PASSWORD_LENGTH,
+} from '../constants';
 
-export const INDUSTRY_OPTIONS = [
-  'E_COMMERCE',
-  'FOOD_AND_BEVERAGE',
-  'FASHION_AND_BEAUTY',
-  'TECHNOLOGY',
-  'FINANCE',
-  'HEALTH_AND_WELLNESS',
-  'ENTERTAINMENT',
-  'EDUCATION',
-  'TRAVEL_AND_HOSPITALITY',
-  'OTHER',
-] as const;
-
-export type Industry = (typeof INDUSTRY_OPTIONS)[number];
-
-/**
- * Regex for validating Indonesian mobile phone numbers.
- * Validates prefixes 08, +628, or 628 followed by a non-zero digit and 7-10 trailing digits.
- * Supports total length of 10-13 digits for 08xx format.
- */
-export const INDONESIAN_PHONE_REGEX = /^(\+62|62|0)8[1-9][0-9]{7,10}$/;
-
-const MIN_PASSWORD_LENGTH = 8;
+export {
+  AUTH_VALIDATION_MESSAGES,
+  INDONESIAN_PHONE_REGEX,
+  INDUSTRY_OPTIONS,
+  type Industry,
+};
 
 // Mirrors the password strength rules enforced by the backend register schema,
 // so invalid passwords are rejected before a request is ever sent.
 const passwordField = z
   .string()
-  .min(MIN_PASSWORD_LENGTH, `Kata sandi minimal ${MIN_PASSWORD_LENGTH} karakter.`)
-  .regex(/[A-Z]/, 'Kata sandi harus mengandung huruf kapital.')
-  .regex(/[0-9]/, 'Kata sandi harus mengandung angka.')
-  .regex(/[^A-Za-z0-9]/, 'Kata sandi harus mengandung simbol.');
+  .min(MIN_PASSWORD_LENGTH, AUTH_VALIDATION_MESSAGES.PASSWORD_MIN)
+  .regex(/[A-Z]/, AUTH_VALIDATION_MESSAGES.PASSWORD_UPPERCASE)
+  .regex(/[0-9]/, AUTH_VALIDATION_MESSAGES.PASSWORD_NUMBER)
+  .regex(/[^A-Za-z0-9]/, AUTH_VALIDATION_MESSAGES.PASSWORD_SYMBOL);
 
 /**
  * Flat shape for every field the form can hold. Which fields are required
@@ -53,13 +43,13 @@ export const signUpSchema = signUpBaseSchema.superRefine((values, ctx) => {
     ctx.addIssue({
       code: 'custom',
       path: ['confirmPassword'],
-      message: 'Konfirmasi kata sandi wajib diisi.',
+      message: AUTH_VALIDATION_MESSAGES.CONFIRM_PASSWORD_REQUIRED,
     });
   } else if (values.password !== values.confirmPassword) {
     ctx.addIssue({
       code: 'custom',
       path: ['confirmPassword'],
-      message: 'Kata sandi dan konfirmasi kata sandi tidak cocok.',
+      message: AUTH_VALIDATION_MESSAGES.CONFIRM_PASSWORD_MISMATCH,
     });
   }
 
@@ -69,7 +59,7 @@ export const signUpSchema = signUpBaseSchema.superRefine((values, ctx) => {
       ctx.addIssue({
         code: 'custom',
         path: ['fullName'],
-        message: 'Nama lengkap wajib diisi.',
+        message: AUTH_VALIDATION_MESSAGES.FULL_NAME_REQUIRED,
       });
     }
   } else if (values.role === 'BRAND') {
@@ -77,7 +67,7 @@ export const signUpSchema = signUpBaseSchema.superRefine((values, ctx) => {
       ctx.addIssue({
         code: 'custom',
         path: ['companyName'],
-        message: 'Nama perusahaan wajib diisi.',
+        message: AUTH_VALIDATION_MESSAGES.COMPANY_NAME_REQUIRED,
       });
     }
 
@@ -85,16 +75,13 @@ export const signUpSchema = signUpBaseSchema.superRefine((values, ctx) => {
       ctx.addIssue({
         code: 'custom',
         path: ['phoneNumber'],
-        message: 'Nomor telepon wajib diisi.',
+        message: AUTH_VALIDATION_MESSAGES.PHONE_REQUIRED,
       });
-    }
-
-    const sanitizedPhone = values.phoneNumber.replace(/[\s-]/g, '');
-    if (!INDONESIAN_PHONE_REGEX.test(sanitizedPhone)) {
+    } else if (!INDONESIAN_PHONE_REGEX.test(values.phoneNumber.replace(/[\s-]/g, ''))) {
       ctx.addIssue({
         code: 'custom',
         path: ['phoneNumber'],
-        message: 'Nomor telepon tidak valid. Gunakan format nomor Indonesia (contoh: 08123456789 atau +628123456789).',
+        message: AUTH_VALIDATION_MESSAGES.PHONE_INVALID,
       });
     }
 
@@ -102,15 +89,13 @@ export const signUpSchema = signUpBaseSchema.superRefine((values, ctx) => {
       ctx.addIssue({
         code: 'custom',
         path: ['industry'],
-        message: 'Industri wajib dipilih.',
+        message: AUTH_VALIDATION_MESSAGES.INDUSTRY_REQUIRED,
       });
-    }
-
-    if (!INDUSTRY_OPTIONS.includes(values.industry as Industry)) {
+    } else if (!INDUSTRY_OPTIONS.includes(values.industry as Industry)) {
       ctx.addIssue({
         code: 'custom',
         path: ['industry'],
-        message: 'Pilih industri yang valid dari daftar.',
+        message: AUTH_VALIDATION_MESSAGES.INDUSTRY_INVALID,
       });
     }
   }

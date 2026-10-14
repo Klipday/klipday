@@ -65,6 +65,13 @@ Two-column modal dialog embedded directly in the campaign detail page:
 - **Left Column**: Campaign guidelines, CPM rates, and reward metrics overview.
 - **Right Column**: 4-step submission wizard covering brief compliance confirmation, handle verification, video selection (recent TikTok gallery or manual URL), and submission review.
 
+### Creator Profile & KYC Payout Accounts
+Dedicated profile and account management center for creators (clippers) featuring:
+- **Personal Details & 18+ Verification**: Full legal name, date of birth (enforces 18+ eligibility threshold under UU PDP 27/2022 while remaining strictly private), Indonesian domicile city selector, short bio, and WhatsApp contact.
+- **Content Niche Selection**: Chip-based category selector allowing clippers to pick 1–3 content specialties for tailored campaign recommendations.
+- **Connected Social Accounts**: Overview of linked TikTok accounts with bio-challenge reconnect action, plus locked previews for future platforms (Instagram, YouTube).
+- **KYC Payout Destinations**: Management of bank accounts and e-wallets (DANA, GoPay, OVO) with transfer proof upload and primary account designation for automated earnings withdrawals.
+
 ### Role-Adaptive Interface
 Distinct interfaces tailored to user roles:
 - **Brand**: Campaign creation, escrow tracking, submission review queue, and performance analytics.
@@ -104,11 +111,13 @@ klipday/
 │   └── src/
 │       ├── features/            # Modular backend feature packages
 │       │   ├── authentication/  # Auth handlers, JWT cookies, rate limiting
+│       │   ├── brand/           # Brand profile, KYC payout accounts, dashboard
 │       │   ├── campaign/        # Campaign wizard, validation, curation
+│       │   ├── creator/         # Creator profile, 18+ gate, avatar upload
 │       │   ├── health/          # Health check endpoints
 │       │   ├── social-account/  # TikTok scraper & bio handshake verification
 │       │   ├── submission/      # Video submission workflow & reviews
-│       │   └── wallet/          # Balance ledger, escrow locks, deposits
+│       │   └── wallet/          # Balance ledger, creator & brand payout accounts
 │       ├── middleware/          # Auth guards, role checks, error handlers
 │       ├── utils/               # API response helpers (SendSuccess, SendError)
 │       ├── app.ts               # Express application setup & route mounting
@@ -118,7 +127,9 @@ klipday/
 │       ├── components/ui/       # Shared UI primitives (shadcn/ui, Radix)
 │       ├── features/            # Modular frontend feature packages
 │       │   ├── authentication/  # Login, registration, role selection
+│       │   ├── brand/           # Brand profile, location selector, payout accounts
 │       │   ├── campaign/        # Campaign wizard, detail page, tabs
+│       │   ├── creator/         # Creator profile, 3-tab layout, niche picker
 │       │   ├── dashboard/       # Role-specific dashboard views
 │       │   ├── home/            # Public marketplace discovery
 │       │   ├── submission/      # In-context video submission modal

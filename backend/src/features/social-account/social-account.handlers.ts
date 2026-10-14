@@ -335,7 +335,8 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
       prisma.creatorSocialAccount.upsert(upsertAccountQuery),
     ];
 
-    if (resolvedAvatarUrl) {
+    // Preserve existing custom creator avatar if already uploaded
+    if (resolvedAvatarUrl && !creator.avatarUrl) {
       transactionSteps.push(
         prisma.creator.update({
           where: { id: creator.id },

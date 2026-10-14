@@ -58,7 +58,7 @@ export function SignUpForm() {
             email,
             password,
             companyName: values.companyName,
-            phoneNumber: values.phoneNumber.replace(/[\s-]/g, ''),
+            phoneNumber: values.phoneNumber.trim(),
             industry: values.industry,
           }
         : {
@@ -200,12 +200,12 @@ export function SignUpForm() {
                     {...field}
                     id={field.name}
                     type="tel"
-                    placeholder="Contoh: 081234567890"
+                    placeholder="Contoh: 628123456789"
                     aria-invalid={fieldState.invalid}
                     autoComplete="tel"
                     disabled={mutation.isPending}
                   />
-                  <FieldDescription>Gunakan nomor aktif (WhatsApp).</FieldDescription>
+                  <FieldDescription>Gunakan nomor aktif diawali 62 (contoh: 628123456789).</FieldDescription>
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                 </Field>
               )}

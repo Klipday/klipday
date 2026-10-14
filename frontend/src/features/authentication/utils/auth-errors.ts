@@ -86,8 +86,12 @@ export function TranslateAuthError(
     return 'Terjadi kesalahan pada server. Silakan coba beberapa saat lagi.';
   }
 
-  if (lower.includes('invalid phone number') || lower.includes('phone number is required')) {
-    return 'Nomor telepon tidak valid. Gunakan format nomor Indonesia (contoh: 08123456789 atau +628123456789).';
+  if (lower.includes('phone number is required')) {
+    return 'Nomor telepon wajib diisi.';
+  }
+
+  if (lower.includes('invalid phone number') || lower.includes('diawali dengan 62')) {
+    return 'Nomor telepon harus diawali dengan 62 (contoh: 628123456789).';
   }
 
   if (lower.includes('password must be at least')) {
@@ -107,7 +111,7 @@ export function TranslateAuthError(
   }
 
   // If the message is already in Indonesian, return it as-is
-  const containsIndonesianWords = /\b(email|kata sandi|terdaftar|masuk|daftar|wajib|tidak valid|gagal|silakan|akun)\b/i.test(
+  const containsIndonesianWords = /\b(email|kata sandi|terdaftar|masuk|daftar|wajib|tidak valid|gagal|silakan|akun|telepon|diawali)\b/i.test(
     trimmed
   );
   if (containsIndonesianWords) {

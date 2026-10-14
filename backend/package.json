@@ -9,7 +9,8 @@
     "start": "node --env-file=.env dist/index.js",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
     "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "normalize:phones": "tsx --env-file=.env src/scripts/normalize-phone-numbers.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

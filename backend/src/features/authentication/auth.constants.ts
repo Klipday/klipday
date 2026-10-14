@@ -7,11 +7,10 @@ export const AUTH_COOKIE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 export const MIN_PASSWORD_LENGTH = 8;
 
 /**
- * Regex for validating Indonesian mobile phone numbers.
- * Validates prefixes 08, +628, or 628 followed by a non-zero digit and 7-10 trailing digits.
- * Supports total length of 10-13 digits for 08xx format.
+ * Regex for validating Indonesian mobile phone numbers starting with 62.
+ * Validates prefix 628 followed by a non-zero digit and 7-11 trailing digits (total 11-15 digits).
  */
-export const INDONESIAN_PHONE_REGEX = /^(\+62|62|0)8[1-9][0-9]{7,10}$/;
+export const INDONESIAN_PHONE_REGEX = /^628[1-9][0-9]{7,11}$/;
 
 export const AUTH_COOKIE_OPTIONS: CookieOptions = {
   httpOnly: true,
@@ -55,7 +54,7 @@ export const AUTH_MESSAGES = {
   EMAIL_REQUIRED: 'Email is required.',
   EMAIL_INVALID: 'Invalid email address.',
   PHONE_REQUIRED: 'Phone number is required for brand accounts.',
-  PHONE_INVALID: 'Invalid phone number. Use Indonesian phone number format (e.g. 08123456789 or +628123456789).',
+  PHONE_INVALID: 'Nomor telepon harus diawali dengan 62 (contoh: 628123456789).',
   COMPANY_NAME_REQUIRED: 'Company name is required for brand accounts.',
   INDUSTRY_INVALID: 'Selected industry is invalid.',
   FULL_NAME_REQUIRED: 'Full name is required for creator accounts.',

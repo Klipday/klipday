@@ -3,7 +3,7 @@ import { Search, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  CreatorAddPayoutAccountDialog,
+  AddPayoutAccountDialog,
   CreatorPayoutAccountsSection,
   CreatorPendingWithdrawalBanner,
   CreatorSimulateEarningDialog,
@@ -235,9 +235,11 @@ export default function CreatorWalletPage() {
         onAddNewAccount={() => setIsAddAccountOpen(true)}
       />
 
-      <CreatorAddPayoutAccountDialog
+      <AddPayoutAccountDialog
         open={isAddAccountOpen}
         onOpenChange={setIsAddAccountOpen}
+        existingAccountsCount={payoutAccounts.length}
+        role="CREATOR"
         onSuccess={HandleAccountSuccess}
       />
 

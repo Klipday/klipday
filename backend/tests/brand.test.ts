@@ -46,7 +46,7 @@ describe('Brand Profile and KYC Payout Feature Module', () => {
     id: 'brand-test-888',
     accountId: mockAccountId,
     companyName: 'PT Brand Keren Nusantara',
-    phoneNumber: '081299887766',
+    phoneNumber: '6281299887766',
     industry: Industry.TECHNOLOGY,
     logoUrl: 'https://storage.supabase.co/logo.jpg',
     location: 'Jakarta Selatan',
@@ -366,6 +366,137 @@ describe('Brand Profile and KYC Payout Feature Module', () => {
       expect(statusMock).toHaveBeenCalledWith(409);
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({ message: BRAND_MESSAGES.PAYOUT_ACCOUNT_DUPLICATE }),
+      );
+    });
+
+    it('CreateBrandPayoutAccount successfully creates bank account and makes it primary when first account', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, role: Role.BRAND },
+        body: {
+          accountType: 'BANK_TRANSFER',
+          provider: 'BCA',
+          accountNumber: '1234567890',
+          accountHolderName: 'PT Brand Keren',
+          proofUrl: 'https://storage.supabase.co/proof.jpg',
+          isPrimary: false,
+        },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      jest.spyOn(prisma.brand, 'findFirst').mockResolvedValue(mockBrand as never);
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as never);
+      jest.spyOn(prisma.brandPayoutAccount, 'count').mockResolvedValue(0);
+      jest.spyOn(prisma.brandPayoutAccount, 'findFirst')
+        .mockResolvedValueOnce(null) // duplicate check
+        .mockResolvedValueOnce(null); // primary account check
+
+      const createdAccountMock = {
+        id: 'new-payout-acc',
+        walletId: mockWallet.id,
+        brandId: mockBrand.id,
+        accountType: 'BANK_TRANSFER',
+        provider: 'BCA',
+        accountNumber: '1234567890',
+        accountHolderName: 'PT Brand Keren',
+        proofUrl: 'https://storage.supabase.co/proof.jpg',
+        isPrimary: true,
+        verificationStatus: VerificationStatus.PENDING,
+        rejectionReason: null,
+        verifiedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const txMock = {
+        brandPayoutAccount: {
+          updateMany: jest.fn().mockResolvedValue({ count: 0 } as never),
+          create: jest.fn().mockResolvedValue(createdAccountMock as never),
+        },
+      };
+
+      jest.spyOn(prisma, '$transaction').mockImplementation(async (callback) => {
+        return callback(txMock as never);
+      });
+
+      await CreateBrandPayoutAccount(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(201);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'success',
+          data: expect.objectContaining({
+            id: 'new-payout-acc',
+            provider: 'BCA',
+            isPrimary: true,
+            verificationStatus: VerificationStatus.PENDING,
+          }),
+        }),
+      );
+    });
+
+    it('CreateBrandPayoutAccount successfully creates e-wallet account (GoPay)', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, role: Role.BRAND },
+        body: {
+          accountType: 'E_WALLET',
+          provider: 'GOPAY',
+          accountNumber: '081234567890',
+          accountHolderName: 'PT Brand Keren',
+          proofUrl: 'https://storage.supabase.co/gopay-proof.jpg',
+          isPrimary: false,
+        },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      jest.spyOn(prisma.brand, 'findFirst').mockResolvedValue(mockBrand as never);
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as never);
+      jest.spyOn(prisma.brandPayoutAccount, 'count').mockResolvedValue(1);
+      jest.spyOn(prisma.brandPayoutAccount, 'findFirst')
+        .mockResolvedValueOnce(null) // duplicate check
+        .mockResolvedValueOnce({ id: 'existing-primary' } as never); // has primary account
+
+      const createdGopayMock = {
+        id: 'new-gopay-acc',
+        walletId: mockWallet.id,
+        brandId: mockBrand.id,
+        accountType: 'E_WALLET',
+        provider: 'GOPAY',
+        accountNumber: '081234567890',
+        accountHolderName: 'PT Brand Keren',
+        proofUrl: 'https://storage.supabase.co/gopay-proof.jpg',
+        isPrimary: false,
+        verificationStatus: VerificationStatus.PENDING,
+        rejectionReason: null,
+        verifiedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const txMock = {
+        brandPayoutAccount: {
+          create: jest.fn().mockResolvedValue(createdGopayMock as never),
+        },
+      };
+
+      jest.spyOn(prisma, '$transaction').mockImplementation(async (callback) => {
+        return callback(txMock as never);
+      });
+
+      await CreateBrandPayoutAccount(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(201);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'success',
+          data: expect.objectContaining({
+            id: 'new-gopay-acc',
+            provider: 'GOPAY',
+            isPrimary: false,
+            verificationStatus: VerificationStatus.PENDING,
+          }),
+        }),
       );
     });
 

@@ -227,6 +227,14 @@ model Creator {
   // avatarUrl is the profile picture of the creator, and is optional.
   avatarUrl String? @map("avatar_url")
 
+  // dateOfBirth gates 18+ eligibility; never exposed to brands.
+  dateOfBirth       DateTime?  @map("date_of_birth") @db.Date
+  phoneNumber       String?    @map("phone_number")
+  location          String?    @map("location")
+  bio               String?    @map("bio") @db.Text
+  // contentCategories drives campaign matching (1–3 picks).
+  contentCategories Category[] @default([]) @map("content_categories")
+
   // status is used to determine if the creator's account is active or deleted.
   status Status @default(ACTIVE)
 

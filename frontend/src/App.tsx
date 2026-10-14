@@ -30,6 +30,7 @@ const CampaignStep5 = lazy(() => import('@/features/campaign/pages/steps/Campaig
 const CampaignStep6 = lazy(() => import('@/features/campaign/pages/steps/CampaignStep6'));
 const CampaignDetail = lazy(() => import('@/features/campaign/pages/CampaignDetail'));
 const BrandProfilePage = lazy(() => import('@/features/brand/pages/BrandProfilePage'));
+const CreatorProfilePage = lazy(() => import('@/features/creator/pages/CreatorProfilePage'));
 
 
 
@@ -67,7 +68,9 @@ const router = createBrowserRouter(
           <Route index element={<CreatorDashboard />} />
           <Route path="creator-campaigns" element={<CreatorCampaigns />} />
           <Route path="wallet" element={<CreatorWalletPage />} />
+          <Route path="profile" element={<CreatorProfilePage />} />
         </Route>
+        <Route path="creator-profile" element={<Navigate to="/creator-dashboard/profile" replace />} />
         <Route path="creator-campaigns" element={<Navigate to="/creator-dashboard/creator-campaigns" replace />} />
         <Route path="dashboard/campaigns" element={<Navigate to="/creator-dashboard/creator-campaigns" replace />} />
         <Route path="dashboard/wallet" element={<Navigate to="/creator-dashboard/wallet" replace />} />

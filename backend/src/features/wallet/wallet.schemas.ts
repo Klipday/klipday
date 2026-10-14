@@ -1,5 +1,13 @@
 import { z } from 'zod';
-import { TOP_UP_LIMITS, WITHDRAWAL_LIMITS, WALLET_MESSAGES } from './wallet.constants.js';
+import { PayoutAccountType } from '../../generated/prisma/enums.js';
+import { PROVIDER_ACCOUNT_RULES } from '../brand/brand.constants.js';
+import {
+  CREATOR_PAYOUT_LIMITS,
+  CREATOR_WALLET_MESSAGES,
+  TOP_UP_LIMITS,
+  WITHDRAWAL_LIMITS,
+  WALLET_MESSAGES,
+} from './wallet.constants.js';
 
 export const CreateTopUpSchema = z.object({
   amount: z
@@ -57,4 +65,38 @@ export const RequestWithdrawalCancellationSchema = z.object({
 });
 
 export type RequestWithdrawalCancellationInput = z.infer<typeof RequestWithdrawalCancellationSchema>;
+
+export const CreateCreatorPayoutAccountSchema = z
+  .object({
+    accountType: z.nativeEnum(PayoutAccountType),
+    provider: z
+      .string()
+      .trim()
+      .min(CREATOR_PAYOUT_LIMITS.MIN_PROVIDER_LENGTH, CREATOR_WALLET_MESSAGES.PROVIDER_REQUIRED),
+    accountNumber: z
+      .string()
+      .trim()
+      .min(CREATOR_PAYOUT_LIMITS.MIN_ACCOUNT_NUMBER_LENGTH, CREATOR_WALLET_MESSAGES.ACCOUNT_NUMBER_INVALID)
+      .max(CREATOR_PAYOUT_LIMITS.MAX_ACCOUNT_NUMBER_LENGTH, CREATOR_WALLET_MESSAGES.ACCOUNT_NUMBER_INVALID),
+    accountHolderName: z
+      .string()
+      .trim()
+      .min(CREATOR_PAYOUT_LIMITS.MIN_ACCOUNT_HOLDER_LENGTH, CREATOR_WALLET_MESSAGES.ACCOUNT_HOLDER_REQUIRED)
+      .max(CREATOR_PAYOUT_LIMITS.MAX_ACCOUNT_HOLDER_LENGTH, CREATOR_WALLET_MESSAGES.ACCOUNT_HOLDER_REQUIRED),
+    proofUrl: z.string().url(CREATOR_WALLET_MESSAGES.PROOF_URL_REQUIRED),
+    isPrimary: z.boolean().optional().default(false),
+  })
+  .superRefine((data, ctx) => {
+    const providerRule = PROVIDER_ACCOUNT_RULES[data.provider.toUpperCase().trim()];
+    if (providerRule && !providerRule.regex.test(data.accountNumber.trim())) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['accountNumber'],
+        message: providerRule.description,
+      });
+    }
+  });
+
+export type CreateCreatorPayoutAccountInput = z.infer<typeof CreateCreatorPayoutAccountSchema>;
+
 

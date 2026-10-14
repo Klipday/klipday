@@ -90,16 +90,11 @@ export interface BrandLocationComboboxProps {
   disabled?: boolean;
 }
 
-export interface BrandBankComboboxProps {
-  id?: string;
-  accountType?: PayoutAccountType | 'ALL';
-  value: string;
-  onChange: (value: string) => void;
-  disabled?: boolean;
-  className?: string;
-  hasError?: boolean;
-  placeholder?: string;
-}
+export type {
+  BankComboboxProps,
+  BankComboboxProps as BrandBankComboboxProps,
+  AddPayoutAccountDialogProps,
+} from '@/features/wallet/types';
 
 export interface BrandProfileInfoFormProps {
   profile: BrandProfile;
@@ -111,12 +106,6 @@ export interface PayoutAccountCardProps {
   onDelete: (id: string, isPendingCancel?: boolean) => void;
   isSettingPrimary: boolean;
   isDeleting: boolean;
-}
-
-export interface AddPayoutAccountDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  existingAccountsCount: number;
 }
 
 export interface BrandPayoutAccountsTabProps {
