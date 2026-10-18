@@ -402,6 +402,7 @@ export function UseCreateCreatorWithdrawalMutation(): UseMutationResult<
       queryClient.invalidateQueries({ queryKey: ['creator-wallet-summary'] });
       queryClient.invalidateQueries({ queryKey: ['creator-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['creator-active-withdrawals'] });
+      queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] });
       toast.success('Permintaan penarikan saldo berhasil diajukan!');
     },
     onError: (error) => {
@@ -429,6 +430,7 @@ export function UseRequestCreatorWithdrawalCancellationMutation(): UseMutationRe
       RequestCreatorWithdrawalCancellation(withdrawalId, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['creator-active-withdrawals'] });
+      queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] });
       toast.success('Pengajuan pembatalan penarikan berhasil dikirim ke Admin.');
     },
     onError: (error) => {
@@ -467,6 +469,7 @@ export function UseSimulateCreatorEarningMutation(): UseMutationResult<
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['creator-wallet-summary'] });
       queryClient.invalidateQueries({ queryKey: ['creator-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] });
       toast.success('Simulasi perolehan saldo berhasil dikreditkan!');
     },
     onError: (error) => {

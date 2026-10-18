@@ -35,6 +35,7 @@ export function UseUpdateCreatorProfileMutation() {
       queryClient.setQueryData(CREATOR_QUERY_KEYS.PROFILE, data);
       queryClient.invalidateQueries({ queryKey: CREATOR_QUERY_KEYS.PROFILE });
       queryClient.invalidateQueries({ queryKey: ['current-account'] });
+      queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] });
       toast.success(CREATOR_UI_MESSAGES.PROFILE_UPDATE_SUCCESS);
     },
     onError: (error) => {
@@ -56,6 +57,7 @@ export function UseUploadCreatorAvatarMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CREATOR_QUERY_KEYS.PROFILE });
       queryClient.invalidateQueries({ queryKey: ['current-account'] });
+      queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] });
       toast.success(CREATOR_UI_MESSAGES.AVATAR_UPLOAD_SUCCESS);
     },
     onError: (error) => {

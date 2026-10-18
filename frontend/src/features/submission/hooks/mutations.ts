@@ -38,6 +38,7 @@ export function UseJoinCampaignMutation() {
     onSuccess: (_, campaignId) => {
       queryClient.invalidateQueries({ queryKey: ['my-campaign-submission', campaignId] });
       queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] });
+      queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] });
     },
   });
 }
@@ -73,6 +74,7 @@ export function UseFinalSubmitVideoMutation(campaignId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-campaign-submission', campaignId] });
       queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] });
+      queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] });
     },
   });
 }
@@ -102,6 +104,7 @@ export function UseVerifyTikTokBioMutation() {
       queryClient.invalidateQueries({ queryKey: ['connected-social-account'] });
       queryClient.invalidateQueries({ queryKey: ['recent-tiktok-videos'] });
       queryClient.invalidateQueries({ queryKey: ['my-campaign-submission'] });
+      queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] });
     },
   });
 }

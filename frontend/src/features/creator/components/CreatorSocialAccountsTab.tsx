@@ -30,6 +30,7 @@ export function CreatorSocialAccountsTab({
     queryClient.invalidateQueries({ queryKey: CREATOR_QUERY_KEYS.PROFILE });
     queryClient.invalidateQueries({ queryKey: ['connected-social-account'] });
     queryClient.invalidateQueries({ queryKey: ['current-account'] });
+    queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] });
     onAccountChangeSuccess?.();
   };
 

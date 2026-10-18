@@ -1,17 +1,21 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { Prisma } from '../src/generated/prisma/client.js';
 import {
   Category,
+  Industry,
   PayoutAccountType,
   PayoutStatus,
   Platform,
   Role,
   Status,
+  SubmissionStatus,
   VerificationStatus,
 } from '../src/generated/prisma/enums.js';
 import {
   CREATOR_MESSAGES,
 } from '../src/features/creator/creator.constants.js';
 import {
+  GetCreatorDashboardSummary,
   GetCreatorProfile,
   UpdateCreatorProfile,
 } from '../src/features/creator/creator.handlers.js';
@@ -776,4 +780,495 @@ describe('Creator Profile and Payout Accounts Feature Module', () => {
       );
     });
   });
+
+  describe('GetCreatorDashboardSummary Handler', () => {
+    it('returns 401 if unauthenticated', async () => {
+      const req = CreateMockRequest();
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      await GetCreatorDashboardSummary(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'error',
+          message: CREATOR_MESSAGES.AUTH_REQUIRED,
+        }),
+      );
+    });
+
+    it('returns 403 if authenticated user is BRAND', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, email: 'brand@test.com', role: Role.BRAND },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      await GetCreatorDashboardSummary(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'error',
+          message: CREATOR_MESSAGES.UNAUTHORIZED_ROLE,
+        }),
+      );
+    });
+
+    it('returns 404 if creator profile does not exist', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(null);
+
+      await GetCreatorDashboardSummary(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'error',
+          message: CREATOR_MESSAGES.CREATOR_NOT_FOUND,
+        }),
+      );
+    });
+
+    it('returns 200 with complete metrics, recentSubmissions (REVISION_REQUESTED prioritized), joinedCampaigns, and topClips (Day 100)', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue({
+        id: 'wallet-creator-123',
+        balance: new Prisma.Decimal(850000),
+      } as never);
+
+      jest.spyOn(prisma.submission, 'aggregate').mockResolvedValue({
+        _sum: {
+          verifiedViews: 142500,
+          earnings: new Prisma.Decimal(1425000),
+        },
+      } as never);
+
+      jest.spyOn(prisma.submission, 'groupBy').mockResolvedValueOnce([
+        { submissionStatus: SubmissionStatus.JOINED, _count: { _all: 1 } },
+        { submissionStatus: SubmissionStatus.PENDING_REVIEW, _count: { _all: 1 } },
+        { submissionStatus: SubmissionStatus.REVISION_REQUESTED, _count: { _all: 1 } },
+        { submissionStatus: SubmissionStatus.APPROVED, _count: { _all: 2 } },
+      ] as never);
+
+      jest.spyOn(prisma.walletTransaction, 'aggregate')
+        .mockResolvedValueOnce({
+          _sum: { amount: new Prisma.Decimal(1400000) },
+        } as never) // walletEarningAggregate
+        .mockResolvedValueOnce({
+          _sum: { amount: new Prisma.Decimal(575000) },
+        } as never); // walletWithdrawalAggregate
+
+      jest.spyOn(prisma.payoutRequest, 'aggregate').mockResolvedValueOnce({
+        _sum: { amount: new Prisma.Decimal(150000) },
+      } as never);
+
+      jest.spyOn(prisma.submission, 'findMany')
+        .mockResolvedValueOnce([
+          {
+            id: 'sub-approved-1',
+            campaignId: 'camp-1',
+            submissionStatus: SubmissionStatus.APPROVED,
+            verifiedViews: 84200,
+            earnings: new Prisma.Decimal(0), // should compute estimatedEarnings from views * cpm / 1000
+            submittedAt: new Date('2026-01-12T10:00:00Z'),
+            createdAt: new Date('2026-01-12T10:00:00Z'),
+            updatedAt: new Date('2026-01-12T12:00:00Z'),
+            campaign: {
+              id: 'camp-1',
+              title: 'Kopi Kenangan Mantan Promo',
+              campaignCategory: Category.FOOD_BEVERAGE,
+              cpm: new Prisma.Decimal(10000),
+              brand: {
+                companyName: 'Kopi Kenangan',
+                industry: Industry.FOOD_AND_BEVERAGE,
+              },
+            },
+          },
+          {
+            id: 'sub-revision-1',
+            campaignId: 'camp-2',
+            submissionStatus: SubmissionStatus.REVISION_REQUESTED,
+            verifiedViews: 12000,
+            earnings: new Prisma.Decimal(150000),
+            submittedAt: new Date('2026-01-10T10:00:00Z'),
+            createdAt: new Date('2026-01-10T10:00:00Z'),
+            updatedAt: new Date('2026-01-10T12:00:00Z'),
+            campaign: {
+              id: 'camp-2',
+              title: 'Skincare Glow Serum',
+              campaignCategory: Category.BEAUTY_SKINCARE,
+              cpm: new Prisma.Decimal(12000),
+              brand: {
+                companyName: 'Glow Beauty',
+                industry: Industry.FASHION_AND_BEAUTY,
+              },
+            },
+          },
+        ] as never) // recentSubmissions
+        .mockResolvedValueOnce([
+          {
+            id: 'sub-joined-1',
+            campaignId: 'camp-3',
+            createdAt: new Date('2026-01-14T08:00:00Z'),
+            updatedAt: new Date('2026-01-14T08:00:00Z'),
+            campaign: {
+              id: 'camp-3',
+              title: 'Gadget Flagship Launch',
+              campaignCategory: Category.TECHNOLOGY_GADGETS,
+              cpm: new Prisma.Decimal(15000),
+              budget: new Prisma.Decimal(10000000),
+              startDate: new Date('2026-01-01T00:00:00Z'),
+              endDate: new Date('2026-02-01T00:00:00Z'),
+              brand: {
+                companyName: 'TechNova ID',
+                industry: Industry.TECHNOLOGY,
+              },
+              submissions: [
+                {
+                  submissionStatus: SubmissionStatus.APPROVED,
+                  earnings: new Prisma.Decimal(2500000),
+                },
+                {
+                  submissionStatus: SubmissionStatus.JOINED,
+                  earnings: new Prisma.Decimal(0),
+                },
+              ],
+            },
+          },
+        ] as never) // joinedCampaigns
+        .mockResolvedValueOnce([
+          {
+            id: 'sub-approved-1',
+            campaignId: 'camp-1',
+            thumbnailUrl: 'https://storage.supabase.co/thumb1.jpg',
+            liveVideoUrl: 'https://www.tiktok.com/@rinaclips/video/123',
+            verifiedViews: 84200,
+            earnings: new Prisma.Decimal(842000),
+            campaign: {
+              id: 'camp-1',
+              title: 'Kopi Kenangan Mantan Promo',
+              cpm: new Prisma.Decimal(10000),
+              brand: {
+                companyName: 'Kopi Kenangan',
+              },
+            },
+            socialAccount: {
+              username: 'rinaclips',
+            },
+          },
+        ] as never); // topClips
+
+      await GetCreatorDashboardSummary(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'success',
+          message: CREATOR_MESSAGES.DASHBOARD_SUMMARY_FETCH_SUCCESS,
+          data: expect.objectContaining({
+            creator: expect.objectContaining({
+              id: 'creator-test-123',
+              fullName: 'Rina Clipper',
+              tiktokAccount: expect.objectContaining({
+                username: 'rinaclips',
+                isVerified: true,
+              }),
+            }),
+            metrics: {
+              totalVerifiedViews: 142500,
+              totalEarnings: 1425000,
+              walletActiveBalance: 850000,
+              totalWithdrawn: 575000,
+              pendingWithdrawalAmount: 150000,
+              submissionStatusCounts: {
+                joined: 1,
+                pendingReview: 1,
+                revisionRequested: 1,
+                approved: 2,
+                posted: 0,
+                verified: 0,
+                rejected: 0,
+                submittedTotal: 4,
+                total: 5,
+              },
+            },
+            hasAnySubmissions: true,
+            recentSubmissions: [
+              // REVISION_REQUESTED should be sorted first even if older updatedAt
+              expect.objectContaining({
+                id: 'sub-revision-1',
+                submissionStatus: SubmissionStatus.REVISION_REQUESTED,
+                estimatedEarnings: 150000,
+              }),
+              expect.objectContaining({
+                id: 'sub-approved-1',
+                submissionStatus: SubmissionStatus.APPROVED,
+                verifiedViews: 84200,
+                estimatedEarnings: 842000, // (84200 / 1000) * 10000
+              }),
+            ],
+            joinedCampaigns: [
+              expect.objectContaining({
+                submissionId: 'sub-joined-1',
+                id: 'camp-3',
+                title: 'Gadget Flagship Launch',
+                brandName: 'TechNova ID',
+                cpm: 15000,
+                budget: 10000000,
+                spent: 2500000,
+                remainingBudget: 7500000,
+                remainingPercent: 75,
+              }),
+            ],
+            topClips: [
+              expect.objectContaining({
+                id: 'sub-approved-1',
+                verifiedViews: 84200,
+                earnings: 842000,
+              }),
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('returns 200 with zero state when creator has no submissions and no wallet (Day 0)', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue({
+        ...mockCreator,
+        socialAccounts: [],
+      } as never);
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(null);
+      jest.spyOn(prisma.submission, 'aggregate').mockResolvedValue({
+        _sum: { verifiedViews: null, earnings: null },
+      } as never);
+      jest.spyOn(prisma.submission, 'groupBy').mockResolvedValueOnce([] as never);
+      jest.spyOn(prisma.walletTransaction, 'aggregate')
+        .mockResolvedValueOnce({ _sum: { amount: null } } as never)
+        .mockResolvedValueOnce({ _sum: { amount: null } } as never);
+      jest.spyOn(prisma.payoutRequest, 'aggregate').mockResolvedValueOnce({
+        _sum: { amount: null },
+      } as never);
+      jest.spyOn(prisma.submission, 'findMany')
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+
+      await GetCreatorDashboardSummary(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'success',
+          data: expect.objectContaining({
+            hasAnySubmissions: false,
+            creator: expect.objectContaining({
+              tiktokAccount: null,
+            }),
+            metrics: {
+              totalVerifiedViews: 0,
+              totalEarnings: 0,
+              walletActiveBalance: 0,
+              totalWithdrawn: 0,
+              pendingWithdrawalAmount: 0,
+              submissionStatusCounts: {
+                joined: 0,
+                pendingReview: 0,
+                revisionRequested: 0,
+                approved: 0,
+                posted: 0,
+                verified: 0,
+                rejected: 0,
+                submittedTotal: 0,
+                total: 0,
+              },
+            },
+            recentSubmissions: [],
+            joinedCampaigns: [],
+            topClips: [],
+          }),
+        }),
+      );
+    });
+
+    it('returns 200 with hasAnySubmissions=true when creator has joined an active campaign (JOINED) and has not submitted any video yet, and enforces REJECTED=0 and maxViews cap', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue({
+        id: 'wallet-creator-123',
+        balance: new Prisma.Decimal(0),
+      } as never);
+      jest.spyOn(prisma.submission, 'aggregate').mockResolvedValue({
+        _sum: { verifiedViews: null, earnings: null },
+      } as never);
+      const groupBySpy = jest.spyOn(prisma.submission, 'groupBy').mockResolvedValueOnce([
+        { submissionStatus: SubmissionStatus.JOINED, _count: { _all: 1 } },
+        { submissionStatus: SubmissionStatus.REJECTED, _count: { _all: 1 } },
+        { submissionStatus: SubmissionStatus.PENDING_REVIEW, _count: { _all: 1 } },
+      ] as never);
+      jest.spyOn(prisma.walletTransaction, 'aggregate')
+        .mockResolvedValueOnce({ _sum: { amount: null } } as never)
+        .mockResolvedValueOnce({ _sum: { amount: null } } as never);
+      jest.spyOn(prisma.payoutRequest, 'aggregate').mockResolvedValueOnce({
+        _sum: { amount: null },
+      } as never);
+      jest.spyOn(prisma.submission, 'findMany')
+        .mockResolvedValueOnce([
+          {
+            id: 'sub-rejected-1',
+            campaignId: 'camp-rej',
+            submissionStatus: SubmissionStatus.REJECTED,
+            verifiedViews: 25000,
+            earnings: new Prisma.Decimal(0),
+            submittedAt: new Date('2026-01-11T10:00:00Z'),
+            createdAt: new Date('2026-01-11T10:00:00Z'),
+            updatedAt: new Date('2026-01-13T10:00:00Z'),
+            campaign: {
+              id: 'camp-rej',
+              title: 'Rejected Promo',
+              campaignCategory: Category.LIFESTYLE,
+              cpm: new Prisma.Decimal(10000),
+              maxViews: 50000,
+              brand: {
+                companyName: 'Brand X',
+                industry: Industry.OTHER,
+              },
+            },
+          },
+          {
+            id: 'sub-capped-1',
+            campaignId: 'camp-cap',
+            submissionStatus: SubmissionStatus.PENDING_REVIEW,
+            verifiedViews: 100000,
+            earnings: new Prisma.Decimal(0),
+            submittedAt: new Date('2026-01-12T10:00:00Z'),
+            createdAt: new Date('2026-01-12T10:00:00Z'),
+            updatedAt: new Date('2026-01-12T10:00:00Z'),
+            campaign: {
+              id: 'camp-cap',
+              title: 'Capped Views Promo',
+              campaignCategory: Category.GAMING,
+              cpm: new Prisma.Decimal(10000),
+              maxViews: 50000, // caps effectiveViews at 50000 -> 500,000 IDR
+              brand: {
+                companyName: 'Game Studio',
+                industry: null,
+              },
+            },
+          },
+        ] as never)
+        .mockResolvedValueOnce([
+          {
+            id: 'sub-joined-only',
+            campaignId: 'camp-join',
+            createdAt: new Date('2026-01-15T10:00:00Z'),
+            updatedAt: new Date('2026-01-15T10:00:00Z'),
+            campaign: {
+              id: 'camp-join',
+              title: 'Active Joined Campaign',
+              campaignCategory: Category.FOOD_BEVERAGE,
+              cpm: new Prisma.Decimal(12000),
+              budget: new Prisma.Decimal(5000000),
+              startDate: new Date('2026-01-01T00:00:00Z'),
+              endDate: new Date('2026-02-01T00:00:00Z'),
+              brand: {
+                companyName: 'Foodie Co',
+                industry: Industry.FOOD_AND_BEVERAGE,
+              },
+              submissions: [],
+            },
+          },
+        ] as never)
+        .mockResolvedValueOnce([]);
+
+      await GetCreatorDashboardSummary(req, res, next);
+
+      expect(groupBySpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: expect.arrayContaining([
+              expect.objectContaining({
+                submissionStatus: SubmissionStatus.JOINED,
+                campaign: {
+                  status: Status.ACTIVE,
+                  campaignStatus: 'ACTIVE',
+                },
+              }),
+            ]),
+          }),
+        }),
+      );
+
+      expect(statusMock).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'success',
+          data: expect.objectContaining({
+            hasAnySubmissions: true,
+            recentSubmissions: [
+              expect.objectContaining({
+                id: 'sub-rejected-1',
+                submissionStatus: SubmissionStatus.REJECTED,
+                verifiedViews: 25000,
+                estimatedEarnings: 0, // REJECTED must be 0
+              }),
+              expect.objectContaining({
+                id: 'sub-capped-1',
+                submissionStatus: SubmissionStatus.PENDING_REVIEW,
+                verifiedViews: 100000,
+                estimatedEarnings: 500000, // capped at maxViews=50000 * 10000 / 1000
+              }),
+            ],
+            joinedCampaigns: [
+              expect.objectContaining({
+                submissionId: 'sub-joined-only',
+                id: 'camp-join',
+                remainingBudget: 5000000,
+                remainingPercent: 100,
+              }),
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('forwards unexpected error to next()', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
+      });
+      const { res } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      const dbError = new Error('DB Failure');
+      jest.spyOn(prisma.creator, 'findFirst').mockRejectedValue(dbError);
+
+      await GetCreatorDashboardSummary(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(dbError);
+    });
+  });
 });
+

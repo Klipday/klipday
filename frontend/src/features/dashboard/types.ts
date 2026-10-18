@@ -322,4 +322,188 @@ export interface BrandDashboardErrorStateProps {
   className?: string;
 }
 
+/**
+ * Submission lifecycle status values returned in the creator dashboard summary.
+ */
+export type CreatorDashboardSubmissionStatus =
+  | 'JOINED'
+  | 'PENDING_REVIEW'
+  | 'REVISION_REQUESTED'
+  | 'REJECTED'
+  | 'APPROVED'
+  | 'POSTED'
+  | 'VERIFIED';
+
+/**
+ * Verified TikTok social account summary attached to creator dashboard header.
+ */
+export interface CreatorDashboardSocialSummary {
+  username: string;
+  avatarUrl: string | null;
+  followersCount: number;
+  isVerified: boolean;
+}
+
+/**
+ * Creator submission counts grouped by lifecycle status.
+ */
+export interface CreatorDashboardSubmissionStatusCounts {
+  joined: number;
+  pendingReview: number;
+  revisionRequested: number;
+  approved: number;
+  posted: number;
+  verified: number;
+  rejected: number;
+  submittedTotal: number;
+  total: number;
+}
+
+/**
+ * High-level KPIs for the Creator Monitoring Dashboard.
+ */
+export interface CreatorDashboardMetrics {
+  totalVerifiedViews: number;
+  totalEarnings: number;
+  walletActiveBalance: number;
+  totalWithdrawn: number;
+  pendingWithdrawalAmount: number;
+  submissionStatusCounts: CreatorDashboardSubmissionStatusCounts;
+}
+
+/**
+ * Submitted campaign item displayed in the creator's recent submissions list.
+ */
+export interface CreatorDashboardSubmissionItem {
+  id: string;
+  campaignId: string;
+  campaignTitle: string | null;
+  brandName: string;
+  category: string;
+  brandIndustry: string | null;
+  submissionStatus: CreatorDashboardSubmissionStatus;
+  verifiedViews: number;
+  earnings: number;
+  estimatedEarnings: number;
+  submittedAt: string | null;
+  updatedAt: string;
+}
+
+/**
+ * Active joined campaign that the creator has joined (JOINED) and not yet submitted a video for.
+ */
+export interface CreatorDashboardJoinedCampaign {
+  submissionId: string;
+  id: string;
+  title: string | null;
+  brandName: string;
+  category: string;
+  brandIndustry: string | null;
+  cpm: number;
+  budget: number;
+  spent: number;
+  remainingBudget: number;
+  remainingPercent: number;
+  joinedAt: string;
+  endDate: string | null;
+}
+
+/**
+ * Top verified clip item displayed in the creator's top clips radar widget.
+ */
+export interface CreatorDashboardTopClip {
+  id: string;
+  campaignId: string;
+  campaignTitle: string | null;
+  brandName: string;
+  socialUsername: string;
+  videoThumbnailUrl: string | null;
+  liveVideoUrl: string | null;
+  verifiedViews: number;
+  earnings: number;
+  estimatedEarnings: number;
+}
+
+/**
+ * Complete summary payload returned by GET /creator/dashboard.
+ */
+export interface CreatorDashboardResponse {
+  creator: {
+    id: string;
+    fullName: string;
+    avatarUrl: string | null;
+    tiktokAccount: CreatorDashboardSocialSummary | null;
+  };
+  metrics: CreatorDashboardMetrics;
+  recentSubmissions: CreatorDashboardSubmissionItem[];
+  joinedCampaigns: CreatorDashboardJoinedCampaign[];
+  topClips: CreatorDashboardTopClip[];
+  hasAnySubmissions: boolean;
+}
+
+/**
+ * Props for the CreatorDashboardHeader component.
+ */
+export interface CreatorDashboardHeaderProps {
+  creatorName?: string | null;
+  tiktokAccount?: CreatorDashboardSocialSummary | null;
+  className?: string;
+}
+
+/**
+ * Props for the CreatorDashboardMetricsGrid component.
+ */
+export interface CreatorDashboardMetricsGridProps {
+  metrics: CreatorDashboardMetrics;
+  className?: string;
+}
+
+/**
+ * Props for the CreatorDashboardLaunchpad Day 0 onboarding component.
+ */
+export interface CreatorDashboardLaunchpadProps {
+  isTikTokConnected: boolean;
+  className?: string;
+}
+
+/**
+ * Props for the CreatorRecentSubmissionsWidget component.
+ */
+export interface CreatorRecentSubmissionsWidgetProps {
+  submissions: CreatorDashboardSubmissionItem[];
+  className?: string;
+}
+
+/**
+ * Props for the CreatorJoinedCampaignsWidget component.
+ */
+export interface CreatorJoinedCampaignsWidgetProps {
+  campaigns: CreatorDashboardJoinedCampaign[];
+  className?: string;
+}
+
+/**
+ * Props for the CreatorTopClipsWidget component.
+ */
+export interface CreatorTopClipsWidgetProps {
+  topClips: CreatorDashboardTopClip[];
+  className?: string;
+}
+
+/**
+ * Props for the CreatorDashboardSkeleton loading component.
+ */
+export interface CreatorDashboardSkeletonProps {
+  className?: string;
+}
+
+/**
+ * Props for the CreatorDashboardErrorState component.
+ */
+export interface CreatorDashboardErrorStateProps {
+  onRetry: () => void;
+  className?: string;
+}
+
+
 

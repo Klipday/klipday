@@ -135,6 +135,8 @@ function SocialAccountConnectDialogInner({
         queryClient.setQueryData(['connected-social-account'], response.account);
         await queryClient.invalidateQueries({ queryKey: ['connected-social-account'] });
         await queryClient.invalidateQueries({ queryKey: ['recent-tiktok-videos'] });
+        queryClient.invalidateQueries({ queryKey: ['current-account'] });
+        queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] });
         toast.success(`Akun @${response.account.username} berhasil diaktifkan kembali!`);
         onAccountVerified?.(response.account);
         onOpenChange(false);
@@ -184,6 +186,7 @@ function SocialAccountConnectDialogInner({
       queryClient.setQueryData(['connected-social-account'], verified);
       await queryClient.invalidateQueries({ queryKey: ['connected-social-account'] });
       queryClient.invalidateQueries({ queryKey: ['current-account'] });
+      queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] });
       toast.success(`Akun ${platformDisplayName} berhasil terhubung dan terverifikasi!`);
       onAccountVerified?.(verified);
       onOpenChange(false);

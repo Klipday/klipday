@@ -239,3 +239,26 @@
     border-color: oklch(0.265 0 0) !important;
   }
 }
+
+.hero-glow {
+  background-image:
+    radial-gradient(circle at 50% 18%, rgba(225, 29, 72, 0.18) 0%, rgba(9, 9, 11, 0) 75%),
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 64px 64px, 64px 64px;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.blended-illustration-mask {
+  mask-image: radial-gradient(ellipse 78% 78% at 50% 50%, #000000 55%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 78% 78% at 50% 50%, #000000 55%, transparent 100%);
+}
+

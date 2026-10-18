@@ -45,4 +45,123 @@ export const CREATOR_MESSAGES = {
   CONTENT_LENGTH_REQUIRED: 'Header Content-Length wajib disertakan pada permintaan pengunggahan.',
   STORAGE_CONFIG_MISSING: 'Konfigurasi penyimpanan server belum lengkap.',
   STORAGE_UPLOAD_FAILED: 'Gagal mengunggah foto profil ke cloud storage.',
+  DASHBOARD_SUMMARY_FETCH_SUCCESS: 'Ringkasan dashboard kreator berhasil dimuat.',
 } as const;
+
+export const CREATOR_DASHBOARD_LIMITS = {
+  RECENT_SUBMISSIONS_FETCH_POOL: 15,
+  RECENT_SUBMISSIONS_LIMIT: 5,
+  JOINED_CAMPAIGNS_LIMIT: 5,
+  TOP_CLIPS_LIMIT: 4,
+  CPM_VIEW_DIVISOR: 1000,
+} as const;
+
+export const CREATOR_DASHBOARD_CREATOR_SELECT = {
+  id: true,
+  fullName: true,
+  avatarUrl: true,
+  socialAccounts: {
+    where: {
+      platform: 'TIKTOK',
+      isVerified: true,
+      status: 'ACTIVE',
+    },
+    orderBy: {
+      verifiedAt: 'desc',
+    },
+    take: 1,
+    select: {
+      username: true,
+      avatarUrl: true,
+      followersCount: true,
+      isVerified: true,
+    },
+  },
+} as const;
+
+export const CREATOR_DASHBOARD_SUBMISSION_SELECT = {
+  id: true,
+  campaignId: true,
+  submissionStatus: true,
+  verifiedViews: true,
+  earnings: true,
+  submittedAt: true,
+  createdAt: true,
+  updatedAt: true,
+  campaign: {
+    select: {
+      id: true,
+      title: true,
+      campaignCategory: true,
+      cpm: true,
+      maxViews: true,
+      brand: {
+        select: {
+          companyName: true,
+          industry: true,
+        },
+      },
+    },
+  },
+} as const;
+
+export const CREATOR_DASHBOARD_JOINED_CAMPAIGN_SELECT = {
+  id: true,
+  campaignId: true,
+  createdAt: true,
+  updatedAt: true,
+  campaign: {
+    select: {
+      id: true,
+      title: true,
+      campaignCategory: true,
+      cpm: true,
+      budget: true,
+      startDate: true,
+      endDate: true,
+      brand: {
+        select: {
+          companyName: true,
+          industry: true,
+        },
+      },
+      submissions: {
+        where: {
+          status: 'ACTIVE',
+        },
+        select: {
+          submissionStatus: true,
+          earnings: true,
+        },
+      },
+    },
+  },
+} as const;
+
+export const CREATOR_DASHBOARD_TOP_CLIP_SELECT = {
+  id: true,
+  campaignId: true,
+  thumbnailUrl: true,
+  liveVideoUrl: true,
+  verifiedViews: true,
+  earnings: true,
+  campaign: {
+    select: {
+      id: true,
+      title: true,
+      cpm: true,
+      maxViews: true,
+      brand: {
+        select: {
+          companyName: true,
+        },
+      },
+    },
+  },
+  socialAccount: {
+    select: {
+      username: true,
+    },
+  },
+} as const;
+

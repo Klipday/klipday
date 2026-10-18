@@ -74,3 +74,103 @@ export const DASHBOARD_CATEGORY_MAP: Record<string, string> = {
   HEALTH_AND_WELLNESS: 'Kesehatan & Kebugaran',
   TRAVEL_AND_HOSPITALITY: 'Travel & Perhotelan',
 };
+
+export const CREATOR_DASHBOARD_MESSAGES = {
+  TITLE: 'Monitoring Kreator',
+  SUBTITLE:
+    'Pantau penayangan terverifikasi, estimasi pendapatan klip, saldo siap ditarik, dan progres kampanye yang Anda ikuti.',
+  TIKTOK_VERIFIED_SUFFIX: 'TikTok Terverifikasi',
+  CONNECT_TIKTOK_ACTION: 'Hubungkan TikTok',
+  METRICS_TOTAL_VIEWS: 'Total Views Terverifikasi',
+  METRICS_VALID_VIEWS_SUFFIX: 'views valid',
+  METRICS_TOTAL_EARNINGS: 'Total Pendapatan Video',
+  METRICS_TOTAL_EARNINGS_HINT: 'Akumulasi reward klip terverifikasi',
+  METRICS_WALLET_BALANCE: 'Saldo Siap Ditarik',
+  METRICS_TOTAL_WITHDRAWN_PREFIX: 'Total dicairkan: ',
+  METRICS_SUBMISSION_STATUS: 'Status Submisi Klip',
+  METRICS_APPROVED_CLIPS_SUFFIX: 'Video Disetujui',
+  RECENT_SUBMISSIONS_TITLE: 'Submisi Kampanye Saya',
+  RECENT_SUBMISSIONS_SUBTITLE: 'Status review dan estimasi pendapatan dari klip yang telah diajukan',
+  RECENT_SUBMISSIONS_EMPTY_TITLE: 'Belum ada video yang diajukan.',
+  RECENT_SUBMISSIONS_EMPTY_DESC:
+    'Pilih kampanye aktif yang telah Anda ikuti di samping atau jelajahi kampanye baru untuk mulai mengirim klip.',
+  JOINED_CAMPAIGNS_TITLE: 'Kampanye Aktif Diikuti',
+  JOINED_CAMPAIGNS_SUBTITLE: 'Kampanye yang sudah diikuti dan menunggu pengajuan video Anda',
+  JOINED_CAMPAIGNS_EMPTY_TITLE: 'Belum ada kampanye aktif yang menunggu video.',
+  JOINED_CAMPAIGNS_EMPTY_DESC:
+    'Ikuti kampanye aktif di katalog untuk mulai membuat klip dan mengumpulkan penayangan.',
+  ACTION_EXPLORE_CAMPAIGNS: 'Jelajahi Kampanye',
+  ACTION_FIND_CAMPAIGNS: 'Cari Kampanye',
+  TOP_CLIPS_TITLE: 'Video Klip Terbaik Kamu',
+  TOP_CLIPS_SUBTITLE: 'Klip TikTok Anda dengan penayangan terverifikasi tertinggi.',
+  TOP_CLIPS_EMPTY_TITLE: 'Belum ada klip terverifikasi.',
+  TOP_CLIPS_EMPTY_DESC:
+    'Klip yang telah disetujui brand dan diverifikasi penayangannya akan otomatis tampil di sini.',
+  ESTIMATED_EARNING_PREFIX: 'Estimasi: ',
+  REWARD_PREFIX: 'Reward: ',
+  VIEWS_LABEL: 'views',
+  BUDGET_REMAINING_LABEL: 'Budget Tersisa',
+  DEFAULT_CAMPAIGN_TITLE: 'Kampanye Tanpa Judul',
+  LAUNCHPAD_BADGE: 'Panduan Kreator',
+  LAUNCHPAD_TITLE: 'Mulai Hasilkan Pendapatan dari Klip TikTok Anda',
+  LAUNCHPAD_SUBTITLE:
+    'Tiga langkah sederhana untuk mulai mengikuti kampanye brand, mengirim klip, dan mencairkan komisi penayangan.',
+  LAUNCHPAD_STEP_1_TITLE: 'Hubungkan Akun TikTok',
+  LAUNCHPAD_STEP_1_DESC:
+    'Verifikasi kepemilikan akun TikTok Anda satu kali agar sistem dapat memantau penayangan klip secara otomatis.',
+  LAUNCHPAD_STEP_1_CONNECTED: 'Akun TikTok Terhubung',
+  LAUNCHPAD_STEP_1_CTA: 'Hubungkan TikTok',
+  LAUNCHPAD_STEP_2_TITLE: 'Pilih Kampanye & Kirim Klip',
+  LAUNCHPAD_STEP_2_DESC:
+    'Pelajari brief singkat dari brand, unggah video klip di TikTok, lalu tautkan link video Anda ke kampanye.',
+  LAUNCHPAD_STEP_2_CTA: 'Jelajahi Kampanye',
+  LAUNCHPAD_STEP_3_TITLE: 'Pantau Views & Tarik Saldo',
+  LAUNCHPAD_STEP_3_DESC:
+    'Komisi dihitung dari penayangan terverifikasi berdasarkan tarif CPM dan siap ditarik ke rekening atau e-wallet Anda.',
+  LAUNCHPAD_STEP_3_BADGE: 'Pencairan Transparan',
+  ERROR_TITLE: 'Gagal Memuat Dashboard',
+  ACTION_RETRY: 'Coba Lagi',
+  FETCH_ERROR: 'Gagal memuat ringkasan dashboard kreator. Silakan coba beberapa saat lagi.',
+} as const;
+
+export const CREATOR_SUBMISSION_STATUS_CONFIG: Record<
+  string,
+  { label: string; badgeClassName: string }
+> = {
+  JOINED: {
+    label: 'Bergabung',
+    badgeClassName:
+      'border-border/60 bg-muted/40 text-muted-foreground',
+  },
+  PENDING_REVIEW: {
+    label: 'Menunggu Review',
+    badgeClassName:
+      'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  },
+  REVISION_REQUESTED: {
+    label: 'Perlu Revisi',
+    badgeClassName:
+      'border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400',
+  },
+  APPROVED: {
+    label: 'Disetujui',
+    badgeClassName:
+      'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  },
+  POSTED: {
+    label: 'Tayang',
+    badgeClassName:
+      'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  },
+  VERIFIED: {
+    label: 'Terverifikasi',
+    badgeClassName:
+      'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  },
+  REJECTED: {
+    label: 'Ditolak',
+    badgeClassName:
+      'border-destructive/30 bg-destructive/10 text-destructive',
+  },
+};
+

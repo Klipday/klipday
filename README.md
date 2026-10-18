@@ -75,7 +75,7 @@ Dedicated profile and account management center for creators (clippers) featurin
 ### Role-Adaptive Interface
 Distinct interfaces tailored to user roles:
 - **Brand**: Campaign creation, escrow tracking, submission review queue, and performance analytics.
-- **Creator (Clipper)**: Campaign discovery, social account management, personal submission tracking, and wallet withdrawals.
+- **Creator (Clipper)**: Monitoring dashboard (verified views, video earnings, withdrawable balance, submitted campaign tracking, active joined campaigns awaiting video submission, and top verified clips), campaign discovery, social account management, and wallet withdrawals.
 - **Admin**: Campaign moderation, deposit slip verification, settlement reviews, and manual payout execution.
 
 ---
@@ -113,7 +113,7 @@ klipday/
 │       │   ├── authentication/  # Auth handlers, JWT cookies, rate limiting
 │       │   ├── brand/           # Brand profile, KYC payout accounts, dashboard
 │       │   ├── campaign/        # Campaign wizard, validation, curation
-│       │   ├── creator/         # Creator profile, 18+ gate, avatar upload
+│       │   ├── creator/         # Creator profile, 18+ gate, avatar upload, dashboard
 │       │   ├── health/          # Health check endpoints
 │       │   ├── social-account/  # TikTok scraper & bio handshake verification
 │       │   ├── submission/      # Video submission workflow & reviews
