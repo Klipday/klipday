@@ -1,21 +1,26 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import type { BrandTransactionEmptyStateProps } from '../types';
+import type { WalletTransactionEmptyStateProps } from '../types';
 
 /**
- * Empty state component displayed when no transactions are found matching active filters.
+ * Shared empty state component displayed when no wallet transactions match active filters.
  *
  * @param props - Component properties.
  * @returns Rendered empty state element.
  */
-export function BrandTransactionEmptyState({
+export function WalletTransactionEmptyState({
   hasFilter,
   onResetFilter,
   className,
-}: BrandTransactionEmptyStateProps) {
+}: WalletTransactionEmptyStateProps) {
+  const cardClassName = cn(
+    'border-dashed border-border/70 bg-card/50 text-center shadow-none',
+    className,
+  );
+
   return (
-    <Card className={cn('border-dashed border-border/70 bg-card/50 text-center shadow-none', className)}>
+    <Card className={cardClassName}>
       <CardContent className="flex flex-col items-center justify-center p-8 sm:p-12 space-y-3">
         <div className="space-y-1 max-w-sm">
           <p className="text-sm font-semibold text-foreground">
@@ -24,7 +29,7 @@ export function BrandTransactionEmptyState({
           <p className="text-xs text-muted-foreground leading-relaxed">
             {hasFilter
               ? 'Tidak ditemukan riwayat mutasi dana dengan filter yang Anda tentukan. Coba ubah kata kunci pencarian atau pilih kategori lain.'
-              : 'Semua mutasi top up, alokasi pembayaran kampanye, dan refund sisa anggaran akan tercatat rapi di sini.'}
+              : 'Semua riwayat mutasi dan transaksi dompet Anda akan tercatat rapi di sini.'}
           </p>
         </div>
 

@@ -127,9 +127,12 @@ export function UseCreatorTransactionsQuery(
 /**
  * Custom TanStack Query hook that retrieves all registered payout accounts for creator.
  *
+ * @param options - Optional query options such as enabled flag.
  * @returns TanStack Query result with list of CreatorPayoutAccountRecord.
  */
-export function UseCreatorPayoutAccountsQuery(): UseQueryResult<
+export function UseCreatorPayoutAccountsQuery(options?: {
+  enabled?: boolean;
+}): UseQueryResult<
   CreatorPayoutAccountRecord[],
   Error
 > {
@@ -137,6 +140,7 @@ export function UseCreatorPayoutAccountsQuery(): UseQueryResult<
     queryKey: ['creator-payout-accounts'],
     queryFn: GetCreatorPayoutAccounts,
     staleTime: 30 * 1000,
+    enabled: options?.enabled,
   });
 
   return queryResult;

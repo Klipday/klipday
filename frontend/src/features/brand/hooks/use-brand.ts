@@ -81,13 +81,15 @@ export function UseUploadBrandLogoMutation() {
 /**
  * Hook to retrieve registered payout accounts for the brand wallet.
  *
+ * @param options - Optional query options such as enabled flag.
  * @returns Query result with list of registered payout accounts.
  */
-export function UseBrandPayoutAccountsQuery() {
+export function UseBrandPayoutAccountsQuery(options?: { enabled?: boolean }) {
   return useQuery<BrandPayoutAccount[], Error>({
     queryKey: BRAND_QUERY_KEYS.PAYOUT_ACCOUNTS,
     queryFn: GetBrandPayoutAccounts,
     staleTime: 60 * 1000,
+    enabled: options?.enabled,
   });
 }
 

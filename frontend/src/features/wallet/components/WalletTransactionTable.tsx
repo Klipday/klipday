@@ -4,36 +4,40 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { TRANSACTION_TYPE_CONFIG } from '../constants';
-import type { BrandTransactionTableProps } from '../types';
+import type { WalletTransactionTableProps } from '../types';
 import { FormatDateIndonesian, FormatRupiah } from '../utils/wallet-format';
-import { BrandTransactionEmptyState } from './BrandTransactionEmptyState';
+import { WalletTransactionEmptyState } from './WalletTransactionEmptyState';
 
 /**
- * Transaction history table displaying finalized mutations, reference codes, dates, and amounts.
- * Purely dedicated to displaying completed ledger transactions (WalletTransaction) in calm, neutral styling.
+ * Shared transaction history table displaying finalized mutations, reference codes, dates, and amounts
+ * across both Brand and Creator wallets in a consistent 5-column ledger layout.
  *
  * @param props - Component properties.
  * @returns Rendered transaction table element.
  */
-export function BrandTransactionTable({
+export function WalletTransactionTable({
   transactions,
   isLoading,
   page,
   totalPages,
   onPageChange,
+  activeType = 'ALL',
   searchQuery = '',
   onResetSearch,
   className,
-}: BrandTransactionTableProps) {
+}: WalletTransactionTableProps) {
   const hasAnyRows = transactions.length > 0;
-  const isSearchActive = searchQuery.trim().length > 0;
+  const trimmedSearch = searchQuery.trim();
+  const isFilterActive = trimmedSearch.length > 0 || activeType !== 'ALL';
+  const cardClassName = cn('border-border/60 bg-card shadow-xs overflow-hidden', className);
+  const skeletonRows = Array.from({ length: 5 });
 
   return (
-    <Card className={cn('border-border/60 bg-card shadow-xs overflow-hidden', className)}>
+    <Card className={cardClassName}>
       <CardContent className="p-0">
         {isLoading ? (
           <div className="divide-y divide-border/40 p-4 space-y-3">
-            {Array.from({ length: 5 }).map((_, index) => (
+            {skeletonRows.map((_, index) => (
               <div key={index} className="flex items-center justify-between py-3">
                 <div className="space-y-1.5">
                   <Skeleton className="h-4 w-32" />
@@ -45,8 +49,8 @@ export function BrandTransactionTable({
           </div>
         ) : !hasAnyRows ? (
           <div className="p-6">
-            <BrandTransactionEmptyState
-              hasFilter={isSearchActive}
+            <WalletTransactionEmptyState
+              hasFilter={isFilterActive}
               onResetFilter={onResetSearch}
             />
           </div>
@@ -67,13 +71,28 @@ export function BrandTransactionTable({
                   const typeConfig = TRANSACTION_TYPE_CONFIG[txn.type] ?? {
                     label: txn.type,
                     sign: '',
+                    badgeClass: 'border-border/60 bg-muted/40 text-foreground',
                   };
+                  const formattedDate = FormatDateIndonesian(txn.transactionDate);
+                  const formattedAmount = FormatRupiah(txn.amount);
+                  const badgeClassName = cn(
+                    'inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium',
+                    typeConfig.badgeClass ?? 'border-border/60 bg-muted/40 text-foreground',
+                  );
+                  const amountCellClassName = cn(
+                    'whitespace-nowrap px-4 py-3.5 text-left font-medium tabular-nums sm:px-6',
+                    typeConfig.sign === '+'
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : typeConfig.sign === '-'
+                        ? 'text-rose-500 dark:text-rose-400'
+                        : 'text-foreground',
+                  );
 
                   return (
                     <tr key={txn.id} className="transition-colors hover:bg-muted/20">
                       {/* Tanggal */}
                       <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground sm:px-6">
-                        {FormatDateIndonesian(txn.transactionDate)}
+                        {formattedDate}
                       </td>
 
                       {/* Kode */}
@@ -83,11 +102,7 @@ export function BrandTransactionTable({
 
                       {/* Jenis Transaksi */}
                       <td className="whitespace-nowrap px-4 py-3.5 sm:px-6">
-                        <span
-                          className={cn(
-                            'inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium',
-                            typeConfig.badgeClass ?? 'border-border/60 bg-muted/40 text-foreground',
-                          )}>
+                        <span className={badgeClassName}>
                           {typeConfig.label}
                         </span>
                       </td>
@@ -100,16 +115,8 @@ export function BrandTransactionTable({
                       </td>
 
                       {/* Saldo */}
-                      <td
-                        className={cn(
-                          'whitespace-nowrap px-4 py-3.5 text-left font-medium tabular-nums sm:px-6',
-                          typeConfig.sign === '+'
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : typeConfig.sign === '-'
-                              ? 'text-rose-500 dark:text-rose-400'
-                              : 'text-foreground',
-                        )}>
-                        {typeConfig.sign} {FormatRupiah(txn.amount)}
+                      <td className={amountCellClassName}>
+                        {typeConfig.sign} {formattedAmount}
                       </td>
                     </tr>
                   );

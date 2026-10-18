@@ -3,25 +3,26 @@ import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   BrandPendingTopUpBanner,
-  BrandPendingWithdrawalBanner,
   BrandTopUpDialog,
-  BrandTransactionTable,
-  BrandTransactionTypeFilter,
-  BrandWalletHeader,
-  BrandWalletMetricsCards,
-  BrandWithdrawalDialog,
+  WalletHeader,
+  WalletMetricsCards,
+  WalletPendingWithdrawalBanner,
+  WalletTransactionTable,
+  WalletTransactionTypeFilter,
+  WalletWithdrawalDialog,
 } from '../components';
+import { WALLET_TRANSACTION_TABS } from '../constants';
 import {
   UseActiveTopUpRequestsQuery,
   UseActiveWithdrawalRequestsQuery,
   UseBrandTransactionsQuery,
   UseBrandWalletSummaryQuery,
 } from '../hooks';
-import type { TopUpRequestRecord, WalletTransactionType } from '../types';
+import type { TopUpRequestRecord, WalletMetricItem, WalletTransactionType } from '../types';
 
 /**
  * Pure orchestrator page for the Brand Wallet.
- * Composes wallet balance metrics, transaction filters, mutation ledger table,
+ * Composes shared wallet balance metrics, transaction filters, mutation ledger table,
  * active top-up queue, active withdrawal queue, top-up modal dialog, and withdrawal dialog.
  *
  * @returns Rendered Brand Wallet page.
@@ -66,6 +67,7 @@ export default function BrandWalletPage() {
     refetch: refetchActiveWithdrawals,
   } = UseActiveWithdrawalRequestsQuery();
 
+  const trimmedDebouncedSearch = debouncedSearch.trim();
   const {
     data: transactionsData,
     isLoading: isTransactionsLoading,
@@ -74,28 +76,70 @@ export default function BrandWalletPage() {
     type: activeType,
     page,
     limit: 10,
-    search: debouncedSearch.trim() || undefined,
+    search: trimmedDebouncedSearch || undefined,
   });
 
+  /**
+   * Updates the active transaction type filter and resets pagination to page 1.
+   *
+   * @param nextType - Selected transaction type filter.
+   */
   const HandleTypeChange = (nextType: WalletTransactionType) => {
     setActiveType(nextType);
     setPage(1);
   };
 
+  /**
+   * Updates the search input value.
+   *
+   * @param nextSearch - Search text entered by the user.
+   */
   const HandleSearchChange = (nextSearch: string) => {
     setSearchQuery(nextSearch);
   };
 
+  /**
+   * Clears both immediate and debounced search queries and resets pagination.
+   */
+  const HandleResetSearch = () => {
+    setSearchQuery('');
+    setDebouncedSearch('');
+    setPage(1);
+  };
+
+  /**
+   * Resets all active transaction filters (search query and transaction type) and pagination.
+   */
+  const HandleResetFilters = () => {
+    setSearchQuery('');
+    setDebouncedSearch('');
+    setActiveType('ALL');
+    setPage(1);
+  };
+
+  /**
+   * Opens the manual top-up dialog in fresh creation mode.
+   */
   const HandleOpenNewTopUp = () => {
     setSelectedTopUp(null);
     setIsTopUpOpen(true);
   };
 
+  /**
+   * Resumes an existing pending top-up request inside the top-up dialog.
+   *
+   * @param topUp - Existing top-up record to resume.
+   */
   const HandleResumeTopUp = (topUp: TopUpRequestRecord) => {
     setSelectedTopUp(topUp);
     setIsTopUpOpen(true);
   };
 
+  /**
+   * Controls top-up dialog visibility and clears selected top-up upon close.
+   *
+   * @param open - Dialog open state.
+   */
   const HandleTopUpOpenChange = (open: boolean) => {
     setIsTopUpOpen(open);
     if (!open) {
@@ -103,6 +147,9 @@ export default function BrandWalletPage() {
     }
   };
 
+  /**
+   * Refetches wallet data after a top-up operation succeeds.
+   */
   const HandleTopUpSuccess = () => {
     refetchSummary();
     refetchTransactions();
@@ -110,11 +157,23 @@ export default function BrandWalletPage() {
     refetchActiveWithdrawals();
   };
 
+  /**
+   * Refetches wallet data after a withdrawal request succeeds.
+   */
   const HandleWithdrawalSuccess = () => {
     refetchSummary();
     refetchTransactions();
     refetchActiveWithdrawals();
   };
+
+  const activeBalance = summary?.metrics.activeBalance ?? 0;
+  const lockedBalance = summary?.metrics.lockedBalance ?? 0;
+  const totalCreatorPayout = summary?.metrics.totalCreatorPayout ?? 0;
+  const metricItems: WalletMetricItem[] = [
+    { label: 'Saldo Aktif', value: activeBalance },
+    { label: 'Saldo Terkunci', value: lockedBalance },
+    { label: 'Total Payout Kreator', value: totalCreatorPayout },
+  ];
 
   const transactions = transactionsData?.transactions ?? [];
   const totalPages = transactionsData?.pagination.totalPages ?? 1;
@@ -122,13 +181,15 @@ export default function BrandWalletPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header */}
-      <BrandWalletHeader
+      <WalletHeader
+        title="Dompet Brand"
+        description="Kelola saldo aktif, alokasi kampanye, dan riwayat transaksi akun brand."
         onOpenTopUp={HandleOpenNewTopUp}
         onOpenWithdrawal={() => setIsWithdrawalOpen(true)}
       />
 
       {/* Metric Cards (Saldo Aktif, Saldo Terkunci, Total Payout) */}
-      <BrandWalletMetricsCards summary={summary} isLoading={isSummaryLoading} />
+      <WalletMetricsCards items={metricItems} isLoading={isSummaryLoading} />
 
       {/* Active Pending Top-Up Banner (Draft-style) */}
       <BrandPendingTopUpBanner
@@ -137,8 +198,9 @@ export default function BrandWalletPage() {
       />
 
       {/* Active Pending Withdrawal Banner */}
-      <BrandPendingWithdrawalBanner
+      <WalletPendingWithdrawalBanner
         activeWithdrawals={activeWithdrawals}
+        role="BRAND"
       />
 
       {/* Transaction History Section */}
@@ -161,7 +223,7 @@ export default function BrandWalletPage() {
               {searchQuery ? (
                 <button
                   type="button"
-                  onClick={() => HandleSearchChange('')}
+                  onClick={HandleResetSearch}
                   aria-label="Hapus pencarian"
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-md text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
                   <X className="size-3.5" />
@@ -170,21 +232,23 @@ export default function BrandWalletPage() {
             </div>
 
             {/* Filter button for type of transaction */}
-            <BrandTransactionTypeFilter
+            <WalletTransactionTypeFilter
               activeType={activeType}
               onTypeChange={HandleTypeChange}
+              options={WALLET_TRANSACTION_TABS}
             />
           </div>
         </div>
 
-        <BrandTransactionTable
+        <WalletTransactionTable
           transactions={transactions}
           isLoading={isTransactionsLoading}
           page={page}
           totalPages={totalPages}
           onPageChange={setPage}
+          activeType={activeType}
           searchQuery={searchQuery}
-          onResetSearch={() => HandleSearchChange('')}
+          onResetSearch={HandleResetFilters}
         />
       </div>
 
@@ -197,13 +261,13 @@ export default function BrandWalletPage() {
       />
 
       {/* Active Balance Withdrawal Dialog */}
-      <BrandWithdrawalDialog
+      <WalletWithdrawalDialog
         open={isWithdrawalOpen}
         onOpenChange={setIsWithdrawalOpen}
-        activeBalance={summary?.metrics.activeBalance ?? 0}
+        activeBalance={activeBalance}
         onWithdrawalSuccess={HandleWithdrawalSuccess}
+        role="BRAND"
       />
     </div>
   );
 }
-

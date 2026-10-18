@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useLocation } from 'react-router';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,40 +13,59 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { UseCurrentAccountQuery } from '@/features/authentication/hooks';
 import { cn } from '@/lib/utils';
-import { UseRequestWithdrawalCancellationMutation } from '../hooks';
-import type { BrandWithdrawalRequestItemRowProps } from '../types';
+import {
+  UseRequestCreatorWithdrawalCancellationMutation,
+  UseRequestWithdrawalCancellationMutation,
+} from '../hooks';
+import type { WalletWithdrawalRequestItemRowProps } from '../types';
+import { ResolveEffectiveRole } from '../utils/payout-account.utils';
 import { FormatDateIndonesian, FormatRupiah } from '../utils/wallet-format';
 
 /**
- * Renders an individual withdrawal request item row within the withdrawal drawer sheet.
- * Displays reference code, amount, status badge, destination bank account details,
- * creation timestamp, and action to submit a cancellation request.
+ * Renders an individual withdrawal request item row within the shared withdrawal drawer sheet.
+ * Displays reference code, amount, status badge, destination account details,
+ * creation timestamp, and action to submit a cancellation request for Brand or Creator.
  *
  * @param props - Component properties.
  * @returns Rendered withdrawal request row element.
  */
-export function BrandWithdrawalRequestItemRow({
+export function WalletWithdrawalRequestItemRow({
   withdrawal,
+  role,
   className,
-}: BrandWithdrawalRequestItemRowProps) {
+}: WalletWithdrawalRequestItemRowProps) {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const requestCancelMutation = UseRequestWithdrawalCancellationMutation();
+
+  const location = useLocation();
+  const { data: accountProfile } = UseCurrentAccountQuery();
+  const effectiveRole = ResolveEffectiveRole(role, accountProfile?.role, location.pathname);
+  const isCreator = effectiveRole === 'CREATOR';
+
+  const brandCancelMutation = UseRequestWithdrawalCancellationMutation();
+  const creatorCancelMutation = UseRequestCreatorWithdrawalCancellationMutation();
+  const requestCancelMutation = isCreator ? creatorCancelMutation : brandCancelMutation;
 
   const isPending = withdrawal.payoutStatus === 'PENDING';
   const isCancellationRequested = Boolean(withdrawal.cancellationRequestedAt);
+  const formattedAmount = FormatRupiah(withdrawal.amount);
+  const formattedDate = FormatDateIndonesian(withdrawal.createdAt);
+  const rowClassName = cn(
+    'group rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-border',
+    className,
+  );
 
+  /**
+   * Confirms and submits the cancellation request for this withdrawal item.
+   */
   const HandleConfirmRequestCancel = () => {
     setIsAlertOpen(false);
     requestCancelMutation.mutate({ withdrawalId: withdrawal.id });
   };
 
   return (
-    <div
-      className={cn(
-        'group rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-border',
-        className,
-      )}>
+    <div className={rowClassName}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center justify-between gap-2">
@@ -64,7 +84,7 @@ export function BrandWithdrawalRequestItemRow({
           </div>
 
           <div className="text-base font-semibold tabular-nums text-foreground">
-            {FormatRupiah(withdrawal.amount)}
+            {formattedAmount}
           </div>
 
           <p className="text-xs text-muted-foreground">
@@ -72,7 +92,7 @@ export function BrandWithdrawalRequestItemRow({
           </p>
 
           <p className="text-[11px] text-muted-foreground/80">
-            Dibuat {FormatDateIndonesian(withdrawal.createdAt)}
+            Dibuat {formattedDate}
           </p>
         </div>
       </div>
@@ -101,7 +121,7 @@ export function BrandWithdrawalRequestItemRow({
                   <AlertDialogDescription>
                     Pengajuan pembatalan untuk penarikan dengan kode referensi{' '}
                     <strong className="text-foreground">{withdrawal.referenceCode}</strong> sebesar{' '}
-                    <strong className="text-foreground">{FormatRupiah(withdrawal.amount)}</strong>{' '}
+                    <strong className="text-foreground">{formattedAmount}</strong>{' '}
                     akan ditinjau oleh Admin Klipday untuk memastikan dana belum ditransfer ke rekening tujuan.
                     Saldo aktif akan dikembalikan ke dompet setelah pembatalan disetujui.
                   </AlertDialogDescription>
@@ -135,4 +155,3 @@ export function BrandWithdrawalRequestItemRow({
     </div>
   );
 }
-

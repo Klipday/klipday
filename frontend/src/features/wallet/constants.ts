@@ -1,4 +1,6 @@
-import type { WalletTransactionType } from './types';
+import type { WalletTransactionTabOption, WalletTransactionType } from './types';
+
+export type { WalletTransactionTabOption, WalletTransactionType };
 
 export const KLIPDAY_DESTINATION_BANK = {
   bankName: 'BCA',
@@ -19,13 +21,6 @@ export const WITHDRAWAL_LIMITS = {
   MIN_AMOUNT: 50_000,
   MAX_AMOUNT: 100_000_000,
 } as const;
-
-
-
-export interface WalletTransactionTabOption {
-  key: WalletTransactionType;
-  label: string;
-}
 
 export const WALLET_TRANSACTION_TABS: WalletTransactionTabOption[] = [
   { key: 'ALL', label: 'Semua Transaksi' },
@@ -69,12 +64,9 @@ export const TRANSACTION_TYPE_CONFIG = {
   },
 } as const;
 
-export const CREATOR_WALLET_TRANSACTION_TABS: {
-  key: 'ALL' | 'CAMPAIGN_EARNING' | 'WITHDRAWAL';
-  label: string;
-}[] = [
-  { key: 'ALL', label: 'Semua Mutasi' },
-  { key: 'CAMPAIGN_EARNING', label: 'Pendapatan Video' },
+export const CREATOR_WALLET_TRANSACTION_TABS: WalletTransactionTabOption[] = [
+  { key: 'ALL', label: 'Semua Transaksi' },
+  { key: 'CAMPAIGN_EARNING', label: 'Penghasilan Kampanye' },
   { key: 'WITHDRAWAL', label: 'Penarikan Saldo' },
 ];
 export interface SupportedBankItem {

@@ -102,27 +102,34 @@ export interface SimulateApprovalResult {
   };
 }
 
-export interface BrandWalletHeaderProps {
-  onOpenTopUp: () => void;
+export interface WalletTransactionTabOption {
+  key: WalletTransactionType;
+  label: string;
+}
+
+export interface WalletHeaderProps {
+  title: string;
+  description: string;
   onOpenWithdrawal: () => void;
+  onOpenTopUp?: () => void;
   className?: string;
 }
 
-export interface BrandWalletMetricsCardsProps {
-  summary?: BrandWalletSummary;
+export interface WalletMetricItem {
+  label: string;
+  value: number;
+}
+
+export interface WalletMetricsCardsProps {
+  items: WalletMetricItem[];
   isLoading?: boolean;
   className?: string;
 }
 
-export interface BrandTransactionFilterTabsProps {
+export interface WalletTransactionTypeFilterProps {
   activeType: WalletTransactionType;
   onTypeChange: (type: WalletTransactionType) => void;
-  className?: string;
-}
-
-export interface BrandTransactionTypeFilterProps {
-  activeType: WalletTransactionType;
-  onTypeChange: (type: WalletTransactionType) => void;
+  options?: WalletTransactionTabOption[];
   className?: string;
 }
 
@@ -146,18 +153,19 @@ export interface BrandTopUpRequestItemRowProps {
   className?: string;
 }
 
-export interface BrandTransactionTableProps {
+export interface WalletTransactionTableProps {
   transactions: WalletTransactionItem[];
   isLoading: boolean;
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  activeType?: WalletTransactionType;
   searchQuery?: string;
   onResetSearch?: () => void;
   className?: string;
 }
 
-export interface BrandTransactionEmptyStateProps {
+export interface WalletTransactionEmptyStateProps {
   hasFilter?: boolean;
   onResetFilter?: () => void;
   className?: string;
@@ -221,33 +229,32 @@ export interface SimulateWithdrawalResult {
   };
 }
 
-export interface BrandPendingWithdrawalBannerProps {
+export interface WalletPendingWithdrawalBannerProps {
   activeWithdrawals: PayoutRequestRecord[];
+  role?: 'BRAND' | 'CREATOR';
   className?: string;
 }
 
-export interface BrandWithdrawalRequestsSheetProps {
+export interface WalletWithdrawalRequestsSheetProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   activeWithdrawals: PayoutRequestRecord[];
+  role?: 'BRAND' | 'CREATOR';
   className?: string;
 }
 
-export interface BrandWithdrawalRequestItemRowProps {
+export interface WalletWithdrawalRequestItemRowProps {
   withdrawal: PayoutRequestRecord;
+  role?: 'BRAND' | 'CREATOR';
   className?: string;
 }
 
-export interface BrandWithdrawalDialogProps {
+export interface WalletWithdrawalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   activeBalance: number;
   onWithdrawalSuccess?: () => void;
-  defaultBank?: {
-    accountProvider?: string;
-    accountNumber?: string;
-    accountHolderName?: string;
-  };
+  role?: 'BRAND' | 'CREATOR';
 }
 
 // =============================================================================
@@ -296,7 +303,7 @@ export interface PaginatedCreatorTransactionsResponse {
 }
 
 export interface CreatorTransactionQueryParams {
-  type?: 'ALL' | 'CAMPAIGN_EARNING' | 'WITHDRAWAL';
+  type?: WalletTransactionType;
   page?: number;
   limit?: number;
   search?: string;
@@ -331,65 +338,6 @@ export interface CreateCreatorWithdrawalPayload {
   payoutAccountId: string;
 }
 
-export interface CreatorWalletHeaderProps {
-  onOpenWithdrawal: () => void;
-  hasVerifiedAccount: boolean;
-  className?: string;
-}
-
-export interface CreatorWalletMetricsCardsProps {
-  summary?: CreatorWalletSummary;
-  isLoading?: boolean;
-  className?: string;
-}
-
-export interface CreatorPendingWithdrawalBannerProps {
-  activeWithdrawals: PayoutRequestRecord[];
-  onCancelRequest?: (id: string) => void;
-  className?: string;
-}
-
-export interface CreatorPayoutAccountsSectionProps {
-  accounts: CreatorPayoutAccountRecord[];
-  isLoading: boolean;
-  onAddNewAccount: () => void;
-  onSetPrimary: (id: string) => void;
-  onDeleteAccount: (id: string) => void;
-  className?: string;
-}
-
-export interface CreatorTransactionTypeFilterProps {
-  activeType: 'ALL' | 'CAMPAIGN_EARNING' | 'WITHDRAWAL';
-  onTypeChange: (type: 'ALL' | 'CAMPAIGN_EARNING' | 'WITHDRAWAL') => void;
-  className?: string;
-}
-
-export interface CreatorTransactionTableProps {
-  transactions: CreatorTransactionItem[];
-  isLoading: boolean;
-  page: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-  searchQuery?: string;
-  onResetSearch?: () => void;
-  className?: string;
-}
-
-export interface CreatorTransactionEmptyStateProps {
-  hasFilter?: boolean;
-  onResetFilter?: () => void;
-  className?: string;
-}
-
-export interface CreatorWithdrawalDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  activeBalance: number;
-  payoutAccounts: CreatorPayoutAccountRecord[];
-  onWithdrawalSuccess?: () => void;
-  onAddNewAccount?: () => void;
-}
-
 export interface BankComboboxProps {
   id?: string;
   accountType?: 'BANK_TRANSFER' | 'E_WALLET' | 'ALL';
@@ -408,6 +356,7 @@ export interface AddPayoutAccountDialogProps {
   onSuccess?: () => void;
   role?: 'BRAND' | 'CREATOR';
 }
+
 
 
 

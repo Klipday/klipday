@@ -7,38 +7,44 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { WALLET_TRANSACTION_TABS } from '../constants';
-import type { BrandTransactionTypeFilterProps, WalletTransactionType } from '../types';
+import type { WalletTransactionType, WalletTransactionTypeFilterProps } from '../types';
 
 /**
- * Filter select dropdown component for wallet transaction types.
+ * Shared filter select dropdown component for wallet transaction types across Brand and Creator.
  * Styled with neutral tones and consistent with platform campaign filter design.
- * Allows filtering transaction history by Semua Transaksi, Top Up, Pembayaran Kampanye, and Refund Saldo.
  *
  * @param props - Component configuration properties.
  * @returns The rendered select filter element.
  */
-export function BrandTransactionTypeFilter({
+export function WalletTransactionTypeFilter({
   activeType,
   onTypeChange,
+  options = WALLET_TRANSACTION_TABS,
   className,
-}: BrandTransactionTypeFilterProps) {
+}: WalletTransactionTypeFilterProps) {
+  const triggerClassName = cn(
+    'h-9 w-full sm:w-auto min-w-[160px] rounded-xl border border-border/60 bg-card hover:bg-muted/30 text-foreground text-xs font-medium shadow-none sm:shadow-xs transition-colors focus-visible:border-border focus-visible:ring-0 cursor-pointer',
+    className,
+  );
+
+  /**
+   * Forwards the selected transaction type to the parent filter handler.
+   *
+   * @param nextValue - Selected option key.
+   */
   const HandleValueChange = (nextValue: string) => {
     onTypeChange(nextValue as WalletTransactionType);
   };
 
   return (
     <Select value={activeType} onValueChange={HandleValueChange}>
-      <SelectTrigger
-        className={cn(
-          'h-9 w-full sm:w-auto min-w-[160px] rounded-xl border border-border/60 bg-card hover:bg-muted/30 text-foreground text-xs font-medium shadow-none sm:shadow-xs transition-colors focus-visible:border-border focus-visible:ring-0 cursor-pointer',
-          className,
-        )}>
+      <SelectTrigger className={triggerClassName}>
         <SelectValue placeholder="Semua Transaksi" />
       </SelectTrigger>
       <SelectContent
         align="end"
         className="rounded-xl border border-border/60 bg-popover text-popover-foreground shadow-lg">
-        {WALLET_TRANSACTION_TABS.map((tab) => (
+        {options.map((tab) => (
           <SelectItem
             key={tab.key}
             value={tab.key}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowRight, Clock, Loader2 } from 'lucide-react';
+import { useLocation } from 'react-router';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,27 +13,41 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { UseCurrentAccountQuery } from '@/features/authentication/hooks';
 import { cn } from '@/lib/utils';
-import { UseRequestWithdrawalCancellationMutation } from '../hooks';
-import type { BrandPendingWithdrawalBannerProps } from '../types';
+import {
+  UseRequestCreatorWithdrawalCancellationMutation,
+  UseRequestWithdrawalCancellationMutation,
+} from '../hooks';
+import type { WalletPendingWithdrawalBannerProps } from '../types';
+import { ResolveEffectiveRole } from '../utils/payout-account.utils';
 import { FormatDateIndonesian, FormatRupiah } from '../utils/wallet-format';
-import { BrandWithdrawalRequestsSheet } from './BrandWithdrawalRequestsSheet';
+import { WalletWithdrawalRequestsSheet } from './WalletWithdrawalRequestsSheet';
 
 /**
- * Top notification banner for active withdrawal requests, mirroring the pending top-up banner UX.
+ * Shared top notification banner for active withdrawal requests across Brand and Creator wallets.
  * Displays the latest active withdrawal request with quick cancellation request and detail view actions,
  * and provides a trigger to open the slide-out sheet drawer when pending requests exist.
  *
  * @param props - Component properties.
  * @returns Rendered pending withdrawal banner element or null if no active requests exist.
  */
-export function BrandPendingWithdrawalBanner({
+export function WalletPendingWithdrawalBanner({
   activeWithdrawals,
+  role,
   className,
-}: BrandPendingWithdrawalBannerProps) {
+}: WalletPendingWithdrawalBannerProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const requestCancelMutation = UseRequestWithdrawalCancellationMutation();
+
+  const location = useLocation();
+  const { data: accountProfile } = UseCurrentAccountQuery();
+  const effectiveRole = ResolveEffectiveRole(role, accountProfile?.role, location.pathname);
+  const isCreator = effectiveRole === 'CREATOR';
+
+  const brandCancelMutation = UseRequestWithdrawalCancellationMutation();
+  const creatorCancelMutation = UseRequestCreatorWithdrawalCancellationMutation();
+  const requestCancelMutation = isCreator ? creatorCancelMutation : brandCancelMutation;
 
   const count = activeWithdrawals.length;
 
@@ -42,7 +57,16 @@ export function BrandPendingWithdrawalBanner({
 
   const latestWithdrawal = activeWithdrawals[0];
   const isCancellationRequested = Boolean(latestWithdrawal.cancellationRequestedAt);
+  const formattedAmount = FormatRupiah(latestWithdrawal.amount);
+  const formattedDate = FormatDateIndonesian(latestWithdrawal.createdAt);
+  const bannerClassName = cn(
+    'relative overflow-hidden rounded-xl border border-border/70 bg-muted/25 p-4 sm:p-5 text-card-foreground transition-all duration-200 hover:border-border',
+    className,
+  );
 
+  /**
+   * Confirms and submits the cancellation request for the latest active withdrawal.
+   */
   const HandleConfirmRequestCancel = () => {
     setIsAlertOpen(false);
     requestCancelMutation.mutate({ withdrawalId: latestWithdrawal.id });
@@ -50,11 +74,7 @@ export function BrandPendingWithdrawalBanner({
 
   return (
     <>
-      <div
-        className={cn(
-          'relative overflow-hidden rounded-xl border border-border/70 bg-muted/25 p-4 sm:p-5 text-card-foreground transition-all duration-200 hover:border-border',
-          className,
-        )}>
+      <div className={bannerClassName}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           {/* Left Side: Essential Information */}
           <div className="min-w-0 flex-1 space-y-1.5">
@@ -74,7 +94,7 @@ export function BrandPendingWithdrawalBanner({
               <div className="flex flex-wrap items-center gap-x-2 text-base font-semibold text-foreground">
                 <span className="font-mono">{latestWithdrawal.referenceCode}</span>
                 <span className="text-muted-foreground/60">&middot;</span>
-                <span className="tabular-nums">{FormatRupiah(latestWithdrawal.amount)}</span>
+                <span className="tabular-nums">{formattedAmount}</span>
                 <span className="text-muted-foreground/60">&middot;</span>
                 <span className="text-sm font-normal text-muted-foreground">
                   {latestWithdrawal.accountProvider}
@@ -84,9 +104,9 @@ export function BrandPendingWithdrawalBanner({
               <p className="text-xs text-muted-foreground">
                 {count === 1
                   ? isCancellationRequested
-                    ? `Dibuat ${FormatDateIndonesian(latestWithdrawal.createdAt)}. Pengajuan pembatalan sedang ditinjau oleh Admin.`
-                    : `Dibuat ${FormatDateIndonesian(latestWithdrawal.createdAt)}. Dana sedang dalam proses verifikasi dan transfer oleh Admin.`
-                  : `Anda memiliki ${count} permintaan penarikan aktif. Terakhir dibuat ${FormatDateIndonesian(latestWithdrawal.createdAt)}.`}
+                    ? `Dibuat ${formattedDate}. Pengajuan pembatalan sedang ditinjau oleh Admin.`
+                    : `Dibuat ${formattedDate}. Dana sedang dalam proses verifikasi dan transfer oleh Admin.`
+                  : `Anda memiliki ${count} permintaan penarikan aktif. Terakhir dibuat ${formattedDate}.`}
               </p>
             </div>
           </div>
@@ -115,9 +135,9 @@ export function BrandPendingWithdrawalBanner({
                           <strong className="text-foreground">{latestWithdrawal.referenceCode}</strong>{' '}
                           sebesar{' '}
                           <strong className="text-foreground">
-                            {FormatRupiah(latestWithdrawal.amount)}
+                            {formattedAmount}
                           </strong>{' '}
-                          akan ditinjau oleh Admin Klipday untuk memastikan dana belum ditransfer ke rekening bank Anda.
+                          akan ditinjau oleh Admin Klipday untuk memastikan dana belum ditransfer ke rekening Anda.
                           Saldo aktif akan dikembalikan setelah pembatalan disetujui.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
@@ -171,10 +191,11 @@ export function BrandPendingWithdrawalBanner({
         </div>
       </div>
 
-      <BrandWithdrawalRequestsSheet
+      <WalletWithdrawalRequestsSheet
         isOpen={isSheetOpen}
         onOpenChange={setIsSheetOpen}
         activeWithdrawals={activeWithdrawals}
+        role={effectiveRole}
       />
     </>
   );

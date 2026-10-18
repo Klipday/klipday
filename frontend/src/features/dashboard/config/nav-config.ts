@@ -38,7 +38,7 @@ export const CREATOR_NAV_ITEMS: DashboardNavItem[] = [
     icon: Megaphone,
   },
   {
-    title: 'Pendapatan',
+    title: 'Dompet',
     href: '/creator-dashboard/wallet',
     icon: Wallet,
   },
