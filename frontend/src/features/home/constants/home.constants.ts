@@ -37,7 +37,7 @@ export const HOME_HERO_CONTENT: Record<AudienceType, HeroAudienceContent> = {
     headlineLead: 'Klip Everyday.',
     headlineHighlight: 'Cuan Everyday.',
     subcopy: 'Ambil materi dari brand, edit gaya kamu, upload ke TikTok. Dibayar per 1.000 views—bahkan dari 0 followers.',
-    ctaLabel: 'Mulai Ngelip',
+    ctaLabel: 'Mulai Ngeklip',
     ctaHref: '/signup',
     trustPill: '⚡ Garansi Escrow 100%  •  Cair Mulai Rp50.000  •  Tanpa Minimal Followers',
   },

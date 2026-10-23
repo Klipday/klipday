@@ -94,7 +94,7 @@ export function HomeNavbar({ activeAudience, onAudienceChange, className = '' }:
             to="/signup"
             className="inline-flex items-center justify-center rounded-full bg-rose-600 px-4 py-1.5 font-medium text-xs text-white shadow-[0_0_16px_rgba(225,29,72,0.35)] transition-all hover:bg-rose-500 hover:scale-[1.02]"
           >
-            {activeAudience === 'creator' ? 'Mulai Ngelip' : 'Buat Campaign'}
+            {activeAudience === 'creator' ? 'Mulai Ngeklip' : 'Buat Campaign'}
           </Link>
         </div>
 
@@ -104,7 +104,7 @@ export function HomeNavbar({ activeAudience, onAudienceChange, className = '' }:
             to="/signup"
             className="inline-flex items-center justify-center rounded-full bg-rose-600 px-3 py-1 font-medium text-xs text-white shadow-[0_0_12px_rgba(225,29,72,0.3)]"
           >
-            {activeAudience === 'creator' ? 'Ngelip' : 'Campaign'}
+            {activeAudience === 'creator' ? 'Ngeklip' : 'Campaign'}
           </Link>
           <button
             type="button"

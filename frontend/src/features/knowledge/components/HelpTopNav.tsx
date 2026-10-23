@@ -43,7 +43,7 @@ export function HelpTopNav({ className = '' }: HelpTopNavProps) {
               to="/signup"
               className="inline-flex items-center justify-center rounded-full bg-rose-600 px-4 py-1.5 font-medium text-xs text-white shadow-[0_0_16px_rgba(225,29,72,0.35)] transition-all hover:bg-rose-500 hover:scale-[1.02]"
             >
-              Mulai Ngelip
+              Mulai Ngeklip
             </Link>
           </div>
         )}
