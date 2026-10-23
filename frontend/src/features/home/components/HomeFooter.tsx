@@ -51,16 +51,26 @@ export function HomeFooter({ className = '' }: HomeFooterProps) {
 
         {/* Clean Text Navigation Links */}
         <nav className="flex flex-wrap items-center justify-center gap-6 text-xs text-zinc-400">
-          {HOME_FOOTER_LINKS.map((link) => (
-            <a
-              key={link.label}
-              href={link.href}
-              onClick={(e) => HandleNavScroll(e, link.href)}
-              className="transition-colors hover:text-white"
-            >
-              {link.label}
-            </a>
-          ))}
+          {HOME_FOOTER_LINKS.map((link) =>
+            link.href.startsWith('/') ? (
+              <Link
+                key={link.label}
+                to={link.href}
+                className="transition-colors hover:text-white"
+              >
+                {link.label}
+              </Link>
+            ) : (
+              <a
+                key={link.label}
+                href={link.href}
+                onClick={(e) => HandleNavScroll(e, link.href)}
+                className="transition-colors hover:text-white"
+              >
+                {link.label}
+              </a>
+            )
+          )}
         </nav>
 
         {/* Legal copyright notice */}

@@ -105,3 +105,44 @@ export interface SimulateWithdrawalResult {
     balanceAfter: number;
   };
 }
+
+export interface CreatorWalletMetrics {
+  activeBalance: number;
+  totalEarnings: number;
+  totalWithdrawn: number;
+  pendingWithdrawalsCount: number;
+}
+
+export interface CreatorWalletSummary {
+  walletId: string;
+  balance: number;
+  metrics: CreatorWalletMetrics;
+}
+
+export interface CreatorTransactionItem {
+  id: string;
+  referenceCode: string | null;
+  type: 'CAMPAIGN_EARNING' | 'WITHDRAWAL';
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  description: string;
+  transactionDate: Date;
+  createdAt: Date;
+  campaignId: string | null;
+  campaignTitle: string | null;
+  cpmRate: number | null;
+  submissionId: string | null;
+  videoUrl: string | null;
+  verifiedViews: number | null;
+}
+
+export interface PaginatedCreatorTransactionsResponse {
+  transactions: CreatorTransactionItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}

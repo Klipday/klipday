@@ -10,6 +10,7 @@ import {
   Status,
   SubmissionStatus,
   VerificationStatus,
+  WalletTransactionType,
 } from '../src/generated/prisma/enums.js';
 import {
   CREATOR_MESSAGES,
@@ -21,9 +22,17 @@ import {
 } from '../src/features/creator/creator.handlers.js';
 import {
   CreateCreatorPayoutAccount,
+  CreateCreatorWithdrawal,
   DeleteCreatorPayoutAccount,
+  GetActiveCreatorWithdrawals,
   GetCreatorPayoutAccounts,
+  GetCreatorTransactions,
+  GetCreatorWalletSummary,
+  RequestCreatorWithdrawalCancellation,
   SetPrimaryCreatorPayoutAccount,
+  SimulateCreatorEarning,
+  SimulateCreatorPayoutAccountVerification,
+  SimulateCreatorWithdrawalApproval,
   UploadCreatorPayoutProof,
 } from '../src/features/wallet/creator-wallet.handlers.js';
 import { CREATOR_WALLET_MESSAGES, WALLET_MESSAGES } from '../src/features/wallet/wallet.constants.js';
@@ -1270,5 +1279,390 @@ describe('Creator Profile and Payout Accounts Feature Module', () => {
       expect(next).toHaveBeenCalledWith(dbError);
     });
   });
+
+  // ===========================================================================
+  // Creator Wallet Endpoints
+  // ===========================================================================
+  describe('Creator Wallet Endpoints', () => {
+    const mockWallet = {
+      id: 'wallet-creator-123',
+      accountId: mockAccountId,
+      balance: new Prisma.Decimal(500000),
+      status: Status.ACTIVE,
+      createdAt: new Date('2026-01-01'),
+      updatedAt: new Date('2026-01-01'),
+    };
+
+    describe('GetCreatorWalletSummary', () => {
+      it('returns 401 when account session is missing', async () => {
+        const req = CreateMockRequest({ account: undefined });
+        const { res } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        await GetCreatorWalletSummary(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(401);
+      });
+
+      it('returns 403 when role is not CREATOR', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.BRAND },
+        });
+        const { res } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        await GetCreatorWalletSummary(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+      });
+
+      it('returns 404 when wallet is not found', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
+        });
+        const { res } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(null);
+
+        await GetCreatorWalletSummary(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(404);
+        expect(res.json).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: 'error',
+            message: CREATOR_WALLET_MESSAGES.WALLET_NOT_FOUND,
+          }),
+        );
+      });
+
+      it('returns active balance and aggregated metrics on success', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
+        });
+        const { res } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as any);
+        jest
+          .spyOn(prisma.walletTransaction, 'aggregate')
+          .mockResolvedValueOnce({ _sum: { amount: new Prisma.Decimal(1200000) } } as any)
+          .mockResolvedValueOnce({ _sum: { amount: new Prisma.Decimal(700000) } } as any);
+        jest.spyOn(prisma.payoutRequest, 'count').mockResolvedValue(1);
+
+        await GetCreatorWalletSummary(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: 'success',
+            data: {
+              walletId: mockWallet.id,
+              balance: 500000,
+              metrics: {
+                activeBalance: 500000,
+                totalEarnings: 1200000,
+                totalWithdrawn: 700000,
+                pendingWithdrawalsCount: 1,
+              },
+            },
+          }),
+        );
+      });
+    });
+
+    describe('GetCreatorTransactions', () => {
+      it('returns 404 when wallet is not found', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
+          query: { page: '1', limit: '10', type: 'ALL' },
+        });
+        const { res } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(null);
+
+        await GetCreatorTransactions(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(404);
+        expect(res.json).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: 'error',
+            message: CREATOR_WALLET_MESSAGES.WALLET_NOT_FOUND,
+          }),
+        );
+      });
+
+      it('returns paginated transactions with campaign & submission relations', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
+          query: { page: '1', limit: '10', type: 'ALL' },
+        });
+        const { res } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as any);
+        jest.spyOn(prisma.walletTransaction, 'count').mockResolvedValue(1);
+        jest.spyOn(prisma.walletTransaction, 'findMany').mockResolvedValue([
+          {
+            id: 'txn-1',
+            referenceCode: 'TXN-ABC-1234',
+            type: WalletTransactionType.CAMPAIGN_EARNING,
+            amount: new Prisma.Decimal(250000),
+            balanceBefore: new Prisma.Decimal(250000),
+            balanceAfter: new Prisma.Decimal(500000),
+            description: 'Perolehan saldo video',
+            transactionDate: new Date('2026-03-01'),
+            createdAt: new Date('2026-03-01'),
+            campaignId: 'camp-1',
+            submissionId: 'sub-1',
+            campaign: { id: 'camp-1', title: 'Skincare Campaign', cpm: new Prisma.Decimal(20000) },
+            submission: { id: 'sub-1', liveVideoUrl: 'https://tiktok.com/@rina/video/1', verifiedViews: 12500 },
+          } as any,
+        ]);
+
+        await GetCreatorTransactions(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: 'success',
+            data: {
+              transactions: [
+                expect.objectContaining({
+                  id: 'txn-1',
+                  type: 'CAMPAIGN_EARNING',
+                  amount: 250000,
+                  campaignTitle: 'Skincare Campaign',
+                  cpmRate: 20000,
+                  verifiedViews: 12500,
+                }),
+              ],
+              pagination: {
+                page: 1,
+                limit: 10,
+                total: 1,
+                totalPages: 1,
+              },
+            },
+          }),
+        );
+      });
+    });
+
+    describe('CreateCreatorWithdrawal', () => {
+      const validPayoutAccountId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+      const mockPayoutAccount = {
+        id: validPayoutAccountId,
+        walletId: mockWallet.id,
+        provider: 'BCA',
+        accountNumber: '1234567890',
+        accountHolderName: 'Rina Clipper',
+        verificationStatus: VerificationStatus.VERIFIED,
+        status: Status.ACTIVE,
+      };
+
+      it('rejects withdrawal if amount is below minimum Rp50,000', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
+          body: { amount: 20000, payoutAccountId: validPayoutAccountId },
+        });
+        const { res } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        await CreateCreatorWithdrawal(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+      });
+
+      it('rejects withdrawal if balance is insufficient', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
+          body: { amount: 600000, payoutAccountId: validPayoutAccountId },
+        });
+        const { res } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as any);
+
+        await CreateCreatorWithdrawal(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith(
+          expect.objectContaining({
+            message: CREATOR_WALLET_MESSAGES.INSUFFICIENT_BALANCE,
+          }),
+        );
+      });
+
+      it('rejects withdrawal if payout account is not verified', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
+          body: { amount: 100000, payoutAccountId: validPayoutAccountId },
+        });
+        const { res } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as any);
+        jest.spyOn(prisma.brandPayoutAccount, 'findFirst').mockResolvedValue({
+          ...mockPayoutAccount,
+          verificationStatus: VerificationStatus.PENDING,
+        } as any);
+
+        await CreateCreatorWithdrawal(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith(
+          expect.objectContaining({
+            message: CREATOR_WALLET_MESSAGES.PAYOUT_ACCOUNT_NOT_VERIFIED,
+          }),
+        );
+      });
+
+      it('successfully processes withdrawal and creates payout request record', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
+          body: { amount: 100000, payoutAccountId: validPayoutAccountId },
+        });
+        const { res } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as any);
+        jest.spyOn(prisma.brandPayoutAccount, 'findFirst').mockResolvedValue(mockPayoutAccount as any);
+
+        const mockCreatedPayout = {
+          id: 'payout-req-1',
+          referenceCode: 'WD-TEST-1234',
+          walletId: mockWallet.id,
+          amount: new Prisma.Decimal(100000),
+          accountProvider: 'BCA',
+          accountNumber: '1234567890',
+          accountHolderName: 'Rina Clipper',
+          payoutAccountId: mockPayoutAccount.id,
+          payoutStatus: PayoutStatus.PENDING,
+          rejectionReason: null,
+          transferProofUrl: null,
+          adminNote: null,
+          cancellationRequestedAt: null,
+          cancellationReason: null,
+          createdAt: new Date('2026-03-01'),
+          updatedAt: new Date('2026-03-01'),
+        };
+
+        jest.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => {
+          const tx = {
+            wallet: {
+              findUniqueOrThrow: jest.fn<any>().mockResolvedValue(mockWallet),
+              update: jest.fn<any>().mockResolvedValue({ ...mockWallet, balance: new Prisma.Decimal(400000) }),
+            },
+            walletTransaction: {
+              create: jest.fn<any>().mockResolvedValue({ id: 'txn-wd' }),
+            },
+            payoutRequest: {
+              create: jest.fn<any>().mockResolvedValue(mockCreatedPayout),
+            },
+          };
+          return callback(tx);
+        });
+
+        await CreateCreatorWithdrawal(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(201);
+        expect(res.json).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: 'success',
+            data: expect.objectContaining({
+              id: 'payout-req-1',
+              amount: 100000,
+              payoutStatus: PayoutStatus.PENDING,
+            }),
+          }),
+        );
+      });
+    });
+
+    describe('SimulateCreatorEarning', () => {
+      it('successfully credits wallet balance and logs CAMPAIGN_EARNING transaction', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
+          body: { amount: 300000, campaignTitle: 'Simulated Campaign Earning' },
+        });
+        const { res } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as any);
+
+        jest.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => {
+          const tx = {
+            wallet: {
+              findUniqueOrThrow: jest.fn<any>().mockResolvedValue(mockWallet),
+              update: jest.fn<any>().mockResolvedValue({ ...mockWallet, balance: new Prisma.Decimal(800000) }),
+            },
+            walletTransaction: {
+              create: jest.fn<any>().mockResolvedValue({ id: 'txn-earn' }),
+            },
+          };
+          return callback(tx);
+        });
+
+        await SimulateCreatorEarning(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: 'success',
+            data: { balance: 800000 },
+          }),
+        );
+      });
+    });
+
+    describe('SimulateCreatorPayoutAccountVerification', () => {
+      it('updates payout account to VERIFIED', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
+          params: { id: 'payout-acc-pending' },
+        });
+        const { res } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        const pendingAccount = {
+          id: 'payout-acc-pending',
+          walletId: mockWallet.id,
+          accountType: PayoutAccountType.BANK_TRANSFER,
+          provider: 'MANDIRI',
+          accountNumber: '987654321',
+          accountHolderName: 'Rina Clipper',
+          proofUrl: 'https://storage.supabase.co/proof.jpg',
+          isPrimary: true,
+          verificationStatus: VerificationStatus.PENDING,
+          rejectionReason: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          status: Status.ACTIVE,
+        };
+
+        jest.spyOn(prisma.brandPayoutAccount, 'findFirst').mockResolvedValue(pendingAccount as any);
+        jest.spyOn(prisma.brandPayoutAccount, 'update').mockResolvedValue({
+          ...pendingAccount,
+          verificationStatus: VerificationStatus.VERIFIED,
+          verifiedAt: new Date(),
+        } as any);
+
+        await SimulateCreatorPayoutAccountVerification(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: 'success',
+            data: expect.objectContaining({
+              verificationStatus: VerificationStatus.VERIFIED,
+            }),
+          }),
+        );
+      });
+    });
+  });
 });
+
 

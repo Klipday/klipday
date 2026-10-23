@@ -1,7 +1,14 @@
 import { Readable } from 'node:stream';
 import { TransformStream } from 'node:stream/web';
 import type { NextFunction, Request, Response } from 'express';
-import { PayoutStatus, Role, Status, VerificationStatus } from '../../generated/prisma/enums.js';
+import { Prisma } from '../../generated/prisma/client.js';
+import {
+  PayoutStatus,
+  Role,
+  Status,
+  VerificationStatus,
+  WalletTransactionType,
+} from '../../generated/prisma/enums.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
 import { prisma } from '../../utils/prisma.js';
 import {
@@ -10,7 +17,23 @@ import {
   CREATOR_WALLET_MESSAGES,
   WALLET_MESSAGES,
 } from './wallet.constants.js';
-import { CreateCreatorPayoutAccountSchema } from './wallet.schemas.js';
+import {
+  GenerateWalletTransactionReferenceCode,
+  GenerateWithdrawalReferenceCode,
+} from './wallet.helper.js';
+import {
+  CreateCreatorPayoutAccountSchema,
+  CreateCreatorWithdrawalSchema,
+  CreatorTransactionQuerySchema,
+  RequestWithdrawalCancellationSchema,
+  SimulateCreatorEarningSchema,
+} from './wallet.schemas.js';
+import type {
+  CreatorTransactionItem,
+  CreatorWalletSummary,
+  PaginatedCreatorTransactionsResponse,
+  PayoutRequestRecord,
+} from './wallet.types.js';
 
 /**
  * Handles `GET /wallet/creator/payout-accounts`:
@@ -129,7 +152,7 @@ export async function CreateCreatorPayoutAccount(
       return;
     }
 
-    let wallet = await prisma.wallet.findFirst({
+    const wallet = await prisma.wallet.findFirst({
       where: {
         accountId: account.sub,
         status: Status.ACTIVE,
@@ -137,12 +160,8 @@ export async function CreateCreatorPayoutAccount(
     });
 
     if (!wallet) {
-      wallet = await prisma.wallet.create({
-        data: {
-          accountId: account.sub,
-          status: Status.ACTIVE,
-        },
-      });
+      SendError(res, CREATOR_WALLET_MESSAGES.WALLET_NOT_FOUND, 404);
+      return;
     }
 
     const activeAccountsCount = await prisma.brandPayoutAccount.count({
@@ -559,3 +578,801 @@ export async function DeleteCreatorPayoutAccount(
     next(err);
   }
 }
+
+/**
+ * Handles `GET /wallet/creator/summary`:
+ * Retrieves the creator wallet balance and aggregated financial metrics
+ * (active balance, total earnings from campaigns, total withdrawn, pending withdrawal requests count).
+ *
+ * @param req - Express request object with authenticated creator account.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function GetCreatorWalletSummary(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, CREATOR_WALLET_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.CREATOR) {
+      SendError(res, CREATOR_WALLET_MESSAGES.CREATOR_ROLE_REQUIRED, 403);
+      return;
+    }
+
+    const wallet = await prisma.wallet.findFirst({
+      where: {
+        accountId: account.sub,
+        status: Status.ACTIVE,
+      },
+    });
+
+    if (!wallet) {
+      SendError(res, CREATOR_WALLET_MESSAGES.WALLET_NOT_FOUND, 404);
+      return;
+    }
+
+    const earningsQuery = {
+      where: {
+        walletId: wallet.id,
+        type: WalletTransactionType.CAMPAIGN_EARNING,
+        status: Status.ACTIVE,
+      },
+      _sum: {
+        amount: true as const,
+      },
+    };
+
+    const withdrawnQuery = {
+      where: {
+        walletId: wallet.id,
+        type: WalletTransactionType.WITHDRAWAL,
+        status: Status.ACTIVE,
+      },
+      _sum: {
+        amount: true as const,
+      },
+    };
+
+    const pendingCountQuery = {
+      where: {
+        walletId: wallet.id,
+        payoutStatus: PayoutStatus.PENDING,
+        status: Status.ACTIVE,
+      },
+    };
+
+    const [earningsAggregate, withdrawnAggregate, pendingWithdrawalsCount] = await Promise.all([
+      prisma.walletTransaction.aggregate(earningsQuery),
+      prisma.walletTransaction.aggregate(withdrawnQuery),
+      prisma.payoutRequest.count(pendingCountQuery),
+    ]);
+
+    const activeBalance = Number(wallet.balance);
+    const totalEarnings = Number(earningsAggregate._sum.amount ?? 0);
+    const totalWithdrawn = Number(withdrawnAggregate._sum.amount ?? 0);
+
+    const summary: CreatorWalletSummary = {
+      walletId: wallet.id,
+      balance: activeBalance,
+      metrics: {
+        activeBalance,
+        totalEarnings,
+        totalWithdrawn,
+        pendingWithdrawalsCount,
+      },
+    };
+
+    SendSuccess(res, summary, CREATOR_WALLET_MESSAGES.SUMMARY_FETCH_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles `GET /wallet/creator/transactions`:
+ * Retrieves paginated ledger transactions for the authenticated creator,
+ * enriched with campaign and submission details.
+ *
+ * @param req - Express request object with filter query parameters.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function GetCreatorTransactions(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, CREATOR_WALLET_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.CREATOR) {
+      SendError(res, CREATOR_WALLET_MESSAGES.CREATOR_ROLE_REQUIRED, 403);
+      return;
+    }
+
+    const validationResult = CreatorTransactionQuerySchema.safeParse(req.query);
+
+    if (!validationResult.success) {
+      const firstIssue = validationResult.error.issues[0];
+      const errorMessage = firstIssue ? firstIssue.message : 'Parameter query tidak valid.';
+      SendError(res, errorMessage, 400);
+      return;
+    }
+
+    const { type, page, limit, search } = validationResult.data;
+
+    const wallet = await prisma.wallet.findFirst({
+      where: {
+        accountId: account.sub,
+        status: Status.ACTIVE,
+      },
+    });
+
+    if (!wallet) {
+      SendError(res, CREATOR_WALLET_MESSAGES.WALLET_NOT_FOUND, 404);
+      return;
+    }
+
+    const creatorAllowedTypes = [
+      WalletTransactionType.CAMPAIGN_EARNING,
+      WalletTransactionType.WITHDRAWAL,
+    ];
+
+    const typeFilter =
+      type === 'ALL'
+        ? { in: creatorAllowedTypes }
+        : (type as WalletTransactionType);
+
+    const whereClause: Prisma.WalletTransactionWhereInput = {
+      walletId: wallet.id,
+      status: Status.ACTIVE,
+      type: typeFilter,
+    };
+
+    if (search && search.length > 0) {
+      whereClause.OR = [
+        { referenceCode: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { campaign: { title: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [total, records] = await Promise.all([
+      prisma.walletTransaction.count({ where: whereClause }),
+      prisma.walletTransaction.findMany({
+        where: whereClause,
+        orderBy: { transactionDate: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          campaign: {
+            select: {
+              id: true,
+              title: true,
+              cpm: true,
+            },
+          },
+          submission: {
+            select: {
+              id: true,
+              liveVideoUrl: true,
+              verifiedViews: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    const transactions: CreatorTransactionItem[] = records.map((item) => ({
+      id: item.id,
+      referenceCode: item.referenceCode,
+      type: item.type as 'CAMPAIGN_EARNING' | 'WITHDRAWAL',
+      amount: Number(item.amount),
+      balanceBefore: Number(item.balanceBefore),
+      balanceAfter: Number(item.balanceAfter),
+      description: item.description,
+      transactionDate: item.transactionDate,
+      createdAt: item.createdAt,
+      campaignId: item.campaignId ?? item.campaign?.id ?? null,
+      campaignTitle: item.campaign?.title ?? null,
+      cpmRate: item.campaign?.cpm ? Number(item.campaign.cpm) : null,
+      submissionId: item.submissionId ?? item.submission?.id ?? null,
+      videoUrl: item.submission?.liveVideoUrl ?? null,
+      verifiedViews: item.submission?.verifiedViews ?? null,
+    }));
+
+    const responsePayload: PaginatedCreatorTransactionsResponse = {
+      transactions,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
+    };
+
+    SendSuccess(res, responsePayload, CREATOR_WALLET_MESSAGES.TRANSACTIONS_FETCH_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles `GET /wallet/creator/withdrawals/active`:
+ * Retrieves all active pending withdrawal requests for the authenticated creator.
+ *
+ * @param req - Express request object.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function GetActiveCreatorWithdrawals(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, CREATOR_WALLET_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.CREATOR) {
+      SendError(res, CREATOR_WALLET_MESSAGES.CREATOR_ROLE_REQUIRED, 403);
+      return;
+    }
+
+    const wallet = await prisma.wallet.findFirst({
+      where: {
+        accountId: account.sub,
+        status: Status.ACTIVE,
+      },
+    });
+
+    if (!wallet) {
+      SendSuccess(res, [], CREATOR_WALLET_MESSAGES.ACTIVE_WITHDRAWALS_FETCH_SUCCESS);
+      return;
+    }
+
+    const activeWithdrawals = await prisma.payoutRequest.findMany({
+      where: {
+        walletId: wallet.id,
+        status: Status.ACTIVE,
+        payoutStatus: PayoutStatus.PENDING,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const result: PayoutRequestRecord[] = activeWithdrawals.map((r) => ({
+      id: r.id,
+      referenceCode: r.referenceCode,
+      walletId: r.walletId,
+      amount: Number(r.amount),
+      accountProvider: r.accountProvider,
+      accountNumber: r.accountNumber,
+      accountHolderName: r.accountHolderName,
+      payoutStatus: r.payoutStatus,
+      payoutAccountId: r.payoutAccountId,
+      rejectionReason: r.rejectionReason,
+      transferProofUrl: r.transferProofUrl,
+      adminNote: r.adminNote,
+      cancellationRequestedAt: r.cancellationRequestedAt,
+      cancellationReason: r.cancellationReason,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }));
+
+    SendSuccess(res, result, CREATOR_WALLET_MESSAGES.ACTIVE_WITHDRAWALS_FETCH_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles `POST /wallet/creator/withdraw`:
+ * Submits a new withdrawal request for the authenticated creator,
+ * deducting/reserving funds from active balance and creating a pending PayoutRequest.
+ *
+ * @param req - Express request object with withdrawal payload.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function CreateCreatorWithdrawal(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, CREATOR_WALLET_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.CREATOR) {
+      SendError(res, CREATOR_WALLET_MESSAGES.CREATOR_ROLE_REQUIRED, 403);
+      return;
+    }
+
+    const validationResult = CreateCreatorWithdrawalSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      const firstIssue = validationResult.error.issues[0];
+      const errorMessage = firstIssue ? firstIssue.message : 'Data penarikan saldo tidak valid.';
+      SendError(res, errorMessage, 400);
+      return;
+    }
+
+    const payload = validationResult.data;
+
+    const wallet = await prisma.wallet.findFirst({
+      where: {
+        accountId: account.sub,
+        status: Status.ACTIVE,
+      },
+    });
+
+    if (!wallet) {
+      SendError(res, CREATOR_WALLET_MESSAGES.WALLET_NOT_FOUND, 404);
+      return;
+    }
+
+    if (Number(wallet.balance) < payload.amount) {
+      SendError(res, CREATOR_WALLET_MESSAGES.INSUFFICIENT_BALANCE, 400);
+      return;
+    }
+
+    const targetAccount = await prisma.brandPayoutAccount.findFirst({
+      where: {
+        id: payload.payoutAccountId,
+        walletId: wallet.id,
+        status: Status.ACTIVE,
+      },
+    });
+
+    if (!targetAccount) {
+      SendError(res, CREATOR_WALLET_MESSAGES.PAYOUT_ACCOUNT_NOT_FOUND, 404);
+      return;
+    }
+
+    if (targetAccount.verificationStatus !== VerificationStatus.VERIFIED) {
+      SendError(res, CREATOR_WALLET_MESSAGES.PAYOUT_ACCOUNT_NOT_VERIFIED, 400);
+      return;
+    }
+
+    const withdrawalReference = GenerateWithdrawalReferenceCode();
+    const transactionReference = GenerateWalletTransactionReferenceCode();
+
+    const createdPayout = await prisma.$transaction(async (tx) => {
+      const currentWallet = await tx.wallet.findUniqueOrThrow({
+        where: { id: wallet.id },
+      });
+
+      const balanceBefore = Number(currentWallet.balance);
+
+      if (balanceBefore < payload.amount) {
+        throw new Error('INSUFFICIENT_BALANCE');
+      }
+
+      const balanceAfter = balanceBefore - payload.amount;
+
+      await tx.wallet.update({
+        where: { id: wallet.id },
+        data: {
+          balance: new Prisma.Decimal(balanceAfter),
+        },
+      });
+
+      await tx.walletTransaction.create({
+        data: {
+          referenceCode: transactionReference,
+          walletId: wallet.id,
+          type: WalletTransactionType.WITHDRAWAL,
+          amount: new Prisma.Decimal(payload.amount),
+          balanceBefore: new Prisma.Decimal(balanceBefore),
+          balanceAfter: new Prisma.Decimal(balanceAfter),
+          description: `Penarikan saldo ke ${targetAccount.provider} (${targetAccount.accountNumber}) - ${withdrawalReference}`,
+          transactionDate: new Date(),
+          status: Status.ACTIVE,
+        },
+      });
+
+      return tx.payoutRequest.create({
+        data: {
+          referenceCode: withdrawalReference,
+          walletId: wallet.id,
+          amount: new Prisma.Decimal(payload.amount),
+          accountProvider: targetAccount.provider,
+          accountNumber: targetAccount.accountNumber,
+          accountHolderName: targetAccount.accountHolderName,
+          payoutAccountId: targetAccount.id,
+          payoutStatus: PayoutStatus.PENDING,
+          status: Status.ACTIVE,
+        },
+      });
+    });
+
+    const record: PayoutRequestRecord = {
+      id: createdPayout.id,
+      referenceCode: createdPayout.referenceCode,
+      walletId: createdPayout.walletId,
+      amount: Number(createdPayout.amount),
+      accountProvider: createdPayout.accountProvider,
+      accountNumber: createdPayout.accountNumber,
+      accountHolderName: createdPayout.accountHolderName,
+      payoutStatus: createdPayout.payoutStatus,
+      payoutAccountId: createdPayout.payoutAccountId,
+      rejectionReason: createdPayout.rejectionReason,
+      transferProofUrl: createdPayout.transferProofUrl,
+      adminNote: createdPayout.adminNote,
+      cancellationRequestedAt: createdPayout.cancellationRequestedAt,
+      cancellationReason: createdPayout.cancellationReason,
+      createdAt: createdPayout.createdAt,
+      updatedAt: createdPayout.updatedAt,
+    };
+
+    SendSuccess(res, record, CREATOR_WALLET_MESSAGES.WITHDRAWAL_CREATED_SUCCESS, 201);
+  } catch (err) {
+    if (err instanceof Error && err.message === 'INSUFFICIENT_BALANCE') {
+      SendError(res, CREATOR_WALLET_MESSAGES.INSUFFICIENT_BALANCE, 400);
+      return;
+    }
+    next(err);
+  }
+}
+
+/**
+ * Handles `POST /wallet/creator/withdraw/:id/request-cancel`:
+ * Requests cancellation of a pending withdrawal request for the creator.
+ *
+ * @param req - Express request object with withdrawal id param and optional reason.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function RequestCreatorWithdrawalCancellation(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, CREATOR_WALLET_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.CREATOR) {
+      SendError(res, CREATOR_WALLET_MESSAGES.CREATOR_ROLE_REQUIRED, 403);
+      return;
+    }
+
+    const withdrawalId = req.params.id as string;
+
+    const validationResult = RequestWithdrawalCancellationSchema.safeParse(req.body ?? {});
+
+    if (!validationResult.success) {
+      SendError(res, WALLET_MESSAGES.INVALID_CANCELLATION_PAYLOAD, 400);
+      return;
+    }
+
+    const wallet = await prisma.wallet.findFirst({
+      where: {
+        accountId: account.sub,
+        status: Status.ACTIVE,
+      },
+    });
+
+    if (!wallet) {
+      SendError(res, CREATOR_WALLET_MESSAGES.WALLET_NOT_FOUND, 404);
+      return;
+    }
+
+    const payout = await prisma.payoutRequest.findFirst({
+      where: {
+        id: withdrawalId,
+        walletId: wallet.id,
+        status: Status.ACTIVE,
+      },
+    });
+
+    if (!payout) {
+      SendError(res, CREATOR_WALLET_MESSAGES.WITHDRAWAL_NOT_FOUND, 404);
+      return;
+    }
+
+    if (payout.payoutStatus !== PayoutStatus.PENDING) {
+      SendError(res, CREATOR_WALLET_MESSAGES.WITHDRAWAL_ALREADY_PROCESSED, 400);
+      return;
+    }
+
+    if (payout.cancellationRequestedAt) {
+      SendError(res, CREATOR_WALLET_MESSAGES.WITHDRAWAL_CANCELLATION_ALREADY_REQUESTED, 400);
+      return;
+    }
+
+    const reason = validationResult.data?.reason?.trim() || null;
+
+    const updatedPayout = await prisma.payoutRequest.update({
+      where: { id: payout.id },
+      data: {
+        cancellationRequestedAt: new Date(),
+        cancellationReason: reason,
+      },
+    });
+
+    const record: PayoutRequestRecord = {
+      id: updatedPayout.id,
+      referenceCode: updatedPayout.referenceCode,
+      walletId: updatedPayout.walletId,
+      amount: Number(updatedPayout.amount),
+      accountProvider: updatedPayout.accountProvider,
+      accountNumber: updatedPayout.accountNumber,
+      accountHolderName: updatedPayout.accountHolderName,
+      payoutStatus: updatedPayout.payoutStatus,
+      payoutAccountId: updatedPayout.payoutAccountId,
+      rejectionReason: updatedPayout.rejectionReason,
+      transferProofUrl: updatedPayout.transferProofUrl,
+      adminNote: updatedPayout.adminNote,
+      cancellationRequestedAt: updatedPayout.cancellationRequestedAt,
+      cancellationReason: updatedPayout.cancellationReason,
+      createdAt: updatedPayout.createdAt,
+      updatedAt: updatedPayout.updatedAt,
+    };
+
+    SendSuccess(res, record, CREATOR_WALLET_MESSAGES.WITHDRAWAL_CANCELLATION_REQUESTED_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles `POST /wallet/creator/simulate-earning`:
+ * Simulates crediting campaign video views earnings to creator wallet for testing / QA.
+ *
+ * @param req - Express request object with earning payload.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function SimulateCreatorEarning(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, CREATOR_WALLET_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.CREATOR) {
+      SendError(res, CREATOR_WALLET_MESSAGES.CREATOR_ROLE_REQUIRED, 403);
+      return;
+    }
+
+    const validationResult = SimulateCreatorEarningSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      const firstIssue = validationResult.error.issues[0];
+      const errorMessage = firstIssue ? firstIssue.message : 'Payload simulasi perolehan saldo tidak valid.';
+      SendError(res, errorMessage, 400);
+      return;
+    }
+
+    const payload = validationResult.data;
+
+    const wallet = await prisma.wallet.findFirst({
+      where: {
+        accountId: account.sub,
+        status: Status.ACTIVE,
+      },
+    });
+
+    if (!wallet) {
+      SendError(res, CREATOR_WALLET_MESSAGES.WALLET_NOT_FOUND, 404);
+      return;
+    }
+
+    const transactionReference = GenerateWalletTransactionReferenceCode();
+
+    const result = await prisma.$transaction(async (tx) => {
+      const currentWallet = await tx.wallet.findUniqueOrThrow({
+        where: { id: wallet.id },
+      });
+
+      const balanceBefore = Number(currentWallet.balance);
+      const balanceAfter = balanceBefore + payload.amount;
+
+      await tx.wallet.update({
+        where: { id: wallet.id },
+        data: {
+          balance: new Prisma.Decimal(balanceAfter),
+        },
+      });
+
+      const description = payload.campaignTitle
+        ? `Perolehan saldo video: ${payload.campaignTitle}`
+        : 'Perolehan saldo penayangan video clipping';
+
+      await tx.walletTransaction.create({
+        data: {
+          referenceCode: transactionReference,
+          walletId: wallet.id,
+          type: WalletTransactionType.CAMPAIGN_EARNING,
+          amount: new Prisma.Decimal(payload.amount),
+          balanceBefore: new Prisma.Decimal(balanceBefore),
+          balanceAfter: new Prisma.Decimal(balanceAfter),
+          description,
+          transactionDate: new Date(),
+          status: Status.ACTIVE,
+        },
+      });
+
+      return { balance: balanceAfter };
+    });
+
+    SendSuccess(res, result, CREATOR_WALLET_MESSAGES.SIMULATE_EARNING_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles `POST /wallet/creator/withdraw/:id/approve`:
+ * Simulates sandbox/admin approval of a creator withdrawal request.
+ *
+ * @param req - Express request object with withdrawal id param.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function SimulateCreatorWithdrawalApproval(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, CREATOR_WALLET_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    const withdrawalId = req.params.id as string;
+
+    const payout = await prisma.payoutRequest.findFirst({
+      where: {
+        id: withdrawalId,
+        status: Status.ACTIVE,
+      },
+    });
+
+    if (!payout) {
+      SendError(res, CREATOR_WALLET_MESSAGES.WITHDRAWAL_NOT_FOUND, 404);
+      return;
+    }
+
+    if (payout.payoutStatus === PayoutStatus.APPROVED) {
+      SendError(res, CREATOR_WALLET_MESSAGES.WITHDRAWAL_ALREADY_PROCESSED, 400);
+      return;
+    }
+
+    const updatedPayout = await prisma.payoutRequest.update({
+      where: { id: payout.id },
+      data: {
+        payoutStatus: PayoutStatus.APPROVED,
+        processedAt: new Date(),
+        adminNote: 'Pencairan disetujui otomatis melalui simulasi testing',
+      },
+    });
+
+    const record: PayoutRequestRecord = {
+      id: updatedPayout.id,
+      referenceCode: updatedPayout.referenceCode,
+      walletId: updatedPayout.walletId,
+      amount: Number(updatedPayout.amount),
+      accountProvider: updatedPayout.accountProvider,
+      accountNumber: updatedPayout.accountNumber,
+      accountHolderName: updatedPayout.accountHolderName,
+      payoutStatus: updatedPayout.payoutStatus,
+      payoutAccountId: updatedPayout.payoutAccountId,
+      rejectionReason: updatedPayout.rejectionReason,
+      transferProofUrl: updatedPayout.transferProofUrl,
+      adminNote: updatedPayout.adminNote,
+      cancellationRequestedAt: updatedPayout.cancellationRequestedAt,
+      cancellationReason: updatedPayout.cancellationReason,
+      createdAt: updatedPayout.createdAt,
+      updatedAt: updatedPayout.updatedAt,
+    };
+
+    SendSuccess(res, record, CREATOR_WALLET_MESSAGES.WITHDRAWAL_APPROVAL_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles `POST /wallet/creator/payout-accounts/:id/verify`:
+ * Simulates sandbox/admin KYC verification of a creator payout account.
+ *
+ * @param req - Express request with payout account ID param.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function SimulateCreatorPayoutAccountVerification(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, CREATOR_WALLET_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    const accountId = req.params.id as string;
+
+    const targetAccount = await prisma.brandPayoutAccount.findFirst({
+      where: {
+        id: accountId,
+        status: Status.ACTIVE,
+      },
+    });
+
+    if (!targetAccount) {
+      SendError(res, CREATOR_WALLET_MESSAGES.PAYOUT_ACCOUNT_NOT_FOUND, 404);
+      return;
+    }
+
+    const updatedAccount = await prisma.brandPayoutAccount.update({
+      where: { id: targetAccount.id },
+      data: {
+        verificationStatus: VerificationStatus.VERIFIED,
+        verifiedAt: new Date(),
+        rejectionReason: null,
+      },
+    });
+
+    const record = {
+      id: updatedAccount.id,
+      walletId: updatedAccount.walletId,
+      accountType: updatedAccount.accountType,
+      provider: updatedAccount.provider,
+      accountNumber: updatedAccount.accountNumber,
+      accountHolderName: updatedAccount.accountHolderName,
+      proofUrl: updatedAccount.proofUrl,
+      isPrimary: updatedAccount.isPrimary,
+      verificationStatus: updatedAccount.verificationStatus,
+      rejectionReason: updatedAccount.rejectionReason,
+      createdAt: updatedAccount.createdAt,
+      updatedAt: updatedAccount.updatedAt,
+    };
+
+    SendSuccess(res, record, CREATOR_WALLET_MESSAGES.PAYOUT_ACCOUNT_VERIFIED_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+

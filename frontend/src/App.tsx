@@ -31,6 +31,7 @@ const CampaignStep6 = lazy(() => import('@/features/campaign/pages/steps/Campaig
 const CampaignDetail = lazy(() => import('@/features/campaign/pages/CampaignDetail'));
 const BrandProfilePage = lazy(() => import('@/features/brand/pages/BrandProfilePage'));
 const CreatorProfilePage = lazy(() => import('@/features/creator/pages/CreatorProfilePage'));
+const HelpPage = lazy(() => import('@/features/knowledge/pages/HelpPage'));
 
 
 
@@ -58,6 +59,24 @@ const router = createBrowserRouter(
           </Suspense>
         }
       />
+      <Route
+        path="faq"
+        element={
+          <Suspense fallback={<PageLoadingFallback />}>
+            <HelpPage defaultTab="faq" />
+          </Suspense>
+        }
+      />
+      <Route
+        path="peraturan"
+        element={
+          <Suspense fallback={<PageLoadingFallback />}>
+            <HelpPage defaultTab="rules" />
+          </Suspense>
+        }
+      />
+      <Route path="rules" element={<Navigate to="/peraturan" replace />} />
+      <Route path="help" element={<Navigate to="/faq" replace />} />
       <Route element={<AuthLayout />}>
         <Route path="signin" element={<SignIn />} />
         <Route path="login" element={<Navigate to="/signin" replace />} />

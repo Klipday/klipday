@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { Link } from 'react-router';
 import { useGSAP } from '@gsap/react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -86,6 +87,15 @@ export function HomeFaq({ className = '' }: HomeFaqProps) {
           <p className="font-normal text-sm leading-relaxed text-zinc-400">
             {HOME_FAQ_HEADER.subtitle}
           </p>
+          <div className="mt-6">
+            <Link
+              to="/faq"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors"
+            >
+              <span>Buka Seluruh FAQ & Peraturan Platform</span>
+              <span aria-hidden="true">&rarr;</span>
+            </Link>
+          </div>
         </div>
 
         {/* Right Side: Clean Dark Accordion using shadcn/ui primitives */}

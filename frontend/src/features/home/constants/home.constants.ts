@@ -47,7 +47,7 @@ export const HOME_HERO_CONTENT: Record<AudienceType, HeroAudienceContent> = {
     subcopy: 'Kerahkan ratusan clipper buat sebarin produkmu di TikTok. Gak perlu bayar mahal di depan—cukup bayar per 1.000 views organik.',
     ctaLabel: 'Buat Campaign Sekarang',
     ctaHref: '/signup',
-    trustPill: '🛡️ Dana Aman di Escrow  •  100% Views Organik Anti-Bot  •  Auto-Refund Sisa Budget',
+    trustPill: '🛡️ Dana Aman di Escrow  •  100% Views Organik Terverifikasi  •  Auto-Refund Sisa Budget',
   },
 } as const;
 
@@ -154,7 +154,7 @@ export const HOME_BENEFITS_CONTENT: Record<AudienceType, BenefitAudienceContent>
     cpmCard: {
       overline: '100% BERBASIS PERFORMA',
       title: 'Gak Ada Views, Gak Bayar',
-      description: 'Lupakan endorse mahal yang views-nya zonk. Di sini kamu cuma bayar views asli yang lolos sensor verifikasi anti-bot kami.',
+      description: 'Lupakan endorse mahal yang views-nya zonk. Di sini kamu cuma bayar views asli yang lolos verifikasi views kami.',
       metricLabel: 'Biaya Tanpa Views',
       metricValue: 'Rp 0',
       rawTargetValue: 0,
@@ -262,14 +262,13 @@ export const HOME_FAQS: readonly FaqItem[] = [
     id: 6,
     question: 'Kalau saya Brand, apakah budget saya aman?',
     answer:
-      'Sangat aman dan anti-boncos. Klipday menggunakan sistem Protected Escrow: dana yang kamu depositkan dikunci di dalam sistem dan hanya terpotong saat klip yang sudah kamu approve menghasilkan views organik asli (bebas bot). Jika masa campaign selesai dan budget masih tersisa, sisa dana otomatis kembali 100% ke saldo dompetmu.',
+      'Sangat aman dan anti-boncos. Klipday menggunakan sistem Protected Escrow: dana yang kamu depositkan dikunci di dalam sistem dan hanya terpotong saat klip yang sudah kamu approve menghasilkan views organik asli. Jika masa campaign selesai dan budget masih tersisa, sisa dana otomatis kembali 100% ke saldo dompetmu.',
   },
 ] as const;
 
 export const HOME_FOOTER_LINKS: readonly NavLinkItem[] = [
   { label: 'Cara Kerja', href: '#cara-kerja' },
   { label: 'Benefit', href: '#benefit' },
-  { label: 'FAQ', href: '#faq' },
-  { label: 'Syarat & Ketentuan', href: '#' },
-  { label: 'Kebijakan Privasi', href: '#' },
+  { label: 'FAQ', href: '/faq' },
+  { label: 'Peraturan Platform', href: '/peraturan' },
 ] as const;

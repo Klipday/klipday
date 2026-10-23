@@ -99,4 +99,34 @@ export const CreateCreatorPayoutAccountSchema = z
 
 export type CreateCreatorPayoutAccountInput = z.infer<typeof CreateCreatorPayoutAccountSchema>;
 
+export const CreateCreatorWithdrawalSchema = z.object({
+  amount: z
+    .number({ error: CREATOR_WALLET_MESSAGES.INVALID_WITHDRAWAL_AMOUNT })
+    .int('Nominal harus berupa bilangan bulat')
+    .min(WITHDRAWAL_LIMITS.MIN_AMOUNT, CREATOR_WALLET_MESSAGES.INVALID_WITHDRAWAL_AMOUNT)
+    .max(WITHDRAWAL_LIMITS.MAX_AMOUNT, WALLET_MESSAGES.INVALID_AMOUNT_RANGE),
+  payoutAccountId: z.string().uuid('ID akun penarikan wajib berupa UUID yang valid.'),
+});
+
+export type CreateCreatorWithdrawalInput = z.infer<typeof CreateCreatorWithdrawalSchema>;
+
+export const CreatorTransactionQuerySchema = z.object({
+  type: z.enum(['ALL', 'CAMPAIGN_EARNING', 'WITHDRAWAL']).default('ALL'),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+  search: z.string().trim().optional(),
+});
+
+export type CreatorTransactionQueryInput = z.infer<typeof CreatorTransactionQuerySchema>;
+
+export const SimulateCreatorEarningSchema = z.object({
+  amount: z.number().int().positive('Nominal perolehan saldo harus lebih dari 0'),
+  campaignTitle: z.string().trim().optional(),
+  verifiedViews: z.number().int().nonnegative().optional(),
+  cpmRate: z.number().positive().optional(),
+});
+
+export type SimulateCreatorEarningInput = z.infer<typeof SimulateCreatorEarningSchema>;
+
+
 
