@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SubmissionStatus } from '../../generated/prisma/enums.js';
 import {
   ALL_STATUS_FILTER,
   MAX_CAPTION_LENGTH,
@@ -47,6 +48,31 @@ export const SubmissionQuerySchema = z.object({
   search: z.string().trim().max(MAX_SEARCH_LENGTH, SUBMISSION_MESSAGES.SEARCH_MAX_EXCEEDED).optional(),
   status: z
     .enum([...REVIEWABLE_SUBMISSION_STATUSES, ALL_STATUS_FILTER], {
+      error: SUBMISSION_MESSAGES.STATUS_FILTER_INVALID,
+    })
+    .optional(),
+  sort: z
+    .enum(SUBMISSION_SORT_OPTIONS, {
+      error: SUBMISSION_MESSAGES.SORT_INVALID,
+    })
+    .optional(),
+});
+
+export const CreatorSubmissionQuerySchema = z.object({
+  page: z.coerce
+    .number({ error: SUBMISSION_MESSAGES.PAGE_NUMBER_REQUIRED })
+    .int(SUBMISSION_MESSAGES.PAGE_INTEGER)
+    .positive(SUBMISSION_MESSAGES.PAGE_POSITIVE)
+    .optional(),
+  limit: z.coerce
+    .number({ error: SUBMISSION_MESSAGES.LIMIT_NUMBER_REQUIRED })
+    .int(SUBMISSION_MESSAGES.LIMIT_INTEGER)
+    .positive(SUBMISSION_MESSAGES.LIMIT_POSITIVE)
+    .max(MAX_LIMIT, SUBMISSION_MESSAGES.LIMIT_MAX_EXCEEDED)
+    .optional(),
+  search: z.string().trim().max(MAX_SEARCH_LENGTH, SUBMISSION_MESSAGES.SEARCH_MAX_EXCEEDED).optional(),
+  status: z
+    .enum([...REVIEWABLE_SUBMISSION_STATUSES, SubmissionStatus.JOINED, ALL_STATUS_FILTER], {
       error: SUBMISSION_MESSAGES.STATUS_FILTER_INVALID,
     })
     .optional(),

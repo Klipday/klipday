@@ -16,6 +16,7 @@ import {
   AcceptSubmission,
   FinalSubmitVideo,
   GetCampaignSubmissions,
+  GetCreatorSubmissions,
   GetMyCampaignSubmission,
   JoinCampaign,
   RejectSubmission,
@@ -1966,6 +1967,153 @@ describe('Submission Feature Module', () => {
           data: null,
           message: SUBMISSION_MESSAGES.SUBMISSION_STATUS_NOT_REVIEWABLE,
         });
+      });
+    });
+
+    describe('GetCreatorSubmissions', () => {
+      const mockCreatorAccount = {
+        sub: 'acc-creator-uuid-99',
+        role: Role.CREATOR,
+        email: 'creator@klipday.com',
+      };
+
+      const mockCreatorRecord = {
+        id: 'creator-uuid-99',
+        accountId: mockCreatorAccount.sub,
+        status: Status.ACTIVE,
+      };
+
+      const mockSubmissionItem = {
+        id: 'sub-uuid-1',
+        campaignId: 'camp-uuid-1',
+        creatorId: mockCreatorRecord.id,
+        liveVideoUrl: 'https://tiktok.com/@creator/video/1',
+        thumbnailUrl: 'https://storage.klipday.com/thumb.jpg',
+        videoCaption: 'Test video caption',
+        submissionStatus: SubmissionStatus.APPROVED,
+        reviewNote: null,
+        verifiedViews: 84200,
+        earnings: '1263000',
+        submittedAt: new Date('2026-03-01'),
+        createdAt: new Date('2026-03-01'),
+        updatedAt: new Date('2026-03-01'),
+        campaign: {
+          id: 'camp-uuid-1',
+          title: 'Somethinc Serum Campaign',
+          description: 'Serum glowing review',
+          thumbnailUrl: 'https://storage.klipday.com/camp.jpg',
+          cpm: 15000,
+          minViews: 1000,
+          maxViews: 100000,
+          platform: Platform.TIKTOK,
+          campaignStatus: CampaignStatus.ACTIVE,
+          brand: {
+            companyName: 'Somethinc Official',
+            logoUrl: 'https://storage.klipday.com/logo.jpg',
+          },
+        },
+        socialAccount: {
+          id: 'soc-1',
+          username: 'rinaclipper',
+          avatarUrl: 'https://storage.klipday.com/avatar.jpg',
+        },
+      };
+
+      it('returns 401 when account session is missing', async () => {
+        const req = CreateMockRequest({ account: undefined });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        await GetCreatorSubmissions(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(401);
+      });
+
+      it('returns 403 when user is not a CREATOR or ADMIN', async () => {
+        const req = CreateMockRequest({
+          account: { sub: 'brand-acc', role: Role.BRAND, email: 'brand@test.com' },
+        });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        await GetCreatorSubmissions(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(403);
+      });
+
+      it('returns 404 when creator profile is not found', async () => {
+        const req = CreateMockRequest({ account: mockCreatorAccount });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(null as never);
+
+        await GetCreatorSubmissions(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(404);
+      });
+
+      it('returns 400 when query validation fails', async () => {
+        const req = CreateMockRequest({
+          account: mockCreatorAccount,
+          query: { page: -1 },
+        });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreatorRecord as never);
+
+        await GetCreatorSubmissions(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+      });
+
+      it('returns paginated submissions and counts on success', async () => {
+        const req = CreateMockRequest({
+          account: mockCreatorAccount,
+          query: { page: '1', limit: '10' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreatorRecord as never);
+        jest.spyOn(prisma.submission, 'findMany').mockResolvedValue([mockSubmissionItem] as never);
+        jest.spyOn(prisma.submission, 'count').mockResolvedValue(1 as never);
+        jest.spyOn(prisma.submission, 'groupBy').mockResolvedValue([
+          { submissionStatus: SubmissionStatus.APPROVED, _count: { _all: 1 } },
+        ] as never);
+
+        await GetCreatorSubmissions(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: 'success',
+            data: expect.objectContaining({
+              items: expect.arrayContaining([
+                expect.objectContaining({
+                  id: 'sub-uuid-1',
+                  campaignTitle: 'Somethinc Serum Campaign',
+                  brandName: 'Somethinc Official',
+                  cpm: 15000,
+                  verifiedViews: 84200,
+                  earnings: 1263000,
+                }),
+              ]),
+              counts: expect.objectContaining({
+                all: 1,
+                approved: 1,
+                pendingReview: 0,
+              }),
+              pagination: {
+                page: 1,
+                limit: 10,
+                total: 1,
+                totalPages: 1,
+              },
+            }),
+          }),
+        );
       });
     });
   });

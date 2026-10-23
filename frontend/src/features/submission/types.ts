@@ -403,3 +403,84 @@ export interface SubmissionVideoGalleryProps {
 }
 
 export type VideoPickerTab = 'GALLERY' | 'MANUAL';
+
+export interface CreatorSubmissionListItem {
+  id: string;
+  campaignId: string;
+  campaignTitle: string;
+  campaignDescription: string | null;
+  campaignThumbnailUrl: string | null;
+  brandName: string;
+  brandLogoUrl: string | null;
+  cpm: number;
+  platform: string;
+  liveVideoUrl: string | null;
+  thumbnailUrl: string | null;
+  videoCaption: string | null;
+  submissionStatus: SubmissionStatus;
+  reviewNote: string | null;
+  verifiedViews: number;
+  earnings: number;
+  submittedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  socialAccount: {
+    id: string;
+    username: string;
+    avatarUrl: string | null;
+  } | null;
+}
+
+export interface CreatorSubmissionCounts {
+  all: number;
+  pendingReview: number;
+  approved: number;
+  revisionRequested: number;
+  rejected: number;
+  joined: number;
+}
+
+export interface CreatorSubmissionsQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: SubmissionStatus | 'ALL';
+  sort?: 'latest' | 'oldest' | 'views_desc' | 'views_asc' | 'earnings_desc';
+}
+
+export interface CreatorSubmissionsPaginatedResponse {
+  items: CreatorSubmissionListItem[];
+  counts: CreatorSubmissionCounts;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface CreatorSubmissionRowCardProps {
+  submission: CreatorSubmissionListItem;
+  className?: string;
+}
+
+export interface CreatorSubmissionsToolbarProps {
+  searchTerm: string;
+  status: SubmissionStatus | 'ALL';
+  counts?: CreatorSubmissionCounts;
+  onSearchChange: (value: string) => void;
+  onResetSearch: () => void;
+  onStatusChange: (status: SubmissionStatus | 'ALL') => void;
+  className?: string;
+}
+
+export interface CreatorSubmissionsEmptyStateProps {
+  hasFilters: boolean;
+  onResetFilters: () => void;
+  className?: string;
+}
+
+export interface CreatorSubmissionsPageProps {
+  className?: string;
+}
+

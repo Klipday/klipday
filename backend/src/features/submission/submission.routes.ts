@@ -4,6 +4,7 @@ import {
   AcceptSubmission,
   FinalSubmitVideo,
   GetCampaignSubmissions,
+  GetCreatorSubmissions,
   GetMyCampaignSubmission,
   JoinCampaign,
   RejectSubmission,
@@ -25,8 +26,11 @@ campaignSubmissionRouter.get('/:id/submissions', GetCampaignSubmissions);
 
 export const submissionRouter = Router();
 
-// All submission review endpoints require an authenticated session
+// All submission review and creator list endpoints require an authenticated session
 submissionRouter.use(RequireAuth);
+
+// Creator's personal submissions list
+submissionRouter.get('/my', GetCreatorSubmissions);
 
 // Brand & Admin submission review endpoints
 submissionRouter.post('/:id/accept', AcceptSubmission);

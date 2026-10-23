@@ -1,4 +1,4 @@
-import { FileCheck, LayoutDashboard, Megaphone, Settings, ShieldCheck, User, Wallet } from 'lucide-react';
+import { FileCheck, LayoutDashboard, Megaphone, Settings, ShieldCheck, User, Video, Wallet } from 'lucide-react';
 import type { DashboardNavItem } from '../types';
 
 export type { DashboardNavItem };
@@ -36,6 +36,11 @@ export const CREATOR_NAV_ITEMS: DashboardNavItem[] = [
     title: 'Kampanye',
     href: '/creator-dashboard/creator-campaigns',
     icon: Megaphone,
+  },
+  {
+    title: 'Submisi Video',
+    href: '/creator-dashboard/submissions',
+    icon: Video,
   },
   {
     title: 'Dompet',

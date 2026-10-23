@@ -21,6 +21,7 @@ const BrandCampaigns = lazy(() => import('@/features/campaign/pages/BrandCampaig
 const CreatorCampaigns = lazy(() => import('@/features/campaign/pages/CreatorCampaigns'));
 const BrandWalletPage = lazy(() => import('@/features/wallet/pages/BrandWalletPage'));
 const CreatorWalletPage = lazy(() => import('@/features/wallet/pages/CreatorWalletPage'));
+const CreatorSubmissionsPage = lazy(() => import('@/features/submission/pages/CreatorSubmissionsPage'));
 
 const CampaignStep1 = lazy(() => import('@/features/campaign/pages/steps/CampaignStep1'));
 const CampaignStep2 = lazy(() => import('@/features/campaign/pages/steps/CampaignStep2'));
@@ -86,9 +87,12 @@ const router = createBrowserRouter(
         <Route path="creator-dashboard" element={<DashboardLayout />}>
           <Route index element={<CreatorDashboard />} />
           <Route path="creator-campaigns" element={<CreatorCampaigns />} />
+          <Route path="submissions" element={<CreatorSubmissionsPage />} />
           <Route path="wallet" element={<CreatorWalletPage />} />
           <Route path="profile" element={<CreatorProfilePage />} />
         </Route>
+        <Route path="creator-submissions" element={<Navigate to="/creator-dashboard/submissions" replace />} />
+        <Route path="dashboard/submissions" element={<Navigate to="/creator-dashboard/submissions" replace />} />
         <Route path="creator-profile" element={<Navigate to="/creator-dashboard/profile" replace />} />
         <Route path="creator-campaigns" element={<Navigate to="/creator-dashboard/creator-campaigns" replace />} />
         <Route path="dashboard/campaigns" element={<Navigate to="/creator-dashboard/creator-campaigns" replace />} />

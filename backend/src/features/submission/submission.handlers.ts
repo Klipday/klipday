@@ -1,17 +1,34 @@
 import type { NextFunction, Request, Response } from 'express';
+import type { Prisma } from '../../generated/prisma/client.js';
 import { CampaignStatus, Platform, Role, Status, SubmissionStatus } from '../../generated/prisma/enums.js';
 import { prisma } from '../../utils/prisma.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
 import { IsSupabaseStorageUrl, PersistVideoThumbnailToStorage } from '../../services/supabase.js';
-import { BUDGET_DECIMAL_PLACES, CPM_VIEW_DIVISOR, DEFAULT_LIMIT, DEFAULT_PAGE, SUBMISSION_MESSAGES } from './submission.constants.js';
 import {
+  ALL_STATUS_FILTER,
+  BUDGET_DECIMAL_PLACES,
+  CPM_VIEW_DIVISOR,
+  DEFAULT_LIMIT,
+  DEFAULT_PAGE,
+  SUBMISSION_MESSAGES,
+  SUBMISSION_SORT,
+} from './submission.constants.js';
+import {
+  CreatorSubmissionQuerySchema,
   FinalSubmitVideoSchema,
   RejectSubmissionSchema,
   RequestRevisionSchema,
   SaveDraftSubmissionSchema,
   SubmissionQuerySchema,
 } from './submission.validators.js';
-import type { CampaignSubmissionsPaginatedData, MySubmissionResponseData, SubmissionDetailDto } from './submission.types.js';
+import type {
+  CampaignSubmissionsPaginatedData,
+  CreatorSubmissionCountsDto,
+  CreatorSubmissionListItemDto,
+  CreatorSubmissionsPaginatedData,
+  MySubmissionResponseData,
+  SubmissionDetailDto,
+} from './submission.types.js';
 import {
   BuildSubmissionsOrderBy,
   BuildSubmissionsWhereClause,
@@ -872,3 +889,218 @@ export async function RequestSubmissionRevision(req: Request, res: Response, nex
     next(err);
   }
 }
+
+/**
+ * Handles `GET /submissions/my`:
+ * Retrieves paginated, filtered, searched, and sorted video submissions created by the authenticated creator.
+ * Returns each submission row with campaign title, description, thumbnail, brand name & logo, CPM, views, and earnings.
+ *
+ * @param req - Express request containing authenticated account and query parameters.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function GetCreatorSubmissions(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const account = req.account;
+    if (!account) {
+      SendError(res, SUBMISSION_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.CREATOR && account.role !== Role.ADMIN) {
+      SendError(res, SUBMISSION_MESSAGES.ONLY_CREATORS_CAN_ACCESS_SUBMISSIONS, 403);
+      return;
+    }
+
+    const findCreatorQuery = {
+      where: {
+        accountId: account.sub,
+        status: Status.ACTIVE,
+      },
+      select: { id: true },
+    };
+    const creator = await prisma.creator.findFirst(findCreatorQuery);
+
+    if (!creator) {
+      SendError(res, SUBMISSION_MESSAGES.CREATOR_NOT_FOUND, 404);
+      return;
+    }
+
+    const validation = CreatorSubmissionQuerySchema.safeParse(req.query);
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]?.message ?? SUBMISSION_MESSAGES.INVALID_PAYLOAD;
+      SendError(res, firstError, 400);
+      return;
+    }
+
+    const query = validation.data;
+    const page = query.page ?? DEFAULT_PAGE;
+    const limit = query.limit ?? DEFAULT_LIMIT;
+    const skip = (page - 1) * limit;
+
+    const whereClause: Prisma.SubmissionWhereInput = {
+      creatorId: creator.id,
+      status: Status.ACTIVE,
+    };
+
+    if (query.status && query.status !== ALL_STATUS_FILTER) {
+      whereClause.submissionStatus = query.status;
+    } else {
+      whereClause.submissionStatus = {
+        not: SubmissionStatus.JOINED,
+      };
+    }
+
+    if (query.search) {
+      whereClause.OR = [
+        { campaign: { title: { contains: query.search, mode: 'insensitive' } } },
+        { campaign: { brand: { companyName: { contains: query.search, mode: 'insensitive' } } } },
+        { videoCaption: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+
+    let orderBy: Prisma.SubmissionOrderByWithRelationInput[] = [
+      { submittedAt: 'desc' },
+      { createdAt: 'desc' },
+    ];
+
+    if (query.sort === SUBMISSION_SORT.VIEWS_DESC) {
+      orderBy = [{ verifiedViews: 'desc' }, { createdAt: 'desc' }];
+    } else if (query.sort === SUBMISSION_SORT.VIEWS_ASC) {
+      orderBy = [{ verifiedViews: 'asc' }, { createdAt: 'desc' }];
+    } else if (query.sort === SUBMISSION_SORT.EARNINGS_DESC) {
+      orderBy = [{ earnings: 'desc' }, { createdAt: 'desc' }];
+    } else if (query.sort === SUBMISSION_SORT.OLDEST) {
+      orderBy = [{ submittedAt: 'asc' }, { createdAt: 'asc' }];
+    }
+
+    const findSubmissionsQuery = {
+      where: whereClause,
+      skip,
+      take: limit,
+      orderBy,
+      include: {
+        campaign: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            thumbnailUrl: true,
+            cpm: true,
+            minViews: true,
+            maxViews: true,
+            platform: true,
+            campaignStatus: true,
+            brand: {
+              select: {
+                companyName: true,
+                logoUrl: true,
+              },
+            },
+          },
+        },
+        socialAccount: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    };
+
+    const countQuery = { where: whereClause };
+
+    const statusCountsQuery = {
+      by: ['submissionStatus' as const],
+      where: {
+        creatorId: creator.id,
+        status: Status.ACTIVE,
+      },
+      _count: {
+        _all: true as const,
+      },
+    };
+
+    const [rawSubmissions, total, statusGroups] = await Promise.all([
+      prisma.submission.findMany(findSubmissionsQuery),
+      prisma.submission.count(countQuery),
+      prisma.submission.groupBy(statusCountsQuery),
+    ]);
+
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    const counts: CreatorSubmissionCountsDto = {
+      all: 0,
+      pendingReview: 0,
+      approved: 0,
+      revisionRequested: 0,
+      rejected: 0,
+      joined: 0,
+    };
+
+    for (const group of statusGroups) {
+      const cnt = group._count._all;
+      if (group.submissionStatus === SubmissionStatus.PENDING_REVIEW) {
+        counts.pendingReview = cnt;
+        counts.all += cnt;
+      } else if (group.submissionStatus === SubmissionStatus.APPROVED) {
+        counts.approved = cnt;
+        counts.all += cnt;
+      } else if (group.submissionStatus === SubmissionStatus.REVISION_REQUESTED) {
+        counts.revisionRequested = cnt;
+        counts.all += cnt;
+      } else if (group.submissionStatus === SubmissionStatus.REJECTED) {
+        counts.rejected = cnt;
+        counts.all += cnt;
+      } else if (group.submissionStatus === SubmissionStatus.JOINED) {
+        counts.joined = cnt;
+      }
+    }
+
+    const items: CreatorSubmissionListItemDto[] = rawSubmissions.map((s) => ({
+      id: s.id,
+      campaignId: s.campaignId,
+      campaignTitle: s.campaign.title || 'Kampanye Tanpa Judul',
+      campaignDescription: s.campaign.description,
+      campaignThumbnailUrl: s.campaign.thumbnailUrl,
+      brandName: s.campaign.brand.companyName,
+      brandLogoUrl: s.campaign.brand.logoUrl,
+      cpm: Number(s.campaign.cpm ?? 0),
+      platform: s.campaign.platform,
+      liveVideoUrl: s.liveVideoUrl,
+      thumbnailUrl: s.thumbnailUrl,
+      videoCaption: s.videoCaption,
+      submissionStatus: s.submissionStatus,
+      reviewNote: s.reviewNote,
+      verifiedViews: s.verifiedViews,
+      earnings: Number(s.earnings ?? 0),
+      submittedAt: s.submittedAt,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+      socialAccount: s.socialAccount
+        ? {
+            id: s.socialAccount.id,
+            username: s.socialAccount.username,
+            avatarUrl: s.socialAccount.avatarUrl,
+          }
+        : null,
+    }));
+
+    const responsePayload: CreatorSubmissionsPaginatedData = {
+      items,
+      counts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
+    };
+
+    SendSuccess(res, responsePayload, SUBMISSION_MESSAGES.GET_CREATOR_SUBMISSIONS_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+

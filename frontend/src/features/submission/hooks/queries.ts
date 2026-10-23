@@ -3,12 +3,15 @@ import {
   GetCampaignSubmissions,
   GetConnectedSocialAccount,
   GetMyCampaignSubmission,
+  GetMySubmissions,
   GetRecentTikTokVideos,
 } from '../api';
 import type {
   CampaignSubmissionsPaginatedResponse,
   CampaignSubmissionsQueryParams,
   CreatorSocialAccount,
+  CreatorSubmissionsPaginatedResponse,
+  CreatorSubmissionsQueryParams,
   MySubmissionData,
   SocialVideoItem,
 } from '../types';
@@ -87,3 +90,18 @@ export function UseCampaignSubmissionsQuery(
     staleTime: 1000 * 30, // 30 seconds
   });
 }
+
+/**
+ * Query hook for retrieving the creator's submitted campaign videos with status filter and search.
+ *
+ * @param params - Query parameters for pagination, status filter, search, and sorting.
+ * @returns TanStack Query result containing creator submissions and status counts.
+ */
+export function UseMySubmissionsQuery(params?: CreatorSubmissionsQueryParams) {
+  return useQuery<CreatorSubmissionsPaginatedResponse>({
+    queryKey: ['my-submissions', params],
+    queryFn: () => GetMySubmissions(params),
+    staleTime: 1000 * 30, // 30 seconds
+  });
+}
+

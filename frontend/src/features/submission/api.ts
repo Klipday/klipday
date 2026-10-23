@@ -5,6 +5,8 @@ import type {
   CampaignSubmissionsPaginatedResponse,
   CampaignSubmissionsQueryParams,
   CreatorSocialAccount,
+  CreatorSubmissionsPaginatedResponse,
+  CreatorSubmissionsQueryParams,
   FinalSubmitVideoInput,
   MySubmissionData,
   RequestVerificationCodeInput,
@@ -251,3 +253,23 @@ export async function RequestSubmissionRevision(submissionId: string, reviewNote
     throw apiError;
   }
 }
+
+/**
+ * Sends a GET request to `/submissions/my` to retrieve the creator's submitted campaign videos.
+ *
+ * @param params - Optional query parameters for pagination, status filter, search, and sort.
+ * @returns Paginated list of creator submissions and status counts.
+ */
+export async function GetMySubmissions(params?: CreatorSubmissionsQueryParams): Promise<CreatorSubmissionsPaginatedResponse> {
+  try {
+    const response = await apiClient.get<ApiResponse<CreatorSubmissionsPaginatedResponse>>('/submissions/my', {
+      params,
+    });
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal memuat daftar submisi video kamu.');
+    throw apiError;
+  }
+}
+

@@ -52,8 +52,8 @@ export function CreatorRecentSubmissionsWidget({
           size="sm"
           className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground gap-1"
         >
-          <Link to="/creator-dashboard/creator-campaigns">
-            <span>{CREATOR_DASHBOARD_MESSAGES.ACTION_EXPLORE_CAMPAIGNS}</span>
+          <Link to={hasSubmissions ? '/creator-dashboard/submissions' : '/creator-dashboard/creator-campaigns'}>
+            <span>{hasSubmissions ? 'Lihat Semua' : CREATOR_DASHBOARD_MESSAGES.ACTION_EXPLORE_CAMPAIGNS}</span>
             <ArrowUpRight className="size-3.5" />
           </Link>
         </Button>

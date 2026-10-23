@@ -10,7 +10,9 @@
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
     "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "typecheck": "tsc --noEmit",
-    "normalize:phones": "tsx --env-file=.env src/scripts/normalize-phone-numbers.ts"
+    "normalize:phones": "tsx --env-file=.env src/scripts/normalize-phone-numbers.ts",
+    "seed": "tsx --env-file=.env prisma/seed.ts",
+    "db:seed": "prisma db seed"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

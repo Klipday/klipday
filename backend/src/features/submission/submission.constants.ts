@@ -16,6 +16,7 @@ export const SUBMISSION_SORT = {
   OLDEST: 'oldest',
   VIEWS_DESC: 'views_desc',
   VIEWS_ASC: 'views_asc',
+  EARNINGS_DESC: 'earnings_desc',
 } as const;
 
 export const SUBMISSION_SORT_OPTIONS = [
@@ -23,6 +24,7 @@ export const SUBMISSION_SORT_OPTIONS = [
   SUBMISSION_SORT.OLDEST,
   SUBMISSION_SORT.VIEWS_DESC,
   SUBMISSION_SORT.VIEWS_ASC,
+  SUBMISSION_SORT.EARNINGS_DESC,
 ] as const;
 
 export type SubmissionSortOption = (typeof SUBMISSION_SORT_OPTIONS)[number];
@@ -98,6 +100,7 @@ export const SUBMISSION_MESSAGES = {
   // Success Responses
   JOIN_SUCCESS: 'Successfully joined the campaign.',
   GET_MY_SUBMISSION_SUCCESS: 'Campaign submission details retrieved successfully.',
+  GET_CREATOR_SUBMISSIONS_SUCCESS: 'Creator submissions retrieved successfully.',
   DRAFT_SAVED: 'Submission draft saved successfully.',
   SUBMIT_SUCCESS: 'Video submission sent successfully for brand review.',
   GET_SUBMISSIONS_SUCCESS: 'Campaign submissions retrieved successfully.',
