@@ -93,8 +93,8 @@ function SidebarHeader({ collapsed, isDrawer = false }: SidebarHeaderProps) {
   return (
     <div className="flex h-16 shrink-0 items-center justify-between border-b px-4 sm:px-5">
       <Link to="/dashboard" onClick={CloseMobileMenu} className="flex items-center gap-2 transition-opacity hover:opacity-90">
-        <span className="font-heading text-2xl font-bold tracking-tight sm:text-[1.65rem]">
-          Klip<span className="text-primary">day</span>
+        <span className="font-heading text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+          Klipday<span className="text-rose-500">.</span>
         </span>
       </Link>
 

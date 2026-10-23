@@ -30,8 +30,8 @@ export function DashboardTopBar({ userName, userEmail, userRole, avatarUrl }: Da
         </Button>
 
         <Link to="/dashboard" className="flex items-center gap-2 transition-opacity hover:opacity-90 md:hidden">
-          <span className="font-heading text-xl font-bold tracking-tight">
-            Klip<span className="text-primary">day</span>
+          <span className="font-heading text-xl font-bold tracking-tight text-foreground">
+            Klipday<span className="text-rose-500">.</span>
           </span>
         </Link>
       </div>

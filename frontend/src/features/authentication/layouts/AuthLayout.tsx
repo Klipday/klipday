@@ -14,8 +14,8 @@ function AuthLayout() {
     <main className="flex min-h-svh flex-col bg-muted/40">
       <header className="p-6">
         <Link to="/" className="inline-block transition-opacity hover:opacity-80">
-          <span className="font-heading text-2xl font-bold">
-            Klip<span className="text-primary">day</span>
+          <span className="font-heading text-2xl font-bold tracking-tight text-foreground">
+            Klipday<span className="text-rose-500">.</span>
           </span>
         </Link>
       </header>
