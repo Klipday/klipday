@@ -188,7 +188,7 @@ export const HOME_BENEFITS_CONTENT: Record<AudienceType, BenefitAudienceContent>
   },
 } as const;
 
-export const DEFAULT_DISCORD_INVITE_URL = 'https://discord.gg/klipday';
+export const DEFAULT_DISCORD_INVITE_URL = 'https://discord.gg/S2wYRNt7Q';
 
 export const HOME_BOTTOM_BANNER_CONTENT: Record<AudienceType, BottomBannerAudienceContent> = {
   creator: {

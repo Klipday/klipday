@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { UseLogoutMutation } from '@/features/authentication/hooks';
+import { DEFAULT_DISCORD_COMMUNITY_URL } from '../constants';
 import { UseNavbar } from '../hooks';
 import type {
   DashboardSidebarProps,
@@ -216,7 +217,8 @@ function SidebarNavItem({ item, collapsed, isActive, onItemClick }: SidebarNavIt
  */
 function SidebarCommunityCard({ collapsed, onItemClick }: SidebarCommunityCardProps) {
   const discordUrl =
-    (import.meta.env.VITE_DISCORD_COMMUNITY_URL as string | undefined) || 'https://discord.gg/klipday';
+    (import.meta.env.VITE_DISCORD_COMMUNITY_URL as string | undefined) ||
+    DEFAULT_DISCORD_COMMUNITY_URL;
 
   if (collapsed) {
     return (
