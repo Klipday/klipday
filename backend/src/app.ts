@@ -2,6 +2,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import { adminRouter } from './features/admin/admin.routes.js';
 import { authRouter } from './features/authentication/auth.routes.js';
 import { campaignRouter } from './features/campaign/campaign.routes.js';
 import { healthRouter } from './features/health/health.routes.js';
@@ -36,6 +37,7 @@ export function CreateApp() {
   app.use('/health', healthRouter);
 
   app.use('/auth', authRouter);
+  app.use('/admin', adminRouter);
   app.use('/social-accounts', socialAccountRouter);
 
   app.use('/brand', brandRouter);

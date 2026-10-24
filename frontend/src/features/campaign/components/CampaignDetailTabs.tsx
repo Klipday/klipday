@@ -22,7 +22,7 @@ export function CampaignDetailTabs({ activeTab, onTabChange, userRole, className
   } else if (userRole === 'BRAND') {
     tabs.push({ key: 'submissions', label: 'Pengajuan Klip' });
   } else if (userRole === 'ADMIN') {
-    tabs.push({ key: 'admin-submissions', label: 'Pengajuan Klip' });
+    tabs.push({ key: 'admin-submissions', label: 'Verifikasi & Settlement' });
   }
 
   return (

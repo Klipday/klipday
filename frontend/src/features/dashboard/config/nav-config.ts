@@ -67,7 +67,7 @@ export const ADMIN_NAV_ITEMS: DashboardNavItem[] = [
   },
   {
     title: 'Verifikasi & Settlement',
-    href: '/dashboard/settlements',
+    href: '/admin-dashboard/settlements',
     icon: FileCheck,
   },
   {

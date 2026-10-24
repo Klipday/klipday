@@ -32,6 +32,7 @@ export type SubmissionSortOption = (typeof SUBMISSION_SORT_OPTIONS)[number];
 export const REVIEWABLE_SUBMISSION_STATUSES = [
   SubmissionStatus.PENDING_REVIEW,
   SubmissionStatus.APPROVED,
+  SubmissionStatus.VERIFIED,
   SubmissionStatus.REVISION_REQUESTED,
   SubmissionStatus.REJECTED,
 ] as const;

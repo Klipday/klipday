@@ -17,6 +17,7 @@ const SignUp = lazy(() => import('@/features/authentication/pages/SignUp'));
 const BrandDashboard = lazy(() => import('@/features/dashboard/pages/BrandDashboard'));
 const CreatorDashboard = lazy(() => import('@/features/dashboard/pages/CreatorDashboard'));
 const AdminDashboard = lazy(() => import('@/features/dashboard/pages/AdminDashboard'));
+const AdminSettlementsPage = lazy(() => import('@/features/admin/pages/AdminSettlementsPage'));
 const BrandCampaigns = lazy(() => import('@/features/campaign/pages/BrandCampaigns'));
 const CreatorCampaigns = lazy(() => import('@/features/campaign/pages/CreatorCampaigns'));
 const BrandWalletPage = lazy(() => import('@/features/wallet/pages/BrandWalletPage'));
@@ -104,7 +105,9 @@ const router = createBrowserRouter(
       <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
         <Route path="admin-dashboard" element={<DashboardLayout />}>
           <Route index element={<AdminDashboard />} />
+          <Route path="settlements" element={<AdminSettlementsPage />} />
         </Route>
+        <Route path="dashboard/settlements" element={<Navigate to="/admin-dashboard/settlements" replace />} />
       </Route>
       <Route element={<ProtectedRoute allowedRoles={['BRAND', 'ADMIN']} />}>
         <Route path="brand-dashboard" element={<DashboardLayout />}>
