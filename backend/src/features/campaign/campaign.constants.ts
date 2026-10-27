@@ -61,6 +61,7 @@ export const CAMPAIGN_CARD_SELECT = {
   endDate: true,
   status: true,
   campaignStatus: true,
+  adminNote: true,
   isFeatured: true,
   featuredBannerUrl: true,
   featuredOrder: true,

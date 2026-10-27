@@ -4,7 +4,9 @@ import {
   DisqualifySettlementSubmission,
   FinalizeCampaignSettlement,
   GetAdminCampaignSettlementSummary,
+  GetAdminModerationCampaigns,
   GetAdminSettlementCampaigns,
+  ModerateCampaign,
   RecalculateCampaignSettlementFifo,
   UpdateSettlementSubmissionViews,
 } from './admin.handlers.js';
@@ -13,6 +15,11 @@ export const adminRouter = Router();
 
 adminRouter.use(RequireAuth);
 
+// Campaign Moderation (Phase 2)
+adminRouter.get('/campaigns', GetAdminModerationCampaigns);
+adminRouter.post('/campaigns/:id/moderate', ModerateCampaign);
+
+// Verification & Settlement (Phase 1)
 adminRouter.get('/settlements', GetAdminSettlementCampaigns);
 adminRouter.get('/settlements/campaigns/:id', GetAdminCampaignSettlementSummary);
 adminRouter.post('/settlements/campaigns/:id/recalculate', RecalculateCampaignSettlementFifo);

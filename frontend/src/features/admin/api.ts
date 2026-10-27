@@ -1,7 +1,10 @@
 import { apiClient, ExtractApiError } from '@/lib/api-client';
-import type { ApiResponse } from '@/features/campaign/types';
+import type { ApiResponse, Campaign } from '@/features/campaign/types';
 import type {
   AdminCampaignSettlementSummaryDto,
+  AdminModerateCampaignPayload,
+  AdminModerationCampaignsPaginatedDto,
+  AdminModerationQueryParams,
   AdminSettlementCampaignsPaginatedDto,
   AdminSettlementQueryParams,
   DisqualifySettlementSubmissionPayload,
@@ -159,3 +162,57 @@ export async function FinalizeCampaignSettlement(
     throw apiError;
   }
 }
+
+/**
+ * Fetches the paginated list of campaigns for admin moderation review (`GET /admin/campaigns`).
+ *
+ * @param params - Filter, search, page, and limit query parameters.
+ * @returns Paginated campaign cards and tab counts.
+ */
+export async function GetAdminModerationCampaigns(
+  params?: AdminModerationQueryParams,
+): Promise<AdminModerationCampaignsPaginatedDto> {
+  try {
+    const response = await apiClient.get<ApiResponse<AdminModerationCampaignsPaginatedDto>>(
+      '/admin/campaigns',
+      { params },
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(
+      error,
+      'Gagal memuat antrean moderasi kampanye. Silakan coba lagi.',
+    );
+    throw apiError;
+  }
+}
+
+/**
+ * Submits an administrative campaign moderation decision (`POST /admin/campaigns/:id/moderate`).
+ * Handles APPROVE, REVISION, REJECT_PAYMENT, or REJECT_CAMPAIGN.
+ *
+ * @param campaignId - Target campaign UUID.
+ * @param payload - Action decision and optional note / refund confirmation.
+ * @returns Updated campaign detail data.
+ */
+export async function ModerateCampaign(
+  campaignId: string,
+  payload: AdminModerateCampaignPayload,
+): Promise<Campaign> {
+  try {
+    const response = await apiClient.post<ApiResponse<Campaign>>(
+      `/admin/campaigns/${campaignId}/moderate`,
+      payload,
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(
+      error,
+      'Gagal memproses keputusan moderasi kampanye.',
+    );
+    throw apiError;
+  }
+}
+

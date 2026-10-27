@@ -52,6 +52,8 @@ export function CampaignDetailHeader({
       navigate(-1);
     } else if (userRole === 'CREATOR') {
       navigate('/creator-dashboard/creator-campaigns');
+    } else if (userRole === 'ADMIN') {
+      navigate('/admin-dashboard/campaigns');
     } else {
       navigate('/brand-dashboard/brand-campaigns');
     }

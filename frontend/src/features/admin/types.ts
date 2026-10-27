@@ -1,3 +1,4 @@
+import type { Campaign } from '@/features/campaign/types';
 import type { SubmissionStatus } from '@/features/submission/types';
 
 export type CampaignCategory = string;
@@ -190,3 +191,164 @@ export interface AdminFinalizeSettlementDialogProps {
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
 }
+
+export type ModerationFilterOption =
+  | 'IN_REVIEW'
+  | 'REVISION'
+  | 'ACTIVE'
+  | 'REJECTED'
+  | 'ALL';
+
+export type ModerationActionType =
+  | 'APPROVE'
+  | 'REVISION'
+  | 'REJECT_PAYMENT'
+  | 'REJECT_CAMPAIGN';
+
+export interface AdminModerationQueryParams {
+  filter?: ModerationFilterOption;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface AdminModerationCountsDto {
+  inReview: number;
+  revision: number;
+  active: number;
+  rejected: number;
+  all: number;
+}
+
+export interface AdminModerationTabItem {
+  key: ModerationFilterOption;
+  label: string;
+  countKey: keyof AdminModerationCountsDto;
+}
+
+
+export interface AdminModerationPaymentDto {
+  id: string;
+  amount: number;
+  uniqueCode: number;
+  totalPayable: number;
+  destinationBank: string;
+  destinationAccount: string;
+  senderProviderName: string | null;
+  senderAccountName: string | null;
+  transferProofUrl: string | null;
+  paymentStatus: string;
+  verifiedAt: string | null;
+  isWalletPayment: boolean;
+}
+
+export interface AdminModerationCampaignCardDto {
+  id: string;
+  title: string;
+  campaignCategory: CampaignCategory;
+  campaignType: CampaignType;
+  campaignStatus: CampaignStatus;
+  thumbnailUrl: string | null;
+  cpm: number;
+  minViews: number;
+  maxViews: number;
+  budget: number;
+  startDate: string | null;
+  endDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  adminNote: string | null;
+  materialsCount: number;
+  isBriefComplete: boolean;
+  brand: {
+    id: string;
+    companyName: string;
+    logoUrl: string | null;
+    accountId: string;
+  };
+  payment: AdminModerationPaymentDto | null;
+}
+
+export interface AdminModerationCampaignsPaginatedDto {
+  items: AdminModerationCampaignCardDto[];
+  counts: AdminModerationCountsDto;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface AdminModerateCampaignPayload {
+  action: ModerationActionType;
+  adminNote?: string;
+  refundConfirmedManualPayment?: boolean;
+}
+
+export interface AdminModerationTabsProps {
+  counts?: AdminModerationCountsDto;
+  className?: string;
+}
+
+export interface AdminModerationCampaignCardProps {
+  campaign: AdminModerationCampaignCardDto;
+}
+
+export interface AdminModerationEmptyStateProps {
+  activeFilter: ModerationFilterOption;
+  searchQuery: string;
+  onResetFilters: () => void;
+}
+
+export interface AdminModerationSkeletonProps {
+  count?: number;
+}
+
+export interface AdminCampaignModerationPanelProps {
+  campaign: Campaign;
+  onModerationSuccess?: () => void;
+  className?: string;
+}
+
+export interface AdminTransferProofDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  proofUrl: string | null;
+  senderBank?: string | null;
+  senderName?: string | null;
+  totalPayable?: number | string | null;
+}
+
+export interface AdminApproveDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  isPending: boolean;
+  campaignTitle: string;
+  isManualPaymentPending: boolean;
+  totalPayable: number;
+  onConfirm: () => void;
+}
+
+export interface AdminRevisionDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  isPending: boolean;
+  campaignTitle: string;
+  onConfirm: (adminNote: string) => void;
+}
+
+export interface AdminRejectDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  isPending: boolean;
+  campaignTitle: string;
+  budget: number;
+  isManualPaymentPending: boolean;
+  onConfirm: (payload: {
+    action: 'REJECT_PAYMENT' | 'REJECT_CAMPAIGN';
+    adminNote: string;
+    refundConfirmedManualPayment: boolean;
+  }) => void;
+}
+

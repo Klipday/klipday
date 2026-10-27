@@ -1,6 +1,8 @@
 import type {
+  AdminModerationTabItem,
   AdminSettlementTabItem,
   FreezeReasonType,
+  ModerationFilterOption,
   SettlementFilterOption,
 } from '../types';
 
@@ -32,6 +34,42 @@ export const VALID_SETTLEMENT_FILTER_KEYS: SettlementFilterOption[] = [
   'BUDGET_FULL',
   'EXPIRED',
   'FINISHED',
+];
+
+export const ADMIN_MODERATION_TABS: AdminModerationTabItem[] = [
+  {
+    key: 'IN_REVIEW',
+    label: 'Perlu Ditinjau',
+    countKey: 'inReview',
+  },
+  {
+    key: 'REVISION',
+    label: 'Perlu Revisi',
+    countKey: 'revision',
+  },
+  {
+    key: 'ACTIVE',
+    label: 'Aktif Berjalan',
+    countKey: 'active',
+  },
+  {
+    key: 'REJECTED',
+    label: 'Ditolak',
+    countKey: 'rejected',
+  },
+  {
+    key: 'ALL',
+    label: 'Semua',
+    countKey: 'all',
+  },
+];
+
+export const VALID_MODERATION_FILTER_KEYS: ModerationFilterOption[] = [
+  'IN_REVIEW',
+  'REVISION',
+  'ACTIVE',
+  'REJECTED',
+  'ALL',
 ];
 
 /**

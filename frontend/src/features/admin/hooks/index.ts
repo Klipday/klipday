@@ -4,17 +4,22 @@ import {
   DisqualifySettlementSubmission,
   FinalizeCampaignSettlement,
   GetAdminCampaignSettlementSummary,
+  GetAdminModerationCampaigns,
   GetAdminSettlementCampaigns,
+  ModerateCampaign,
   RecalculateCampaignSettlementFifo,
   UpdateSettlementSubmissionViews,
 } from '../api';
 import type {
+  AdminModerateCampaignPayload,
+  AdminModerationQueryParams,
   AdminSettlementQueryParams,
   DisqualifySettlementSubmissionPayload,
   UpdateSettlementSubmissionViewsPayload,
 } from '../types';
 
 export const ADMIN_SETTLEMENTS_QUERY_KEY = ['admin-settlements'] as const;
+export const ADMIN_MODERATION_CAMPAIGNS_QUERY_KEY = ['admin-moderation-campaigns'] as const;
 
 /**
  * Queries the paginated list of campaigns ready for settlement review (`GET /admin/settlements`).
@@ -178,3 +183,70 @@ export function UseFinalizeCampaignSettlementMutation() {
 
   return mutation;
 }
+
+/**
+ * Queries the paginated list of campaigns for admin moderation review (`GET /admin/campaigns`).
+ *
+ * @param params - Filter, search, page, and limit query parameters.
+ * @returns TanStack Query result containing campaign moderation cards and tab counts.
+ */
+export function UseAdminModerationCampaignsQuery(params?: AdminModerationQueryParams) {
+  const queryResult = useQuery({
+    queryKey: [...ADMIN_MODERATION_CAMPAIGNS_QUERY_KEY, params],
+    queryFn: () => GetAdminModerationCampaigns(params),
+    staleTime: 1000 * 15,
+  });
+
+  return queryResult;
+}
+
+/**
+ * Mutation hook to submit an administrative campaign moderation decision (APPROVE, REVISION, REJECT_PAYMENT, REJECT_CAMPAIGN).
+ *
+ * @param campaignId - Target campaign UUID.
+ * @param options - Optional callbacks including onSuccess.
+ * @returns TanStack Mutation object.
+ */
+export function UseModerateCampaignMutation(
+  campaignId?: string,
+  options?: { onSuccess?: () => void },
+) {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (payload: AdminModerateCampaignPayload) => {
+      const targetId = campaignId;
+      if (!targetId) {
+        throw new Error('ID Kampanye diperlukan');
+      }
+      return ModerateCampaign(targetId, payload);
+    },
+    onSuccess: (_data, variables) => {
+      if (variables.action === 'APPROVE') {
+        toast.success('Kampanye berhasil disetujui dan ditayangkan ke kreator!');
+      } else if (variables.action === 'REVISION') {
+        toast.success('Permintaan revisi berhasil dikirim ke brand.');
+      } else if (variables.action === 'REJECT_PAYMENT') {
+        toast.success('Bukti transfer ditolak. Kampanye dikembalikan ke status menunggu pembayaran.');
+      } else if (variables.action === 'REJECT_CAMPAIGN') {
+        toast.success('Kampanye ditolak permanen.');
+      }
+
+      if (campaignId) {
+        queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] });
+        queryClient.invalidateQueries({ queryKey: ['campaign-submissions', campaignId] });
+      }
+      queryClient.invalidateQueries({ queryKey: ADMIN_MODERATION_CAMPAIGNS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-campaigns'] });
+
+      options?.onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal memproses keputusan moderasi kampanye.');
+    },
+  });
+
+  return mutation;
+}
+

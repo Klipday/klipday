@@ -1,4 +1,5 @@
 import { Suspense, useEffect } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { Navigate, Outlet, useLocation, useParams } from 'react-router';
 import { toast } from 'sonner';
 import {
@@ -83,6 +84,22 @@ function CampaignWizardLayout() {
           <CampaignWizardStepper campaign={campaign} />
         </div>
       </div>
+
+      {/* Catatan Revisi dari Admin */}
+      {campaign?.campaignStatus === 'REVISION' && campaign.adminNote && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-semibold text-amber-500">
+            <AlertTriangle className="size-4" />
+            <span>Catatan Revisi dari Admin Klipday</span>
+          </div>
+          <p className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed">
+            {campaign.adminNote}
+          </p>
+          <p className="text-[11px] text-muted-foreground pt-1 border-t border-amber-500/20">
+            Silakan perbaiki data kampanye sesuai catatan di atas, lalu lanjutkan ke Langkah 5 (Tinjau &amp; Simpan) untuk mengirim kembali kampanye ke admin tanpa perlu membayar ulang.
+          </p>
+        </div>
+      )}
 
       <div>
         <Suspense fallback={<CampaignStepSkeleton />}>

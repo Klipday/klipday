@@ -22,6 +22,40 @@ export const SETTLEMENT_FILTER_OPTIONS = [
 
 export type SettlementFilterOption = (typeof SETTLEMENT_FILTER_OPTIONS)[number];
 
+export const MODERATION_FILTER = {
+  IN_REVIEW: 'IN_REVIEW',
+  REVISION: 'REVISION',
+  ACTIVE: 'ACTIVE',
+  REJECTED: 'REJECTED',
+  ALL: 'ALL',
+} as const;
+
+export const MODERATION_FILTER_OPTIONS = [
+  MODERATION_FILTER.IN_REVIEW,
+  MODERATION_FILTER.REVISION,
+  MODERATION_FILTER.ACTIVE,
+  MODERATION_FILTER.REJECTED,
+  MODERATION_FILTER.ALL,
+] as const;
+
+export type ModerationFilterOption = (typeof MODERATION_FILTER_OPTIONS)[number];
+
+export const MODERATION_ACTION = {
+  APPROVE: 'APPROVE',
+  REVISION: 'REVISION',
+  REJECT_PAYMENT: 'REJECT_PAYMENT',
+  REJECT_CAMPAIGN: 'REJECT_CAMPAIGN',
+} as const;
+
+export const MODERATION_ACTION_OPTIONS = [
+  MODERATION_ACTION.APPROVE,
+  MODERATION_ACTION.REVISION,
+  MODERATION_ACTION.REJECT_PAYMENT,
+  MODERATION_ACTION.REJECT_CAMPAIGN,
+] as const;
+
+export type ModerationActionType = (typeof MODERATION_ACTION_OPTIONS)[number];
+
 export const FREEZE_REASON = {
   BUDGET_FULL: 'BUDGET_FULL',
   EXPIRED: 'EXPIRED',
@@ -34,7 +68,18 @@ export type FreezeReasonType = (typeof FREEZE_REASON)[keyof typeof FREEZE_REASON
 export const ADMIN_MESSAGES = {
   // Authentication & Role Boundaries
   AUTH_REQUIRED: 'Autentikasi diperlukan.',
-  ADMIN_ONLY: 'Hanya administrator yang dapat mengakses fitur settlement kampanye.',
+  ADMIN_ONLY: 'Hanya administrator yang dapat mengakses fitur ini.',
+  ADMIN_ACCOUNT_NOT_FOUND: 'Data profil admin tidak ditemukan.',
+
+  // Moderation
+  MODERATION_FILTER_INVALID: 'Filter status moderasi tidak valid.',
+  MODERATION_ACTION_INVALID: 'Tindakan moderasi tidak valid.',
+  ADMIN_NOTE_REQUIRED: 'Catatan admin wajib diisi untuk tindakan ini.',
+  CAMPAIGN_NOT_IN_REVIEW: 'Hanya kampanye berstatus menunggu peninjauan (IN_REVIEW) yang dapat dimoderasi.',
+  PAYMENT_NOT_SUBMITTED_FOR_REJECT:
+    'Hanya pembayaran transfer manual berstatus menunggu konfirmasi (SUBMITTED) yang dapat ditolak pembayarannya.',
+  MODERATE_CAMPAIGN_SUCCESS: 'Keputusan moderasi kampanye berhasil disimpan.',
+  GET_MODERATION_CAMPAIGNS_SUCCESS: 'Daftar antrean moderasi kampanye berhasil dimuat.',
 
   // Lookups & State Validation
   CAMPAIGN_NOT_FOUND: 'Kampanye tidak ditemukan.',

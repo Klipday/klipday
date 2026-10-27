@@ -62,7 +62,7 @@ export const ADMIN_NAV_ITEMS: DashboardNavItem[] = [
   },
   {
     title: 'Kampanye',
-    href: '/dashboard/admin-campaigns',
+    href: '/admin-dashboard/campaigns',
     icon: ShieldCheck,
   },
   {

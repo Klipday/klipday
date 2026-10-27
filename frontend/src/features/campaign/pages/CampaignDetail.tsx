@@ -4,8 +4,8 @@ import { cn } from '@/lib/utils';
 import { UseCurrentAccountQuery } from '@/features/authentication/hooks';
 import { CampaignSubmissionsTab, SubmissionDialog } from '@/features/submission/components';
 import { UseMyCampaignSubmissionQuery } from '@/features/submission/hooks';
+import { AdminCampaignModerationPanel } from '@/features/admin/components';
 import {
-  AdminPaymentReviewCard,
   CampaignDetailAbout,
   CampaignDetailBriefSections,
   CampaignDetailErrorState,
@@ -91,10 +91,15 @@ function CampaignDetailPage({ className }: CampaignDetailPageProps) {
 
       {/* Main Campaign Content Container spanning full available space */}
       <div className="w-full space-y-6 pt-2 sm:pt-4">
-        {/* Admin Payment Verification Review Card */}
-        {userProfile?.role === 'ADMIN' && campaign.payments?.[0]?.paymentStatus === 'SUBMITTED' && (
-          <AdminPaymentReviewCard campaign={campaign} onVerificationSuccess={() => void refetch()} />
-        )}
+        {/* Admin Campaign Moderation Panel */}
+        {userProfile?.role === 'ADMIN' &&
+          (campaign.campaignStatus === 'IN_REVIEW' ||
+            campaign.payments?.[0]?.paymentStatus === 'SUBMITTED') && (
+            <AdminCampaignModerationPanel
+              campaign={campaign}
+              onModerationSuccess={() => void refetch()}
+            />
+          )}
 
         {/* Dynamic Role-Aware Tabs */}
         <CampaignDetailTabs activeTab={activeTab} onTabChange={HandleTabChange} userRole={userProfile?.role} />
