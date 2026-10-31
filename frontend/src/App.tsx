@@ -20,6 +20,8 @@ const AdminDashboard = lazy(() => import('@/features/dashboard/pages/AdminDashbo
 const AdminCampaignsPage = lazy(() => import('@/features/admin/pages/AdminCampaignsPage'));
 const AdminSettlementsPage = lazy(() => import('@/features/admin/pages/AdminSettlementsPage'));
 const AdminTopUpsPage = lazy(() => import('@/features/admin/pages/AdminTopUpsPage'));
+const AdminWithdrawalsPage = lazy(() => import('@/features/admin/pages/AdminWithdrawalsPage'));
+const AdminKycPage = lazy(() => import('@/features/admin/pages/AdminKycPage'));
 const BrandCampaigns = lazy(() => import('@/features/campaign/pages/BrandCampaigns'));
 const CreatorCampaigns = lazy(() => import('@/features/campaign/pages/CreatorCampaigns'));
 const BrandWalletPage = lazy(() => import('@/features/wallet/pages/BrandWalletPage'));
@@ -110,12 +112,18 @@ const router = createBrowserRouter(
           <Route path="campaigns" element={<AdminCampaignsPage />} />
           <Route path="settlements" element={<AdminSettlementsPage />} />
           <Route path="top-ups" element={<AdminTopUpsPage />} />
+          <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
+          <Route path="withdraw" element={<Navigate to="/admin-dashboard/withdrawals" replace />} />
+          <Route path="kyc" element={<AdminKycPage />} />
         </Route>
         <Route path="dashboard/admin-campaigns" element={<Navigate to="/admin-dashboard/campaigns" replace />} />
         <Route path="admin-dashboard/admin-campaigns" element={<Navigate to="/admin-dashboard/campaigns" replace />} />
         <Route path="dashboard/settlements" element={<Navigate to="/admin-dashboard/settlements" replace />} />
         <Route path="dashboard/admin-top-ups" element={<Navigate to="/admin-dashboard/top-ups" replace />} />
         <Route path="admin-dashboard/admin-top-ups" element={<Navigate to="/admin-dashboard/top-ups" replace />} />
+        <Route path="dashboard/withdrawals" element={<Navigate to="/admin-dashboard/withdrawals" replace />} />
+        <Route path="admin-dashboard/withdraw" element={<Navigate to="/admin-dashboard/withdrawals" replace />} />
+        <Route path="dashboard/kyc" element={<Navigate to="/admin-dashboard/kyc" replace />} />
       </Route>
       <Route element={<ProtectedRoute allowedRoles={['BRAND', 'ADMIN']} />}>
         <Route path="brand-dashboard" element={<DashboardLayout />}>

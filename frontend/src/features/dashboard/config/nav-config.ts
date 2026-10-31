@@ -1,4 +1,14 @@
-import { FileCheck, LayoutDashboard, Megaphone, Settings, ShieldCheck, User, Video, Wallet } from 'lucide-react';
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  FileCheck,
+  LayoutDashboard,
+  Megaphone,
+  User,
+  UserCheck,
+  Video,
+  Wallet,
+} from 'lucide-react';
 import type { DashboardNavItem } from '../types';
 
 export type { DashboardNavItem };
@@ -63,32 +73,27 @@ export const ADMIN_NAV_ITEMS: DashboardNavItem[] = [
   {
     title: 'Kampanye',
     href: '/admin-dashboard/campaigns',
-    icon: ShieldCheck,
+    icon: Megaphone,
   },
   {
-    title: 'Verifikasi & Settlement',
+    title: 'Settlement',
     href: '/admin-dashboard/settlements',
     icon: FileCheck,
   },
   {
-    title: 'Top Up Brand',
+    title: 'Top Up',
     href: '/admin-dashboard/top-ups',
-    icon: Wallet,
+    icon: ArrowDownToLine,
   },
   {
-    title: 'Disbursement',
-    href: '/dashboard/wallet',
-    icon: Wallet,
+    title: 'Withdraw',
+    href: '/admin-dashboard/withdrawals',
+    icon: ArrowUpFromLine,
   },
   {
-    title: 'Profil Akun',
-    href: '/dashboard/profile',
-    icon: User,
-  },
-  {
-    title: 'Pengaturan',
-    href: '/dashboard/settings',
-    icon: Settings,
+    title: 'KYC',
+    href: '/admin-dashboard/kyc',
+    icon: UserCheck,
   },
 ];
 
