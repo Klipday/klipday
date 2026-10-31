@@ -352,3 +352,123 @@ export interface AdminRejectDialogProps {
   }) => void;
 }
 
+export type AdminTopUpStatusFilter =
+  | 'ALL'
+  | 'PENDING'
+  | 'SUBMITTED'
+  | 'APPROVED'
+  | 'REJECTED';
+
+export type AdminTopUpReviewAction = 'APPROVE' | 'REJECT';
+
+export interface AdminTopUpCounts {
+  submitted: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  all: number;
+}
+
+export interface AdminTopUpTabItem {
+  key: AdminTopUpStatusFilter;
+  label: string;
+  countKey: keyof AdminTopUpCounts;
+}
+
+export interface AdminTopUpBrand {
+  id: string;
+  companyName: string;
+  logoUrl: string | null;
+  email: string;
+}
+
+export interface AdminTopUpItem {
+  id: string;
+  referenceCode: string;
+  walletId: string;
+  amount: number;
+  uniqueCode: number;
+  totalPayable: number;
+  destinationBank: string;
+  destinationAccount: string;
+  destinationHolderName: string;
+  senderBank: string | null;
+  senderAccountName: string | null;
+  transferProofUrl: string | null;
+  status: 'PENDING' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  rejectionReason: string | null;
+  verifiedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  brand: AdminTopUpBrand;
+}
+
+export interface AdminTopUpsPaginated {
+  items: AdminTopUpItem[];
+  counts: AdminTopUpCounts;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface GetAdminTopUpsParams {
+  filter?: AdminTopUpStatusFilter;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface ReviewBrandTopUpPayload {
+  id: string;
+  decision: AdminTopUpReviewAction;
+  rejectionReason?: string;
+}
+
+export interface AdminTopUpStatusTabsProps {
+  counts?: AdminTopUpCounts;
+  className?: string;
+}
+
+export interface AdminTopUpItemRowProps {
+  topUp: AdminTopUpItem;
+  onOpenProof: (topUp: AdminTopUpItem) => void;
+  onReview: (topUp: AdminTopUpItem, decision: AdminTopUpReviewAction) => void;
+  className?: string;
+}
+
+export interface AdminTopUpProofDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  topUp: AdminTopUpItem | null;
+}
+
+export type AdminTopUpProofModalProps = AdminTopUpProofDialogProps;
+
+export interface AdminTopUpReviewDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  topUp: AdminTopUpItem | null;
+  decision: AdminTopUpReviewAction | null;
+  isPending: boolean;
+  onConfirm: (rejectionReason?: string) => void;
+}
+
+export interface AdminTopUpEmptyStateProps {
+  filter: AdminTopUpStatusFilter;
+  searchQuery: string;
+  onResetFilters: () => void;
+}
+
+export interface AdminTopUpErrorStateProps {
+  message: string;
+  onRetry: () => void;
+}
+
+export interface AdminTopUpSkeletonProps {
+  count?: number;
+}
+
+

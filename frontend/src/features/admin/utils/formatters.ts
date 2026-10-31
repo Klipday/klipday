@@ -1,6 +1,8 @@
 import type {
   AdminModerationTabItem,
   AdminSettlementTabItem,
+  AdminTopUpStatusFilter,
+  AdminTopUpTabItem,
   FreezeReasonType,
   ModerationFilterOption,
   SettlementFilterOption,
@@ -68,6 +70,42 @@ export const VALID_MODERATION_FILTER_KEYS: ModerationFilterOption[] = [
   'IN_REVIEW',
   'REVISION',
   'ACTIVE',
+  'REJECTED',
+  'ALL',
+];
+
+export const ADMIN_TOPUP_TABS: AdminTopUpTabItem[] = [
+  {
+    key: 'SUBMITTED',
+    label: 'Perlu Verifikasi',
+    countKey: 'submitted',
+  },
+  {
+    key: 'PENDING',
+    label: 'Menunggu Transfer',
+    countKey: 'pending',
+  },
+  {
+    key: 'APPROVED',
+    label: 'Disetujui',
+    countKey: 'approved',
+  },
+  {
+    key: 'REJECTED',
+    label: 'Ditolak',
+    countKey: 'rejected',
+  },
+  {
+    key: 'ALL',
+    label: 'Semua',
+    countKey: 'all',
+  },
+];
+
+export const VALID_TOPUP_FILTER_KEYS: AdminTopUpStatusFilter[] = [
+  'SUBMITTED',
+  'PENDING',
+  'APPROVED',
   'REJECTED',
   'ALL',
 ];

@@ -6,8 +6,10 @@ import {
   GetAdminCampaignSettlementSummary,
   GetAdminModerationCampaigns,
   GetAdminSettlementCampaigns,
+  GetAdminTopUps,
   ModerateCampaign,
   RecalculateCampaignSettlementFifo,
+  ReviewBrandTopUp,
   UpdateSettlementSubmissionViews,
 } from '../api';
 import type {
@@ -15,11 +17,14 @@ import type {
   AdminModerationQueryParams,
   AdminSettlementQueryParams,
   DisqualifySettlementSubmissionPayload,
+  GetAdminTopUpsParams,
+  ReviewBrandTopUpPayload,
   UpdateSettlementSubmissionViewsPayload,
 } from '../types';
 
 export const ADMIN_SETTLEMENTS_QUERY_KEY = ['admin-settlements'] as const;
 export const ADMIN_MODERATION_CAMPAIGNS_QUERY_KEY = ['admin-moderation-campaigns'] as const;
+export const ADMIN_TOPUPS_QUERY_KEY = ['admin-top-ups'] as const;
 
 /**
  * Queries the paginated list of campaigns ready for settlement review (`GET /admin/settlements`).
@@ -244,6 +249,54 @@ export function UseModerateCampaignMutation(
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Gagal memproses keputusan moderasi kampanye.');
+    },
+  });
+
+  return mutation;
+}
+
+/**
+ * Queries the paginated list of manual brand top-ups (`GET /admin/top-ups`).
+ *
+ * @param params - Filter, search, page, and limit query parameters.
+ * @returns TanStack Query result containing top-up items, counts, and pagination metadata.
+ */
+export function UseAdminTopUpsQuery(params?: GetAdminTopUpsParams) {
+  const queryResult = useQuery({
+    queryKey: [...ADMIN_TOPUPS_QUERY_KEY, params],
+    queryFn: () => GetAdminTopUps(params),
+    staleTime: 1000 * 10,
+  });
+
+  return queryResult;
+}
+
+/**
+ * Mutation hook to review a manual brand top-up request (APPROVE or REJECT).
+ *
+ * @param options - Optional callbacks including onSuccess.
+ * @returns TanStack Mutation object.
+ */
+export function UseReviewBrandTopUpMutation(options?: { onSuccess?: () => void }) {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (payload: ReviewBrandTopUpPayload) => ReviewBrandTopUp(payload),
+    onSuccess: (_data, variables) => {
+      if (variables.decision === 'APPROVE') {
+        toast.success('Permintaan top-up berhasil disetujui. Saldo brand telah ditambahkan.');
+      } else {
+        toast.success('Permintaan top-up berhasil ditolak.');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ADMIN_TOPUPS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-wallet'] });
+
+      options?.onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal memproses verifikasi top up.');
     },
   });
 

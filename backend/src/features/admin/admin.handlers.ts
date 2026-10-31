@@ -11,25 +11,34 @@ import {
 import { SendError, SendSuccess } from '../../utils/api-response.js';
 import { prisma } from '../../utils/prisma.js';
 import { CAMPAIGN_DETAIL_SELECT } from '../campaign/campaign.constants.js';
-import { ProvisionAccountWallet } from '../wallet/wallet.helper.js';
+import {
+  GenerateWalletTransactionReferenceCode,
+  ProvisionAccountWallet,
+} from '../wallet/wallet.helper.js';
 import {
   ADMIN_MESSAGES,
+  ADMIN_TOPUP_SELECT,
   FREEZE_REASON,
   MODERATION_ACTION,
   MODERATION_FILTER,
   SETTLEMENT_FILTER,
+  TOPUP_FILTER,
+  TOPUP_REVIEW_ACTION,
 } from './admin.constants.js';
 import {
   CalculateTargetReward,
   ComputeCampaignFifoAllocations,
   DetermineCampaignFreezeReason,
   GenerateSettlementTransactionRefCode,
+  MapAdminTopUpToDto,
 } from './admin.helper.js';
 import {
   AdminModerateCampaignSchema,
-  AdminSettlementQuerySchema,
   AdminModerationQuerySchema,
+  AdminSettlementQuerySchema,
+  AdminTopUpQuerySchema,
   DisqualifySubmissionSchema,
+  ReviewBrandTopUpSchema,
   UpdateSubmissionViewsSchema,
 } from './admin.schemas.js';
 import type {
@@ -40,6 +49,8 @@ import type {
   AdminSettlementCampaignCardDto,
   AdminSettlementCampaignsPaginatedDto,
   AdminSettlementCountsDto,
+  AdminTopUpItemDto,
+  AdminTopUpsPaginatedDto,
   FifoSubmissionAllocationInput,
 } from './admin.types.js';
 
@@ -1844,3 +1855,344 @@ export async function ModerateCampaign(
     next(err);
   }
 }
+
+/**
+ * Handles `GET /api/admin/top-ups`: queries paginated manual top-up requests across brands,
+ * with search and tab counts for verification and audit.
+ *
+ * @param req - Express request with filter, search, page, limit query parameters.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function GetAdminTopUpRequests(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, ADMIN_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.ADMIN) {
+      SendError(res, ADMIN_MESSAGES.ADMIN_ONLY, 403);
+      return;
+    }
+
+    const parseResult = AdminTopUpQuerySchema.safeParse(req.query);
+    if (!parseResult.success) {
+      const firstIssue = parseResult.error.issues[0];
+      SendError(res, firstIssue?.message || ADMIN_MESSAGES.INVALID_PAYLOAD, 400);
+      return;
+    }
+
+    const { filter, search, page, limit } = parseResult.data;
+
+    const baseWhereClause: Prisma.TopUpRequestWhereInput = {
+      recordStatus: Status.ACTIVE,
+      wallet: {
+        status: Status.ACTIVE,
+        account: {
+          status: Status.ACTIVE,
+          brand: { status: Status.ACTIVE },
+        },
+      },
+    };
+
+    const whereClause: Prisma.TopUpRequestWhereInput = {
+      ...baseWhereClause,
+    };
+
+    if (filter === TOPUP_FILTER.SUBMITTED) {
+      whereClause.status = PaymentStatus.SUBMITTED;
+    } else if (filter === TOPUP_FILTER.PENDING) {
+      whereClause.status = PaymentStatus.PENDING;
+    } else if (filter === TOPUP_FILTER.APPROVED) {
+      whereClause.status = PaymentStatus.APPROVED;
+    } else if (filter === TOPUP_FILTER.REJECTED) {
+      whereClause.status = PaymentStatus.REJECTED;
+    } else if (filter === TOPUP_FILTER.ALL) {
+      whereClause.status = {
+        in: [
+          PaymentStatus.PENDING,
+          PaymentStatus.SUBMITTED,
+          PaymentStatus.APPROVED,
+          PaymentStatus.REJECTED,
+        ],
+      };
+    }
+
+    if (search && search.trim().length > 0) {
+      const queryTrimmed = search.trim();
+      whereClause.AND = [
+        {
+          OR: [
+            { referenceCode: { contains: queryTrimmed, mode: 'insensitive' } },
+            { senderAccountName: { contains: queryTrimmed, mode: 'insensitive' } },
+            {
+              wallet: {
+                account: {
+                  brand: {
+                    companyName: { contains: queryTrimmed, mode: 'insensitive' },
+                  },
+                },
+              },
+            },
+            {
+              wallet: {
+                account: {
+                  email: { contains: queryTrimmed, mode: 'insensitive' },
+                },
+              },
+            },
+          ],
+        },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [
+      topUps,
+      totalFiltered,
+      countSubmitted,
+      countPending,
+      countApproved,
+      countRejected,
+      countAll,
+    ] = await Promise.all([
+      prisma.topUpRequest.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        select: ADMIN_TOPUP_SELECT,
+      }),
+      prisma.topUpRequest.count({ where: whereClause }),
+      prisma.topUpRequest.count({
+        where: { ...baseWhereClause, status: PaymentStatus.SUBMITTED },
+      }),
+      prisma.topUpRequest.count({
+        where: { ...baseWhereClause, status: PaymentStatus.PENDING },
+      }),
+      prisma.topUpRequest.count({
+        where: { ...baseWhereClause, status: PaymentStatus.APPROVED },
+      }),
+      prisma.topUpRequest.count({
+        where: { ...baseWhereClause, status: PaymentStatus.REJECTED },
+      }),
+      prisma.topUpRequest.count({
+        where: {
+          ...baseWhereClause,
+          status: {
+            in: [
+              PaymentStatus.PENDING,
+              PaymentStatus.SUBMITTED,
+              PaymentStatus.APPROVED,
+              PaymentStatus.REJECTED,
+            ],
+          },
+        },
+      }),
+    ]);
+
+    const items: AdminTopUpItemDto[] = topUps.map(MapAdminTopUpToDto);
+
+    const totalPages = Math.ceil(totalFiltered / limit) || 1;
+
+    const result: AdminTopUpsPaginatedDto = {
+      items,
+      counts: {
+        submitted: countSubmitted,
+        pending: countPending,
+        approved: countApproved,
+        rejected: countRejected,
+        all: countAll,
+      },
+      pagination: {
+        page,
+        limit,
+        total: totalFiltered,
+        totalPages,
+      },
+    };
+
+    SendSuccess(res, result, ADMIN_MESSAGES.GET_TOP_UPS_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles `POST /api/admin/top-ups/:id/review`: approves or rejects a submitted brand top-up request.
+ * On APPROVE, atomic transaction credits `totalPayable` to brand wallet balance and creates a BRAND_DEPOSIT transaction.
+ * On REJECT, sets status to REJECTED and stores the admin rejection reason.
+ *
+ * @param req - Express request with top-up id parameter and review decision payload.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function ReviewBrandTopUpRequest(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, ADMIN_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.ADMIN) {
+      SendError(res, ADMIN_MESSAGES.ADMIN_ONLY, 403);
+      return;
+    }
+
+    const admin = await prisma.admin.findFirst({
+      where: { accountId: account.sub, status: Status.ACTIVE },
+      select: { id: true },
+    });
+
+    if (!admin) {
+      SendError(res, ADMIN_MESSAGES.ADMIN_ACCOUNT_NOT_FOUND, 403);
+      return;
+    }
+
+    const topUpId = req.params.id as string;
+
+    const parseResult = ReviewBrandTopUpSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      const firstIssue = parseResult.error.issues[0];
+      SendError(res, firstIssue?.message || ADMIN_MESSAGES.INVALID_PAYLOAD, 400);
+      return;
+    }
+
+    const input = parseResult.data;
+
+    const findTopUpQuery = {
+      where: {
+        id: topUpId,
+        recordStatus: Status.ACTIVE,
+        wallet: { status: Status.ACTIVE },
+      },
+      include: {
+        wallet: true,
+      },
+    };
+
+    const topUp = await prisma.topUpRequest.findFirst(findTopUpQuery);
+
+    if (!topUp) {
+      SendError(res, ADMIN_MESSAGES.TOP_UP_NOT_FOUND, 404);
+      return;
+    }
+
+    if (topUp.status !== PaymentStatus.SUBMITTED) {
+      SendError(res, ADMIN_MESSAGES.TOP_UP_NOT_SUBMITTED, 400);
+      return;
+    }
+
+    const verifiedDate = new Date();
+
+    if (input.decision === TOPUP_REVIEW_ACTION.APPROVE) {
+      await prisma.$transaction(async (tx) => {
+        const topUpUpdateResult = await tx.topUpRequest.updateMany({
+          where: {
+            id: topUp.id,
+            status: PaymentStatus.SUBMITTED,
+            recordStatus: Status.ACTIVE,
+          },
+          data: {
+            status: PaymentStatus.APPROVED,
+            rejectionReason: null,
+            verifiedByAdminId: admin.id,
+            verifiedAt: verifiedDate,
+          },
+        });
+
+        if (topUpUpdateResult.count === 0) {
+          throw new Error('TOP_UP_NOT_SUBMITTED');
+        }
+
+        const currentWallet = await tx.wallet.findUniqueOrThrow({
+          where: { id: topUp.walletId },
+        });
+
+        const balanceBefore = Number(currentWallet.balance);
+        const creditedAmount = Number(topUp.totalPayable);
+        const balanceAfter = balanceBefore + creditedAmount;
+
+        const walletUpdatePayload = {
+          where: { id: topUp.walletId },
+          data: {
+            balance: new Prisma.Decimal(balanceAfter),
+          },
+        };
+        await tx.wallet.update(walletUpdatePayload);
+
+        const transactionReference = GenerateWalletTransactionReferenceCode();
+
+        const walletTransactionPayload = {
+          data: {
+            referenceCode: transactionReference,
+            walletId: topUp.walletId,
+            type: WalletTransactionType.BRAND_DEPOSIT,
+            amount: new Prisma.Decimal(creditedAmount),
+            balanceBefore: new Prisma.Decimal(balanceBefore),
+            balanceAfter: new Prisma.Decimal(balanceAfter),
+            description: `Top Up Saldo Dompet (${topUp.referenceCode})`,
+            transactionDate: verifiedDate,
+            status: Status.ACTIVE,
+          },
+        };
+        await tx.walletTransaction.create(walletTransactionPayload);
+      });
+    } else {
+      const topUpRejectResult = await prisma.topUpRequest.updateMany({
+        where: {
+          id: topUp.id,
+          status: PaymentStatus.SUBMITTED,
+          recordStatus: Status.ACTIVE,
+        },
+        data: {
+          status: PaymentStatus.REJECTED,
+          rejectionReason: input.rejectionReason ?? null,
+          verifiedByAdminId: admin.id,
+          verifiedAt: verifiedDate,
+        },
+      });
+
+      if (topUpRejectResult.count === 0) {
+        SendError(res, ADMIN_MESSAGES.TOP_UP_NOT_SUBMITTED, 400);
+        return;
+      }
+    }
+
+    const updatedTopUpQuery = {
+      where: { id: topUp.id, recordStatus: Status.ACTIVE },
+      select: ADMIN_TOPUP_SELECT,
+    };
+    const updatedTopUp = await prisma.topUpRequest.findFirst(updatedTopUpQuery);
+
+    if (!updatedTopUp) {
+      SendError(res, ADMIN_MESSAGES.TOP_UP_NOT_FOUND, 404);
+      return;
+    }
+
+    const result = MapAdminTopUpToDto(updatedTopUp);
+
+    SendSuccess(res, result, ADMIN_MESSAGES.REVIEW_TOP_UP_SUCCESS);
+  } catch (err) {
+    if (err instanceof Error && err.message === 'TOP_UP_NOT_SUBMITTED') {
+      SendError(res, ADMIN_MESSAGES.TOP_UP_NOT_SUBMITTED, 400);
+      return;
+    }
+    next(err);
+  }
+}
+

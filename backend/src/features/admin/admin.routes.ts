@@ -6,14 +6,20 @@ import {
   GetAdminCampaignSettlementSummary,
   GetAdminModerationCampaigns,
   GetAdminSettlementCampaigns,
+  GetAdminTopUpRequests,
   ModerateCampaign,
   RecalculateCampaignSettlementFifo,
+  ReviewBrandTopUpRequest,
   UpdateSettlementSubmissionViews,
 } from './admin.handlers.js';
 
 export const adminRouter = Router();
 
 adminRouter.use(RequireAuth);
+
+// Top Up Review (Phase 3)
+adminRouter.get('/top-ups', GetAdminTopUpRequests);
+adminRouter.post('/top-ups/:id/review', ReviewBrandTopUpRequest);
 
 // Campaign Moderation (Phase 2)
 adminRouter.get('/campaigns', GetAdminModerationCampaigns);

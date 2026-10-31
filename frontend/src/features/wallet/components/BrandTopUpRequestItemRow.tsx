@@ -34,6 +34,8 @@ export function BrandTopUpRequestItemRow({
   const cancelMutation = UseCancelTopUpRequestMutation();
 
   const isPending = topUp.status === 'PENDING';
+  const isRejected = topUp.status === 'REJECTED';
+  const canCancel = isPending || isRejected;
 
   const HandleConfirmCancel = () => {
     setIsAlertOpen(false);
@@ -44,6 +46,7 @@ export function BrandTopUpRequestItemRow({
     <div
       className={cn(
         'group rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-border',
+        isRejected && 'border-destructive/30 bg-destructive/5',
         className,
       )}>
       <div className="flex items-start justify-between gap-3">
@@ -52,7 +55,11 @@ export function BrandTopUpRequestItemRow({
             <h4 className="font-mono text-sm font-semibold text-foreground">
               {topUp.referenceCode}
             </h4>
-            {isPending ? (
+            {isRejected ? (
+              <span className="inline-flex shrink-0 items-center rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                Bukti Ditolak
+              </span>
+            ) : isPending ? (
               <span className="inline-flex shrink-0 items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
                 Menunggu Transfer
               </span>
@@ -70,11 +77,18 @@ export function BrandTopUpRequestItemRow({
           <p className="text-xs text-muted-foreground">
             {topUp.destinationBank} &middot; Dibuat {FormatDateIndonesian(topUp.createdAt)}
           </p>
+
+          {isRejected && topUp.rejectionReason && (
+            <p className="mt-2 rounded-lg border border-destructive/20 bg-destructive/10 p-2 text-xs text-destructive">
+              <span className="font-medium">Alasan penolakan: </span>
+              {topUp.rejectionReason}
+            </p>
+          )}
         </div>
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/40 pt-3">
-        {isPending ? (
+        {canCancel ? (
           <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
             <AlertDialogTrigger asChild>
               <Button
@@ -124,8 +138,13 @@ export function BrandTopUpRequestItemRow({
           size="sm"
           variant="default"
           onClick={() => onResumeTopUp(topUp)}
-          className="h-8 px-3 text-xs font-medium cursor-pointer shadow-xs">
-          <span>{isPending ? 'Lanjutkan Transfer' : 'Lihat Detail'}</span>
+          className={cn(
+            'h-8 px-3 text-xs font-medium cursor-pointer shadow-xs',
+            isRejected && 'bg-primary text-primary-foreground hover:bg-primary/90',
+          )}>
+          <span>
+            {isPending ? 'Lanjutkan Transfer' : isRejected ? 'Unggah Ulang Bukti' : 'Lihat Detail'}
+          </span>
           <ArrowRight className="ml-1.5 size-3.5" />
         </Button>
       </div>

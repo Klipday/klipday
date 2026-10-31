@@ -790,6 +790,40 @@ describe('Brand Wallet Feature Module', () => {
         message: WALLET_MESSAGES.ACTIVE_TOP_UPS_FETCH_SUCCESS,
       });
     });
+
+    it('queries PENDING top-ups with 24h cutoff while keeping SUBMITTED and REJECTED top-ups without 24h cutoff', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, role: Role.BRAND },
+      });
+      const { res, statusMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as never);
+      const findManySpy = jest.spyOn(prisma.topUpRequest, 'findMany').mockResolvedValue([] as never);
+
+      await GetActiveTopUpRequests(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(200);
+      expect(findManySpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            walletId: mockWallet.id,
+            recordStatus: Status.ACTIVE,
+            OR: expect.arrayContaining([
+              expect.objectContaining({
+                status: PaymentStatus.PENDING,
+                createdAt: expect.objectContaining({ gte: expect.any(Date) }),
+              }),
+              expect.objectContaining({
+                status: {
+                  in: [PaymentStatus.SUBMITTED, PaymentStatus.REJECTED],
+                },
+              }),
+            ]),
+          }),
+        }),
+      );
+    });
   });
 
   // ===========================================================================
@@ -1055,15 +1089,19 @@ describe('Brand Wallet Feature Module', () => {
 
       jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as never);
       jest.spyOn(prisma.topUpRequest, 'findFirst').mockResolvedValue(pendingTopUp as never);
-      const updateSpy = jest.spyOn(prisma.topUpRequest, 'update').mockResolvedValue({
-        ...pendingTopUp,
-        recordStatus: Status.DELETED,
+      const updateManySpy = jest.spyOn(prisma.topUpRequest, 'updateMany').mockResolvedValue({
+        count: 1,
       } as never);
 
       await CancelTopUpRequest(req, res, next);
 
-      expect(updateSpy).toHaveBeenCalledWith({
-        where: { id: 'topup-1' },
+      expect(updateManySpy).toHaveBeenCalledWith({
+        where: {
+          id: 'topup-1',
+          walletId: mockWallet.id,
+          recordStatus: Status.ACTIVE,
+          status: { not: PaymentStatus.APPROVED },
+        },
         data: { recordStatus: Status.DELETED },
       });
       expect(statusMock).toHaveBeenCalledWith(200);
@@ -1071,6 +1109,37 @@ describe('Brand Wallet Feature Module', () => {
         status: 'success',
         data: { id: 'topup-1' },
         message: WALLET_MESSAGES.TOP_UP_CANCEL_SUCCESS,
+      });
+    });
+
+    it('returns 400 when concurrent request already approved top-up during cancel', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, role: Role.BRAND },
+        params: { id: 'topup-1' },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      const pendingTopUp = {
+        id: 'topup-1',
+        walletId: mockWallet.id,
+        status: PaymentStatus.PENDING,
+        recordStatus: Status.ACTIVE,
+      };
+
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as never);
+      jest.spyOn(prisma.topUpRequest, 'findFirst').mockResolvedValue(pendingTopUp as never);
+      jest.spyOn(prisma.topUpRequest, 'updateMany').mockResolvedValue({
+        count: 0,
+      } as never);
+
+      await CancelTopUpRequest(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        data: null,
+        message: WALLET_MESSAGES.TOP_UP_CANNOT_BE_CANCELLED,
       });
     });
   });

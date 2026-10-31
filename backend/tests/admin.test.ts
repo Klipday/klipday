@@ -13,14 +13,20 @@ import {
   ADMIN_MESSAGES,
   MODERATION_ACTION,
   MODERATION_FILTER,
+  TOPUP_FILTER,
+  TOPUP_REVIEW_ACTION,
 } from '../src/features/admin/admin.constants.js';
 import {
   GetAdminModerationCampaigns,
+  GetAdminTopUpRequests,
   ModerateCampaign,
+  ReviewBrandTopUpRequest,
 } from '../src/features/admin/admin.handlers.js';
 import {
   AdminModerateCampaignSchema,
   AdminModerationQuerySchema,
+  AdminTopUpQuerySchema,
+  ReviewBrandTopUpSchema,
 } from '../src/features/admin/admin.schemas.js';
 import { prisma } from '../src/utils/prisma.js';
 import {
@@ -646,6 +652,470 @@ describe('Admin Campaign Moderation Module', () => {
       // No wallet refund
       expect(mockTx.wallet.update).not.toHaveBeenCalled();
       expect(mockTx.walletTransaction.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Admin Brand Top-Up Review Module', () => {
+    const mockAdminAccount = {
+      sub: 'acc-admin-999',
+      role: Role.ADMIN,
+    };
+
+    const mockAdmin = {
+      id: 'admin-profile-999',
+      accountId: mockAdminAccount.sub,
+      status: Status.ACTIVE,
+    };
+
+    const sampleTopUp = {
+      id: 'topup-123',
+      referenceCode: 'TU-2610-8912',
+      walletId: 'wallet-brand-123',
+      amount: new Prisma.Decimal(1000000),
+      uniqueCode: 342,
+      totalPayable: new Prisma.Decimal(1000342),
+      destinationBank: 'BCA',
+      destinationAccount: '1234567890',
+      destinationHolderName: 'PT Klipday Media Kreasi',
+      senderBank: 'BCA',
+      senderAccountName: 'PT Brand Testing',
+      transferProofUrl: 'https://example.com/receipt.jpg',
+      status: PaymentStatus.SUBMITTED,
+      rejectionReason: null,
+      verifiedByAdminId: null,
+      verifiedAt: null,
+      recordStatus: Status.ACTIVE,
+      createdAt: new Date('2026-10-27T10:00:00Z'),
+      updatedAt: new Date('2026-10-27T10:05:00Z'),
+      wallet: {
+        id: 'wallet-brand-123',
+        balance: new Prisma.Decimal(500000),
+        status: Status.ACTIVE,
+        account: {
+          id: 'acc-brand-123',
+          email: 'brand@example.com',
+          status: Status.ACTIVE,
+          brand: {
+            id: 'brand-test-123',
+            companyName: 'PT Brand Testing',
+            logoUrl: 'https://example.com/logo.png',
+            status: Status.ACTIVE,
+          },
+        },
+      },
+    };
+
+    describe('GetAdminTopUpRequests', () => {
+      it('should fail with 401 if unauthenticated', async () => {
+        const req = CreateMockRequest({ query: {} });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        await GetAdminTopUpRequests(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(401);
+      });
+
+      it('should fail with 403 if role is not ADMIN', async () => {
+        const req = CreateMockRequest({
+          account: { sub: 'creator-1', role: Role.CREATOR },
+          query: {},
+        });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        await GetAdminTopUpRequests(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(403);
+      });
+
+      it('should successfully return paginated top-up queue and tab counts', async () => {
+        const req = CreateMockRequest({
+          account: mockAdminAccount,
+          query: {
+            filter: TOPUP_FILTER.SUBMITTED,
+            page: '1',
+            limit: '10',
+          },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.topUpRequest, 'findMany').mockResolvedValue([sampleTopUp as never]);
+        jest
+          .spyOn(prisma.topUpRequest, 'count')
+          .mockResolvedValueOnce(1) // totalFiltered
+          .mockResolvedValueOnce(1) // countSubmitted
+          .mockResolvedValueOnce(0) // countPending
+          .mockResolvedValueOnce(0) // countApproved
+          .mockResolvedValueOnce(0) // countRejected
+          .mockResolvedValueOnce(1); // countAll
+
+        await GetAdminTopUpRequests(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: 'success',
+            data: expect.objectContaining({
+              items: expect.arrayContaining([
+                expect.objectContaining({
+                  id: sampleTopUp.id,
+                  referenceCode: sampleTopUp.referenceCode,
+                  totalPayable: 1000342,
+                  status: PaymentStatus.SUBMITTED,
+                  brand: expect.objectContaining({
+                    companyName: 'PT Brand Testing',
+                    email: 'brand@example.com',
+                  }),
+                }),
+              ]),
+              counts: {
+                submitted: 1,
+                pending: 0,
+                approved: 0,
+                rejected: 0,
+                all: 1,
+              },
+              pagination: {
+                page: 1,
+                limit: 10,
+                total: 1,
+                totalPages: 1,
+              },
+            }),
+          }),
+        );
+      });
+
+      it('should include brand email in search query filter', async () => {
+        const req = CreateMockRequest({
+          account: mockAdminAccount,
+          query: { search: 'brand@example.com' },
+        });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        const findManySpy = jest
+          .spyOn(prisma.topUpRequest, 'findMany')
+          .mockResolvedValue([sampleTopUp as never]);
+        jest.spyOn(prisma.topUpRequest, 'count').mockResolvedValue(1);
+
+        await GetAdminTopUpRequests(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(findManySpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({
+              AND: [
+                {
+                  OR: expect.arrayContaining([
+                    { wallet: { account: { email: { contains: 'brand@example.com', mode: 'insensitive' } } } },
+                  ]),
+                },
+              ],
+            }),
+          }),
+        );
+      });
+    });
+
+    describe('ReviewBrandTopUpRequest', () => {
+      it('should fail with 401 if unauthenticated', async () => {
+        const req = CreateMockRequest({
+          params: { id: sampleTopUp.id },
+          body: { decision: TOPUP_REVIEW_ACTION.APPROVE },
+        });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        await ReviewBrandTopUpRequest(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(401);
+      });
+
+      it('should fail with 403 if role is not ADMIN', async () => {
+        const req = CreateMockRequest({
+          account: { sub: 'brand-1', role: Role.BRAND },
+          params: { id: sampleTopUp.id },
+          body: { decision: TOPUP_REVIEW_ACTION.APPROVE },
+        });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        await ReviewBrandTopUpRequest(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(403);
+      });
+
+      it('should fail with 403 if admin record is not found', async () => {
+        const req = CreateMockRequest({
+          account: mockAdminAccount,
+          params: { id: sampleTopUp.id },
+          body: { decision: TOPUP_REVIEW_ACTION.APPROVE },
+        });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.admin, 'findFirst').mockResolvedValue(null);
+
+        await ReviewBrandTopUpRequest(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(403);
+      });
+
+      it('should fail with 400 if REJECT decision lacks a valid rejectionReason', async () => {
+        const req = CreateMockRequest({
+          account: mockAdminAccount,
+          params: { id: sampleTopUp.id },
+          body: { decision: TOPUP_REVIEW_ACTION.REJECT, rejectionReason: 'bad' },
+        });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.admin, 'findFirst').mockResolvedValue(mockAdmin as never);
+
+        await ReviewBrandTopUpRequest(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+      });
+
+      it('should fail with 404 if top-up request is not found', async () => {
+        const req = CreateMockRequest({
+          account: mockAdminAccount,
+          params: { id: 'non-existent' },
+          body: { decision: TOPUP_REVIEW_ACTION.APPROVE },
+        });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.admin, 'findFirst').mockResolvedValue(mockAdmin as never);
+        jest.spyOn(prisma.topUpRequest, 'findFirst').mockResolvedValue(null);
+
+        await ReviewBrandTopUpRequest(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(404);
+      });
+
+      it('should fail with 400 if top-up request is not in SUBMITTED status', async () => {
+        const req = CreateMockRequest({
+          account: mockAdminAccount,
+          params: { id: sampleTopUp.id },
+          body: { decision: TOPUP_REVIEW_ACTION.APPROVE },
+        });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.admin, 'findFirst').mockResolvedValue(mockAdmin as never);
+        jest.spyOn(prisma.topUpRequest, 'findFirst').mockResolvedValue({
+          ...sampleTopUp,
+          status: PaymentStatus.PENDING,
+        } as never);
+
+        await ReviewBrandTopUpRequest(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+      });
+
+      it('should atomically credit totalPayable and record BRAND_DEPOSIT transaction on APPROVE', async () => {
+        const req = CreateMockRequest({
+          account: mockAdminAccount,
+          params: { id: sampleTopUp.id },
+          body: { decision: TOPUP_REVIEW_ACTION.APPROVE },
+        });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.admin, 'findFirst').mockResolvedValue(mockAdmin as never);
+        jest
+          .spyOn(prisma.topUpRequest, 'findFirst')
+          .mockResolvedValueOnce(sampleTopUp as never)
+          .mockResolvedValueOnce({
+            ...sampleTopUp,
+            status: PaymentStatus.APPROVED,
+            verifiedByAdminId: mockAdmin.id,
+            verifiedAt: new Date(),
+          } as never);
+
+        const mockTx = {
+          topUpRequest: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+          wallet: {
+            findUniqueOrThrow: jest.fn().mockResolvedValue({
+              id: sampleTopUp.walletId,
+              balance: new Prisma.Decimal(500000),
+            }),
+            update: jest.fn().mockResolvedValue({}),
+          },
+          walletTransaction: { create: jest.fn().mockResolvedValue({}) },
+        };
+
+        jest.spyOn(prisma, '$transaction').mockImplementation(async (callback: unknown) => {
+          return (callback as (tx: unknown) => Promise<unknown>)(mockTx);
+        });
+
+        await ReviewBrandTopUpRequest(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+
+        // Top up conditionally updated to APPROVED
+        expect(mockTx.topUpRequest.updateMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: {
+              id: sampleTopUp.id,
+              status: PaymentStatus.SUBMITTED,
+              recordStatus: Status.ACTIVE,
+            },
+            data: expect.objectContaining({
+              status: PaymentStatus.APPROVED,
+              rejectionReason: null,
+              verifiedByAdminId: mockAdmin.id,
+            }),
+          }),
+        );
+
+        // Wallet incremented by totalPayable (500000 + 1000342 = 1500342)
+        expect(mockTx.wallet.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { id: sampleTopUp.walletId },
+            data: {
+              balance: new Prisma.Decimal(1500342),
+            },
+          }),
+        );
+
+        // WalletTransaction recorded
+        expect(mockTx.walletTransaction.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              walletId: sampleTopUp.walletId,
+              type: WalletTransactionType.BRAND_DEPOSIT,
+              amount: new Prisma.Decimal(1000342),
+              balanceBefore: new Prisma.Decimal(500000),
+              balanceAfter: new Prisma.Decimal(1500342),
+            }),
+          }),
+        );
+      });
+
+      it('should fail with 400 and abort transaction if concurrent request already approved/rejected top-up (race condition guard)', async () => {
+        const req = CreateMockRequest({
+          account: mockAdminAccount,
+          params: { id: sampleTopUp.id },
+          body: { decision: TOPUP_REVIEW_ACTION.APPROVE },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.admin, 'findFirst').mockResolvedValue(mockAdmin as never);
+        jest.spyOn(prisma.topUpRequest, 'findFirst').mockResolvedValue(sampleTopUp as never);
+
+        const mockTx = {
+          topUpRequest: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) }, // simulated concurrent update
+          wallet: {
+            findUniqueOrThrow: jest.fn(),
+            update: jest.fn(),
+          },
+          walletTransaction: { create: jest.fn() },
+        };
+
+        jest.spyOn(prisma, '$transaction').mockImplementation(async (callback: unknown) => {
+          return (callback as (tx: unknown) => Promise<unknown>)(mockTx);
+        });
+
+        await ReviewBrandTopUpRequest(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: ADMIN_MESSAGES.TOP_UP_NOT_SUBMITTED,
+        });
+
+        // Crucial: wallet balance and transaction ledger MUST NOT be touched
+        expect(mockTx.wallet.update).not.toHaveBeenCalled();
+        expect(mockTx.walletTransaction.create).not.toHaveBeenCalled();
+      });
+
+      it('should update status to REJECTED and save rejectionReason on REJECT without touching wallet', async () => {
+        const req = CreateMockRequest({
+          account: mockAdminAccount,
+          params: { id: sampleTopUp.id },
+          body: {
+            decision: TOPUP_REVIEW_ACTION.REJECT,
+            rejectionReason: 'Nominal transfer tidak sesuai dengan total tagihan.',
+          },
+        });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.admin, 'findFirst').mockResolvedValue(mockAdmin as never);
+        jest
+          .spyOn(prisma.topUpRequest, 'findFirst')
+          .mockResolvedValueOnce(sampleTopUp as never)
+          .mockResolvedValueOnce({
+            ...sampleTopUp,
+            status: PaymentStatus.REJECTED,
+            rejectionReason: 'Nominal transfer tidak sesuai dengan total tagihan.',
+            verifiedByAdminId: mockAdmin.id,
+            verifiedAt: new Date(),
+          } as never);
+
+        const updateSpy = jest
+          .spyOn(prisma.topUpRequest, 'updateMany')
+          .mockResolvedValue({ count: 1 } as never);
+        const transactionSpy = jest.spyOn(prisma, '$transaction');
+
+        await ReviewBrandTopUpRequest(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+
+        expect(updateSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: {
+              id: sampleTopUp.id,
+              status: PaymentStatus.SUBMITTED,
+              recordStatus: Status.ACTIVE,
+            },
+            data: expect.objectContaining({
+              status: PaymentStatus.REJECTED,
+              rejectionReason: 'Nominal transfer tidak sesuai dengan total tagihan.',
+              verifiedByAdminId: mockAdmin.id,
+            }),
+          }),
+        );
+
+        // Should NOT run atomic wallet transaction
+        expect(transactionSpy).not.toHaveBeenCalled();
+      });
+
+      it('should fail with 400 if concurrent request already processed top-up on REJECT', async () => {
+        const req = CreateMockRequest({
+          account: mockAdminAccount,
+          params: { id: sampleTopUp.id },
+          body: {
+            decision: TOPUP_REVIEW_ACTION.REJECT,
+            rejectionReason: 'Struk tidak jelas.',
+          },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.admin, 'findFirst').mockResolvedValue(mockAdmin as never);
+        jest.spyOn(prisma.topUpRequest, 'findFirst').mockResolvedValue(sampleTopUp as never);
+
+        jest
+          .spyOn(prisma.topUpRequest, 'updateMany')
+          .mockResolvedValue({ count: 0 } as never); // simulated concurrent update
+
+        await ReviewBrandTopUpRequest(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: ADMIN_MESSAGES.TOP_UP_NOT_SUBMITTED,
+        });
+      });
     });
   });
 });

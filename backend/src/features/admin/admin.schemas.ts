@@ -11,6 +11,9 @@ import {
   MODERATION_FILTER_OPTIONS,
   SETTLEMENT_FILTER,
   SETTLEMENT_FILTER_OPTIONS,
+  TOPUP_FILTER,
+  TOPUP_FILTER_OPTIONS,
+  TOPUP_REVIEW_ACTION_OPTIONS,
 } from './admin.constants.js';
 
 export const AdminSettlementQuerySchema = z.object({
@@ -110,3 +113,53 @@ export const AdminModerateCampaignSchema = z
   );
 
 export type AdminModerateCampaignInput = z.infer<typeof AdminModerateCampaignSchema>;
+
+export const AdminTopUpQuerySchema = z.object({
+  filter: z
+    .enum(TOPUP_FILTER_OPTIONS, { error: ADMIN_MESSAGES.TOP_UP_FILTER_INVALID })
+    .default(TOPUP_FILTER.SUBMITTED),
+  search: z
+    .string()
+    .trim()
+    .max(MAX_SEARCH_LENGTH, ADMIN_MESSAGES.SEARCH_MAX_EXCEEDED)
+    .optional(),
+  page: z.coerce
+    .number({ error: ADMIN_MESSAGES.PAGE_NUMBER_REQUIRED })
+    .int(ADMIN_MESSAGES.PAGE_INTEGER)
+    .positive(ADMIN_MESSAGES.PAGE_POSITIVE)
+    .default(DEFAULT_PAGE),
+  limit: z.coerce
+    .number({ error: ADMIN_MESSAGES.LIMIT_NUMBER_REQUIRED })
+    .int(ADMIN_MESSAGES.LIMIT_INTEGER)
+    .positive(ADMIN_MESSAGES.LIMIT_POSITIVE)
+    .max(MAX_LIMIT, ADMIN_MESSAGES.LIMIT_MAX_EXCEEDED)
+    .default(DEFAULT_LIMIT),
+});
+
+export type AdminTopUpQuery = z.infer<typeof AdminTopUpQuerySchema>;
+
+export const ReviewBrandTopUpSchema = z
+  .object({
+    decision: z.enum(TOPUP_REVIEW_ACTION_OPTIONS, {
+      error: ADMIN_MESSAGES.TOP_UP_ACTION_INVALID,
+    }),
+    rejectionReason: z
+      .string()
+      .trim()
+      .max(500, ADMIN_MESSAGES.TOP_UP_REJECTION_REASON_MAX)
+      .optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.decision === 'REJECT') {
+        return Boolean(data.rejectionReason && data.rejectionReason.trim().length >= 5);
+      }
+      return true;
+    },
+    {
+      message: ADMIN_MESSAGES.TOP_UP_REJECTION_REASON_REQUIRED,
+      path: ['rejectionReason'],
+    },
+  );
+
+export type ReviewBrandTopUpInput = z.infer<typeof ReviewBrandTopUpSchema>;

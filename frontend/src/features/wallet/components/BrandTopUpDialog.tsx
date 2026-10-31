@@ -47,9 +47,7 @@ export function BrandTopUpDialog({
 
   if (initialTopUp !== prevInitialTopUp) {
     setPrevInitialTopUp(initialTopUp);
-    if (initialTopUp) {
-      setActiveTopUp(initialTopUp);
-    }
+    setActiveTopUp(initialTopUp ?? null);
   }
 
   const [copiedField, setCopiedField] = useState<'account' | 'total' | null>(null);
@@ -194,6 +192,7 @@ export function BrandTopUpDialog({
   const isReadOnly = Boolean(
     activeTopUp && (activeTopUp.status === 'SUBMITTED' || activeTopUp.status === 'APPROVED'),
   );
+  const isRejected = Boolean(activeTopUp && activeTopUp.status === 'REJECTED');
 
   return (
     <Dialog open={open} onOpenChange={HandleOpenChange}>
@@ -202,6 +201,8 @@ export function BrandTopUpDialog({
           <DialogTitle className="text-xl font-semibold tracking-tight">
             {isReadOnly
               ? 'Detail Permintaan Top Up'
+              : isRejected
+              ? 'Unggah Ulang Bukti Transfer'
               : activeTopUp
               ? 'Instruksi Transfer Top Up'
               : 'Top Up Saldo Dompet'}
@@ -209,6 +210,8 @@ export function BrandTopUpDialog({
           <DialogDescription className="text-xs text-muted-foreground">
             {isReadOnly
               ? 'Permintaan transfer telah terkirim dan sedang menunggu verifikasi oleh admin.'
+              : isRejected
+              ? 'Bukti transfer sebelumnya ditolak oleh admin. Silakan periksa alasan dan unggah bukti baru.'
               : activeTopUp
               ? 'Transfer tepat sesuai nominal yang tertera agar saldo aktif langsung bertambah.'
               : 'Isi nominal top-up saldo aktif untuk membiayai kampanye baru Anda.'}
@@ -464,6 +467,17 @@ export function BrandTopUpDialog({
               </div>
             )}
 
+            {isRejected && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive space-y-1">
+                <p className="font-semibold">Bukti Transfer Sebelumnya Ditolak</p>
+                <p className="text-[11px] leading-relaxed">
+                  {activeTopUp.rejectionReason
+                    ? `Alasan: "${activeTopUp.rejectionReason}". Silakan pilih file bukti transfer yang baru lalu klik tombol Kirim Ulang Bukti.`
+                    : 'Bukti transfer ditolak admin. Silakan pilih file bukti baru lalu klik tombol Kirim Ulang Bukti.'}
+                </p>
+              </div>
+            )}
+
             {/* Modal Actions */}
             <div className="flex items-center justify-end gap-2 pt-2">
               <Button
@@ -475,20 +489,24 @@ export function BrandTopUpDialog({
                 {activeTopUp.status === 'PENDING' ? 'Bayar Nanti' : 'Tutup'}
               </Button>
 
-              {activeTopUp.status === 'PENDING' && (
+              {(activeTopUp.status === 'PENDING' || activeTopUp.status === 'REJECTED') && (
                 <Button
                   type="button"
                   variant="default"
                   size="default"
                   onClick={HandleConfirmSubmission}
-                  disabled={submitProofMutation.isPending}
+                  disabled={
+                    submitProofMutation.isPending ||
+                    uploadProofMutation.isPending ||
+                    (activeTopUp.status === 'REJECTED' && !activeTopUp.transferProofUrl)
+                  }
                   className="cursor-pointer font-medium text-xs">
                   {submitProofMutation.isPending ? (
                     <Loader2 className="mr-1.5 size-4 animate-spin" />
                   ) : (
                     <Check className="mr-1.5 size-4" />
                   )}
-                  Saya Sudah Transfer
+                  {activeTopUp.status === 'REJECTED' ? 'Kirim Ulang Bukti' : 'Saya Sudah Transfer'}
                 </Button>
               )}
             </div>

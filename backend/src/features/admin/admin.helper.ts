@@ -1,6 +1,13 @@
+import type { Prisma } from '../../generated/prisma/client.js';
 import { CampaignStatus } from '../../generated/prisma/enums.js';
-import { CPM_VIEW_DIVISOR, FREEZE_REASON, type FreezeReasonType } from './admin.constants.js';
+import {
+  ADMIN_TOPUP_SELECT,
+  CPM_VIEW_DIVISOR,
+  FREEZE_REASON,
+  type FreezeReasonType,
+} from './admin.constants.js';
 import type {
+  AdminTopUpItemDto,
   FifoCampaignAllocationSummary,
   FifoSubmissionAllocationInput,
   FifoSubmissionAllocationResult,
@@ -156,3 +163,45 @@ export function GenerateSettlementTransactionRefCode(sequenceIndex = 0): string 
   const refCode = `TXN-${timestamp}-${randomSuffix}${indexSuffix}`;
   return refCode;
 }
+
+export type AdminTopUpRecordFromDb = Prisma.TopUpRequestGetPayload<{
+  select: typeof ADMIN_TOPUP_SELECT;
+}>;
+
+/**
+ * Maps a Prisma top-up database record selected with ADMIN_TOPUP_SELECT into a strictly-typed AdminTopUpItemDto.
+ * Ensures numerical amounts are cast from Prisma.Decimal to numbers.
+ *
+ * @param record - Top-up record from database.
+ * @returns Serialized AdminTopUpItemDto contract.
+ */
+export function MapAdminTopUpToDto(record: AdminTopUpRecordFromDb): AdminTopUpItemDto {
+  const item: AdminTopUpItemDto = {
+    id: record.id,
+    referenceCode: record.referenceCode,
+    walletId: record.wallet.id,
+    amount: Number(record.amount),
+    uniqueCode: record.uniqueCode,
+    totalPayable: Number(record.totalPayable),
+    destinationBank: record.destinationBank,
+    destinationAccount: record.destinationAccount,
+    destinationHolderName: record.destinationHolderName,
+    senderBank: record.senderBank,
+    senderAccountName: record.senderAccountName,
+    transferProofUrl: record.transferProofUrl,
+    status: record.status,
+    rejectionReason: record.rejectionReason,
+    verifiedAt: record.verifiedAt,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    brand: {
+      id: record.wallet.account.brand?.id ?? '',
+      companyName: record.wallet.account.brand?.companyName ?? 'Brand',
+      logoUrl: record.wallet.account.brand?.logoUrl ?? null,
+      email: record.wallet.account.email,
+    },
+  };
+
+  return item;
+}
+

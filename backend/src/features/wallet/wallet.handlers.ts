@@ -651,8 +651,17 @@ export async function GetActiveTopUpRequests(
       where: {
         walletId: wallet.id,
         recordStatus: Status.ACTIVE,
-        status: { in: [PaymentStatus.PENDING, PaymentStatus.SUBMITTED] },
-        createdAt: { gte: expiryCutoff },
+        OR: [
+          {
+            status: PaymentStatus.PENDING,
+            createdAt: { gte: expiryCutoff },
+          },
+          {
+            status: {
+              in: [PaymentStatus.SUBMITTED, PaymentStatus.REJECTED],
+            },
+          },
+        ],
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -745,8 +754,11 @@ export async function SubmitTopUpProof(
       return;
     }
 
-    const updateData: Prisma.TopUpRequestUpdateInput = {
+    const updateData: Prisma.TopUpRequestUncheckedUpdateInput = {
       status: PaymentStatus.SUBMITTED,
+      rejectionReason: null,
+      verifiedByAdminId: null,
+      verifiedAt: null,
     };
 
     if (validationResult.data.transferProofUrl) {
@@ -838,12 +850,22 @@ export async function CancelTopUpRequest(
       return;
     }
 
-    await prisma.topUpRequest.update({
-      where: { id: topUp.id },
+    const cancelResult = await prisma.topUpRequest.updateMany({
+      where: {
+        id: topUp.id,
+        walletId: wallet.id,
+        recordStatus: Status.ACTIVE,
+        status: { not: PaymentStatus.APPROVED },
+      },
       data: {
         recordStatus: Status.DELETED,
       },
     });
+
+    if (cancelResult.count === 0) {
+      SendError(res, WALLET_MESSAGES.TOP_UP_CANNOT_BE_CANCELLED, 400);
+      return;
+    }
 
     SendSuccess(res, { id: topUp.id }, WALLET_MESSAGES.TOP_UP_CANCEL_SUCCESS);
   } catch (err) {

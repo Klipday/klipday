@@ -10,6 +10,8 @@ import type {
   ModerationActionType,
   ModerationFilterOption,
   SettlementFilterOption,
+  TopUpFilterOption,
+  TopUpReviewAction,
 } from './admin.constants.js';
 
 export interface AdminSettlementQueryInput {
@@ -205,3 +207,56 @@ export interface AdminModerateCampaignPayload {
   adminNote?: string | undefined;
   refundConfirmedManualPayment?: boolean | undefined;
 }
+
+export interface AdminTopUpCountsDto {
+  submitted: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  all: number;
+}
+
+export interface AdminTopUpBrandDto {
+  id: string;
+  companyName: string;
+  logoUrl: string | null;
+  email: string;
+}
+
+export interface AdminTopUpItemDto {
+  id: string;
+  referenceCode: string;
+  walletId: string;
+  amount: number;
+  uniqueCode: number;
+  totalPayable: number;
+  destinationBank: string;
+  destinationAccount: string;
+  destinationHolderName: string;
+  senderBank: string | null;
+  senderAccountName: string | null;
+  transferProofUrl: string | null;
+  status: PaymentStatus;
+  rejectionReason: string | null;
+  verifiedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  brand: AdminTopUpBrandDto;
+}
+
+export interface AdminTopUpsPaginatedDto {
+  items: AdminTopUpItemDto[];
+  counts: AdminTopUpCountsDto;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface ReviewBrandTopUpPayload {
+  decision: TopUpReviewAction;
+  rejectionReason?: string | undefined;
+}
+

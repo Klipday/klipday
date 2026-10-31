@@ -71,6 +71,11 @@ export const ADMIN_NAV_ITEMS: DashboardNavItem[] = [
     icon: FileCheck,
   },
   {
+    title: 'Top Up Brand',
+    href: '/admin-dashboard/top-ups',
+    icon: Wallet,
+  },
+  {
     title: 'Disbursement',
     href: '/dashboard/wallet',
     icon: Wallet,

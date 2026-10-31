@@ -7,7 +7,11 @@ import type {
   AdminModerationQueryParams,
   AdminSettlementCampaignsPaginatedDto,
   AdminSettlementQueryParams,
+  AdminTopUpItem,
+  AdminTopUpsPaginated,
   DisqualifySettlementSubmissionPayload,
+  GetAdminTopUpsParams,
+  ReviewBrandTopUpPayload,
   UpdateSettlementSubmissionViewsPayload,
 } from './types';
 
@@ -211,6 +215,60 @@ export async function ModerateCampaign(
     const apiError = ExtractApiError(
       error,
       'Gagal memproses keputusan moderasi kampanye.',
+    );
+    throw apiError;
+  }
+}
+
+/**
+ * Fetches paginated manual top-up requests across brands (`GET /admin/top-ups`).
+ *
+ * @param params - Filter, search, page, and limit query parameters.
+ * @returns Paginated top-up request items, tab counts, and pagination metadata.
+ */
+export async function GetAdminTopUps(
+  params?: GetAdminTopUpsParams,
+): Promise<AdminTopUpsPaginated> {
+  try {
+    const response = await apiClient.get<ApiResponse<AdminTopUpsPaginated>>(
+      '/admin/top-ups',
+      { params },
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(
+      error,
+      'Gagal memuat daftar antrean top up brand. Silakan coba lagi.',
+    );
+    throw apiError;
+  }
+}
+
+/**
+ * Submits an administrative review decision (APPROVE or REJECT) for a manual top-up request
+ * (`POST /admin/top-ups/:id/review`).
+ *
+ * @param payload - Target top-up ID, decision, and optional rejection reason.
+ * @returns Updated top-up request record.
+ */
+export async function ReviewBrandTopUp(
+  payload: ReviewBrandTopUpPayload,
+): Promise<AdminTopUpItem> {
+  try {
+    const response = await apiClient.post<ApiResponse<AdminTopUpItem>>(
+      `/admin/top-ups/${payload.id}/review`,
+      {
+        decision: payload.decision,
+        rejectionReason: payload.rejectionReason,
+      },
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(
+      error,
+      'Gagal memproses verifikasi top up. Silakan coba lagi.',
     );
     throw apiError;
   }

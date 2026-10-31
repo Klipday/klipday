@@ -43,6 +43,8 @@ export function BrandPendingTopUpBanner({
 
   const latestTopUp = activeTopUps[0];
   const isPending = latestTopUp.status === 'PENDING';
+  const isRejected = latestTopUp.status === 'REJECTED';
+  const canCancel = isPending || isRejected;
 
   const HandleConfirmCancel = () => {
     setIsAlertOpen(false);
@@ -54,6 +56,7 @@ export function BrandPendingTopUpBanner({
       <div
         className={cn(
           'relative overflow-hidden rounded-xl border border-border/70 bg-muted/25 p-4 sm:p-5 text-card-foreground transition-all duration-200 hover:border-border',
+          isRejected && 'border-destructive/30 bg-destructive/5',
           className,
         )}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -64,6 +67,11 @@ export function BrandPendingTopUpBanner({
                 <Clock className="size-3.5" />
                 Permintaan Top Up Aktif
               </span>
+              {isRejected && (
+                <span className="inline-flex items-center rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                  Bukti Ditolak
+                </span>
+              )}
             </div>
 
             <div className="space-y-0.5">
@@ -79,7 +87,11 @@ export function BrandPendingTopUpBanner({
 
               <p className="text-xs text-muted-foreground">
                 {count === 1
-                  ? isPending
+                  ? isRejected
+                    ? latestTopUp.rejectionReason
+                      ? `Bukti transfer ditolak: "${latestTopUp.rejectionReason}". Silakan unggah ulang bukti transfer yang valid.`
+                      : 'Bukti transfer ditolak admin. Silakan perbaiki dan unggah ulang bukti transfer.'
+                    : isPending
                     ? `Dibuat ${FormatDateIndonesian(latestTopUp.createdAt)}. Selesaikan transfer ke rekening BCA sebelum 24 jam.`
                     : `Dibuat ${FormatDateIndonesian(latestTopUp.createdAt)}. Bukti transfer sedang diverifikasi admin.`
                   : `Anda memiliki ${count} permintaan top up aktif. Terakhir dibuat ${FormatDateIndonesian(latestTopUp.createdAt)}.`}
@@ -91,7 +103,7 @@ export function BrandPendingTopUpBanner({
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             {count === 1 ? (
               <>
-                {isPending && (
+                {canCancel && (
                   <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
                     <AlertDialogTrigger asChild>
                       <Button
@@ -142,9 +154,14 @@ export function BrandPendingTopUpBanner({
                 <Button
                   type="button"
                   size="sm"
-                  className="h-9 px-4 text-xs font-medium cursor-pointer"
+                  className={cn(
+                    'h-9 px-4 text-xs font-medium cursor-pointer',
+                    isRejected && 'bg-primary text-primary-foreground hover:bg-primary/90',
+                  )}
                   onClick={() => onResumeTopUp(latestTopUp)}>
-                  <span>{isPending ? 'Lanjutkan Transfer' : 'Lihat Detail'}</span>
+                  <span>
+                    {isPending ? 'Lanjutkan Transfer' : isRejected ? 'Unggah Ulang Bukti' : 'Lihat Detail'}
+                  </span>
                   <ArrowRight className="ml-1.5 size-3.5" />
                 </Button>
               </>

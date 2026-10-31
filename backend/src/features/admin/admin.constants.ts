@@ -65,6 +65,73 @@ export const FREEZE_REASON = {
 
 export type FreezeReasonType = (typeof FREEZE_REASON)[keyof typeof FREEZE_REASON];
 
+export const TOPUP_FILTER = {
+  SUBMITTED: 'SUBMITTED',
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  ALL: 'ALL',
+} as const;
+
+export const TOPUP_FILTER_OPTIONS = [
+  TOPUP_FILTER.SUBMITTED,
+  TOPUP_FILTER.PENDING,
+  TOPUP_FILTER.APPROVED,
+  TOPUP_FILTER.REJECTED,
+  TOPUP_FILTER.ALL,
+] as const;
+
+export type TopUpFilterOption = (typeof TOPUP_FILTER_OPTIONS)[number];
+
+export const TOPUP_REVIEW_ACTION = {
+  APPROVE: 'APPROVE',
+  REJECT: 'REJECT',
+} as const;
+
+export const TOPUP_REVIEW_ACTION_OPTIONS = [
+  TOPUP_REVIEW_ACTION.APPROVE,
+  TOPUP_REVIEW_ACTION.REJECT,
+] as const;
+
+export type TopUpReviewAction = (typeof TOPUP_REVIEW_ACTION_OPTIONS)[number];
+
+export const ADMIN_TOPUP_SELECT = {
+  id: true,
+  referenceCode: true,
+  amount: true,
+  uniqueCode: true,
+  totalPayable: true,
+  destinationBank: true,
+  destinationAccount: true,
+  destinationHolderName: true,
+  senderBank: true,
+  senderAccountName: true,
+  transferProofUrl: true,
+  status: true,
+  rejectionReason: true,
+  verifiedAt: true,
+  createdAt: true,
+  updatedAt: true,
+  wallet: {
+    select: {
+      id: true,
+      account: {
+        select: {
+          id: true,
+          email: true,
+          brand: {
+            select: {
+              id: true,
+              companyName: true,
+              logoUrl: true,
+            },
+          },
+        },
+      },
+    },
+  },
+} as const;
+
 export const ADMIN_MESSAGES = {
   // Authentication & Role Boundaries
   AUTH_REQUIRED: 'Autentikasi diperlukan.',
@@ -106,6 +173,17 @@ export const ADMIN_MESSAGES = {
   REVIEW_NOTE_MAX_EXCEEDED: 'Catatan alasan diskualifikasi maksimal 1000 karakter.',
   VERIFIED_VIEWS_INVALID: 'Jumlah tayangan terverifikasi harus berupa bilangan bulat non-negatif.',
   INVALID_PAYLOAD: 'Data permintaan tidak valid.',
+
+  // Top-Up Review & Queue
+  GET_TOP_UPS_SUCCESS: 'Daftar antrean top-up saldo brand berhasil dimuat.',
+  REVIEW_TOP_UP_SUCCESS: 'Status top-up saldo brand berhasil diperbarui.',
+  TOP_UP_NOT_FOUND: 'Data permintaan top up tidak ditemukan.',
+  TOP_UP_NOT_SUBMITTED:
+    'Hanya permintaan top-up yang telah mengirimkan bukti transfer (SUBMITTED) yang dapat diverifikasi.',
+  TOP_UP_FILTER_INVALID: 'Filter status top up tidak valid.',
+  TOP_UP_ACTION_INVALID: 'Keputusan review top up tidak valid.',
+  TOP_UP_REJECTION_REASON_REQUIRED: 'Alasan penolakan wajib diisi (minimal 5 karakter).',
+  TOP_UP_REJECTION_REASON_MAX: 'Alasan penolakan maksimal 500 karakter.',
 
   // Success Messages
   GET_SETTLEMENTS_SUCCESS: 'Daftar kampanye settlement berhasil dimuat.',
