@@ -92,8 +92,7 @@ export function HomeFaq({ className = '' }: HomeFaqProps) {
               to="/faq"
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors"
             >
-              <span>Buka Seluruh FAQ & Peraturan Platform</span>
-              <span aria-hidden="true">&rarr;</span>
+              <span>Baca FAQ lengkap dan aturan mainnya di sini</span>
             </Link>
           </div>
         </div>

@@ -82,7 +82,7 @@ export function HomeNavbar({ activeAudience, onAudienceChange, className = '' }:
             onClick={HandleAudienceSwitch}
             className="font-medium text-xs text-zinc-400 transition-colors hover:text-white cursor-pointer"
           >
-            {activeAudience === 'creator' ? 'For Brand' : 'For Creator'}
+            {activeAudience === 'creator' ? 'Untuk Brand' : 'Untuk Creator'}
           </button>
           <Link
             to="/signin"
@@ -138,10 +138,10 @@ export function HomeNavbar({ activeAudience, onAudienceChange, className = '' }:
                 onClick={HandleAudienceSwitch}
                 className="text-left font-medium hover:text-white"
               >
-                {activeAudience === 'creator' ? 'Beralih ke Brand' : 'Beralih ke Creator'}
+                {activeAudience === 'creator' ? 'Untuk Brand' : 'Untuk Creator'}
               </button>
               <Link to="/signin" className="hover:text-white">
-                Masuk ke Akun
+                Masuk
               </Link>
             </div>
           </nav>
