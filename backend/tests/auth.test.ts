@@ -56,6 +56,12 @@ describe('Authentication Feature Module', () => {
       balance: new Prisma.Decimal(0),
       status: Status.ACTIVE,
     } as never);
+    jest
+      .spyOn(prisma.emailVerificationCode, 'updateMany')
+      .mockResolvedValue({ count: 0 } as never);
+    jest
+      .spyOn(prisma.emailVerificationCode, 'create')
+      .mockResolvedValue({ id: 'mock-code-id' } as never);
   });
 
   afterAll(() => {
@@ -930,6 +936,7 @@ describe('Authentication Feature Module', () => {
             email: validBrandRegisterPayload.email,
             passwordHash: 'mock-hashed-password',
             role: Role.BRAND,
+            isEmailVerified: false,
             brand: {
               create: {
                 companyName: validBrandRegisterPayload.companyName,
@@ -944,7 +951,7 @@ describe('Authentication Feature Module', () => {
               },
             },
           },
-          select: { id: true, email: true, role: true, createdAt: true },
+          select: { id: true, email: true, role: true, isEmailVerified: true, createdAt: true },
         });
 
         // Verifies zero separate wallet queries are triggered (pure relational payload builder pattern)

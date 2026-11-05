@@ -1,6 +1,17 @@
 import { apiClient, ExtractApiError } from '@/lib/api-client';
 import { TranslateAuthError } from './utils';
-import type { ApiResponse, CurrentAccountProfile, LoggedInAccount, LoginInput, RegisteredAccount, RegisterInput } from './types';
+import type {
+  ApiResponse,
+  CurrentAccountProfile,
+  ForgotPasswordPayload,
+  LoggedInAccount,
+  LoginInput,
+  RegisteredAccount,
+  RegisterInput,
+  ResetPasswordPayload,
+  ResendVerificationPayload,
+  VerifyEmailPayload,
+} from './types';
 export type {
   ApiResponse,
   AuthRole,
@@ -9,10 +20,14 @@ export type {
   CreatorProfile,
   CreatorRegisterInput,
   CurrentAccountProfile,
+  ForgotPasswordPayload,
   LoggedInAccount,
   LoginInput,
   RegisteredAccount,
   RegisterInput,
+  ResetPasswordPayload,
+  ResendVerificationPayload,
+  VerifyEmailPayload,
 } from './types';
 
 /**
@@ -91,3 +106,71 @@ export async function LogoutAccount(): Promise<void> {
     throw apiError;
   }
 }
+
+/**
+ * Sends a verify email request with 6-digit OTP to `POST /auth/verify-email`.
+ *
+ * @param input - Recipient email and 6-digit OTP code.
+ * @returns The authenticated account details upon successful verification.
+ */
+export async function VerifyEmailApi(input: VerifyEmailPayload): Promise<LoggedInAccount> {
+  try {
+    const response = await apiClient.post<ApiResponse<LoggedInAccount>>('/auth/verify-email', input);
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const rawError = ExtractApiError(error, 'Verifikasi email gagal.');
+    const translatedMessage = TranslateAuthError(rawError.message, 'Verifikasi email gagal.');
+    const apiError = new Error(translatedMessage);
+    throw apiError;
+  }
+}
+
+/**
+ * Requests a new 6-digit verification OTP code via `POST /auth/resend-verification`.
+ *
+ * @param input - Target email address.
+ */
+export async function ResendVerificationApi(input: ResendVerificationPayload): Promise<void> {
+  try {
+    await apiClient.post<ApiResponse<null>>('/auth/resend-verification', input);
+  } catch (error) {
+    const rawError = ExtractApiError(error, 'Gagal mengirim ulang kode verifikasi.');
+    const translatedMessage = TranslateAuthError(rawError.message, 'Gagal mengirim ulang kode verifikasi.');
+    const apiError = new Error(translatedMessage);
+    throw apiError;
+  }
+}
+
+/**
+ * Dispatches a password reset link to user's email via `POST /auth/forgot-password`.
+ *
+ * @param input - Target email address.
+ */
+export async function ForgotPasswordApi(input: ForgotPasswordPayload): Promise<void> {
+  try {
+    await apiClient.post<ApiResponse<null>>('/auth/forgot-password', input);
+  } catch (error) {
+    const rawError = ExtractApiError(error, 'Gagal mengirim tautan atur ulang kata sandi.');
+    const translatedMessage = TranslateAuthError(rawError.message, 'Gagal mengirim tautan atur ulang kata sandi.');
+    const apiError = new Error(translatedMessage);
+    throw apiError;
+  }
+}
+
+/**
+ * Sets a new account password with secret token via `POST /auth/reset-password`.
+ *
+ * @param input - Secret token and new password.
+ */
+export async function ResetPasswordApi(input: ResetPasswordPayload): Promise<void> {
+  try {
+    await apiClient.post<ApiResponse<null>>('/auth/reset-password', input);
+  } catch (error) {
+    const rawError = ExtractApiError(error, 'Gagal memperbarui kata sandi.');
+    const translatedMessage = TranslateAuthError(rawError.message, 'Gagal memperbarui kata sandi.');
+    const apiError = new Error(translatedMessage);
+    throw apiError;
+  }
+}
+

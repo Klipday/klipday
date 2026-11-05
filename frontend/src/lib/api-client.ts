@@ -37,6 +37,12 @@ apiClient.interceptors.response.use(
   }
 );
 
+export interface ApiError extends Error {
+  code?: string;
+  data?: unknown;
+  status?: number;
+}
+
 /**
  * Extracts a descriptive Error instance from an unknown error or Axios response.
  * Inspects the backend's standard `{ message }` response payload, falling back to
@@ -44,28 +50,35 @@ apiClient.interceptors.response.use(
  *
  * @param error - The caught error of unknown type.
  * @param fallbackMessage - Default message to use when no server or error message is available.
- * @returns A standardized Error object containing the resolved message.
+ * @returns A standardized Error object containing the resolved message and optional response data.
  */
-export function ExtractApiError(error: unknown, fallbackMessage = 'Terjadi kesalahan sistem. Silakan coba lagi.'): Error {
+export function ExtractApiError(error: unknown, fallbackMessage = 'Terjadi kesalahan sistem. Silakan coba lagi.'): ApiError {
   // if error is an AxiosError, extract the message from the response
-  if (axios.isAxiosError<{ message?: string }>(error)) {
+  if (axios.isAxiosError<{ message?: string; data?: { code?: string; [key: string]: unknown } }>(error)) {
     const serverMessage = error.response?.data?.message;
-
     const networkMessage = error.message;
-
     const resolvedMessage = serverMessage ?? networkMessage ?? fallbackMessage;
 
-    const apiError = new Error(resolvedMessage);
+    const apiError: ApiError = new Error(resolvedMessage);
+    const responsePayload = error.response?.data;
 
+    if (responsePayload && typeof responsePayload === 'object' && 'data' in responsePayload) {
+      apiError.data = responsePayload.data;
+      if (responsePayload.data && typeof responsePayload.data === 'object' && 'code' in responsePayload.data) {
+        apiError.code = (responsePayload.data as { code?: string }).code;
+      }
+    }
+
+    apiError.status = error.response?.status;
     return apiError;
   }
 
   // if error is an Error instance, return it
   if (error instanceof Error) {
-    return error;
+    return error as ApiError;
   }
 
   // if error is neither an AxiosError nor an Error, return the fallback message
-  const fallbackError = new Error(fallbackMessage);
+  const fallbackError: ApiError = new Error(fallbackMessage);
   return fallbackError;
 }

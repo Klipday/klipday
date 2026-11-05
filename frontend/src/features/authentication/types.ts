@@ -84,3 +84,27 @@ export interface ProtectedRouteProps {
 }
 
 export type PasswordInputProps = React.ComponentProps<'input'>;
+
+export interface VerifyEmailPayload {
+  email: string;
+  code: string;
+}
+
+export interface ResendVerificationPayload {
+  email: string;
+}
+
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+export interface ResetPasswordPayload {
+  token: string;
+  password: string;
+}
+
+export interface EmailNotVerifiedErrorDetails {
+  code: 'EMAIL_NOT_VERIFIED';
+  email: string;
+}
+

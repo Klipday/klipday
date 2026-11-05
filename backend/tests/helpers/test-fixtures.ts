@@ -5,7 +5,7 @@ export const mockBrandAccount = {
   email: 'brand@example.com',
   passwordHash: '$2b$10$hashedpasswordforexamplebrand1234567890',
   role: Role.BRAND,
-  isEmailVerified: false,
+  isEmailVerified: true,
   status: Status.ACTIVE,
   createdAt: new Date('2026-01-01T00:00:00Z'),
   updatedAt: new Date('2026-01-01T00:00:00Z'),
@@ -25,7 +25,7 @@ export const mockCreatorAccount = {
   email: 'creator@example.com',
   passwordHash: '$2b$10$hashedpasswordforexamplecreator12345678',
   role: Role.CREATOR,
-  isEmailVerified: false,
+  isEmailVerified: true,
   status: Status.ACTIVE,
   createdAt: new Date('2026-01-01T00:00:00Z'),
   updatedAt: new Date('2026-01-01T00:00:00Z'),
@@ -33,6 +33,25 @@ export const mockCreatorAccount = {
   creator: {
     id: 'creator-456',
     fullName: 'Budi Santoso',
+    avatarUrl: null,
+    socialAccounts: [],
+  },
+  admin: null,
+};
+
+export const mockUnverifiedAccount = {
+  id: 'acc-unverified-999',
+  email: 'unverified@example.com',
+  passwordHash: '$2b$10$hashedpasswordforexamplecreator12345678',
+  role: Role.CREATOR,
+  isEmailVerified: false,
+  status: Status.ACTIVE,
+  createdAt: new Date('2026-01-01T00:00:00Z'),
+  updatedAt: new Date('2026-01-01T00:00:00Z'),
+  brand: null,
+  creator: {
+    id: 'creator-999',
+    fullName: 'Unverified User',
     avatarUrl: null,
     socialAccounts: [],
   },

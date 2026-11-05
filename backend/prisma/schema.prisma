@@ -186,6 +186,9 @@ model Account {
   admin   Admin?
   wallet  Wallet?
 
+  verificationCodes   EmailVerificationCode[]
+  passwordResetTokens PasswordResetToken[]
+
   @@map("accounts")
 }
 
@@ -947,5 +950,34 @@ model CronSyncRun {
   @@index([cronStatus, startedAt(sort: Desc)])
   @@map("cron_sync_runs")
 }
+
+model EmailVerificationCode {
+  id        String    @id @default(uuid())
+  codeHash  String    @map("code_hash")
+  accountId String    @map("account_id")
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([accountId])
+  @@index([expiresAt])
+  @@map("email_verification_codes")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique @map("token_hash")
+  accountId String    @map("account_id")
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([accountId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
 
 

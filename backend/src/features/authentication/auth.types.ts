@@ -1,7 +1,21 @@
 import type { Industry, Role } from '../../generated/prisma/enums.js';
-import type { LoginInput, RegisterInput } from './auth.schemas.js';
+import type {
+  ForgotPasswordInput,
+  LoginInput,
+  RegisterInput,
+  ResetPasswordInput,
+  ResendVerificationInput,
+  VerifyEmailInput,
+} from './auth.schemas.js';
 
-export type { LoginInput, RegisterInput };
+export type {
+  ForgotPasswordInput,
+  LoginInput,
+  RegisterInput,
+  ResetPasswordInput,
+  ResendVerificationInput,
+  VerifyEmailInput,
+};
 
 export interface AuthSessionPayload {
   sub: string;

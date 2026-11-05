@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { Industry, Role } from '../../generated/prisma/enums.js';
-import { AUTH_MESSAGES, INDONESIAN_PHONE_REGEX, MIN_PASSWORD_LENGTH } from './auth.constants.js';
+import {
+  AUTH_MESSAGES,
+  INDONESIAN_PHONE_REGEX,
+  MIN_PASSWORD_LENGTH,
+  SIX_DIGIT_OTP_REGEX,
+} from './auth.constants.js';
 
 // Register-only strength rules; login uses min(1) so old or weaker passwords
 // can still be checked against their stored hash.
@@ -51,5 +56,33 @@ export const loginSchema = z.object({
   password: z.string({ error: AUTH_MESSAGES.PASSWORD_REQUIRED }).min(1, AUTH_MESSAGES.PASSWORD_REQUIRED),
 });
 
+export const verifyEmailSchema = z.object({
+  email: emailField,
+  code: z
+    .string({ error: AUTH_MESSAGES.CODE_REQUIRED })
+    .trim()
+    .regex(SIX_DIGIT_OTP_REGEX, AUTH_MESSAGES.CODE_INVALID),
+});
+
+export const resendVerificationSchema = z.object({
+  email: emailField,
+});
+
+export const forgotPasswordSchema = z.object({
+  email: emailField,
+});
+
+export const resetPasswordSchema = z.object({
+  token: z
+    .string({ error: AUTH_MESSAGES.TOKEN_REQUIRED })
+    .trim()
+    .min(1, AUTH_MESSAGES.TOKEN_REQUIRED),
+  password: passwordField,
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

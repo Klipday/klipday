@@ -15,6 +15,9 @@ import { AdminKycSkeleton } from '@/features/admin/components/AdminKycSkeleton';
 const Home = lazy(() => import('@/features/home/pages/Home'));
 const SignIn = lazy(() => import('@/features/authentication/pages/SignIn'));
 const SignUp = lazy(() => import('@/features/authentication/pages/SignUp'));
+const VerifyEmail = lazy(() => import('@/features/authentication/pages/VerifyEmail'));
+const ForgotPassword = lazy(() => import('@/features/authentication/pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/features/authentication/pages/ResetPassword'));
 const BrandDashboard = lazy(() => import('@/features/dashboard/pages/BrandDashboard'));
 const CreatorDashboard = lazy(() => import('@/features/dashboard/pages/CreatorDashboard'));
 const AdminDashboard = lazy(() => import('@/features/dashboard/pages/AdminDashboard'));
@@ -88,6 +91,9 @@ const router = createBrowserRouter(
         <Route path="signin" element={<SignIn />} />
         <Route path="login" element={<Navigate to="/signin" replace />} />
         <Route path="signup" element={<SignUp />} />
+        <Route path="verify-email" element={<VerifyEmail />} />
+        <Route path="forgot-password" element={<ForgotPassword />} />
+        <Route path="reset-password" element={<ResetPassword />} />
       </Route>
       <Route element={<ProtectedRoute allowedRoles={['CREATOR', 'ADMIN']} />}>
         <Route path="creator-dashboard" element={<DashboardLayout />}>
