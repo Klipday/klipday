@@ -2,9 +2,10 @@ import { Readable } from 'node:stream';
 import { TransformStream } from 'node:stream/web';
 import type { NextFunction, Request, Response } from 'express';
 import type { Prisma } from '../../generated/prisma/client.js';
-import { CampaignStatus, PaymentStatus, Role, Status, WalletTransactionType } from '../../generated/prisma/enums.js';
+import { CampaignStatus, NotificationType, PaymentStatus, Role, Status, WalletTransactionType } from '../../generated/prisma/enums.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
 import { prisma } from '../../utils/prisma.js';
+import { NotifyAdminPendingItem } from '../../services/notification/notification.dispatcher.js';
 import {
   ALLOWED_PAYMENT_PROOF_MIME_TYPES,
   ALLOWED_THUMBNAIL_MIME_TYPES,
@@ -560,6 +561,15 @@ export async function SubmitCampaign(req: Request, res: Response, next: NextFunc
       };
 
       const updated = await prisma.campaign.update(updateQuery);
+
+      void NotifyAdminPendingItem({
+        type: NotificationType.ADMIN_NEW_CAMPAIGN,
+        title: 'Kampanye Hasil Revisi Menunggu Moderasi',
+        message: `Kampanye "${ownedCampaign.title ?? 'Klipday'}" telah diperbarui dan menunggu pemeriksaan ulang.`,
+        actionUrl: '/admin-dashboard/campaigns',
+        metadata: { campaignId: ownedCampaign.id },
+      });
+
       SendSuccess(res, updated, CAMPAIGN_MESSAGES.SUBMIT_SUCCESS);
       return;
     }
@@ -1101,6 +1111,14 @@ export async function PayCampaignWithWallet(req: Request, res: Response, next: N
           }),
     ]);
 
+    void NotifyAdminPendingItem({
+      type: NotificationType.ADMIN_NEW_CAMPAIGN,
+      title: 'Kampanye Baru Menunggu Moderasi',
+      message: `Kampanye "${campaign.title ?? 'Klipday'}" telah dibayar dan menunggu pemeriksaan.`,
+      actionUrl: '/admin-dashboard/campaigns',
+      metadata: { campaignId: campaign.id },
+    });
+
     SendSuccess(res, updatedCampaign, CAMPAIGN_MESSAGES.WALLET_PAYMENT_SUCCESS);
   } catch (err) {
     next(err);
@@ -1256,6 +1274,7 @@ export async function ConfirmBankTransferPayment(req: Request, res: Response, ne
       },
       select: {
         id: true,
+        title: true,
         budget: true,
         campaignStatus: true,
         payments: {
@@ -1327,6 +1346,14 @@ export async function ConfirmBankTransferPayment(req: Request, res: Response, ne
             })(),
           }),
     ]);
+
+    void NotifyAdminPendingItem({
+      type: NotificationType.ADMIN_NEW_CAMPAIGN,
+      title: 'Kampanye Baru Menunggu Moderasi',
+      message: `Kampanye "${campaign.title ?? 'Klipday'}" telah mengajukan bukti transfer dan menunggu pemeriksaan.`,
+      actionUrl: '/admin-dashboard/campaigns',
+      metadata: { campaignId: campaign.id },
+    });
 
     SendSuccess(res, updatedCampaign, CAMPAIGN_MESSAGES.TRANSFER_PAYMENT_SUBMITTED_SUCCESS);
   } catch (err) {

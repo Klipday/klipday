@@ -13,6 +13,7 @@ import { creatorRouter } from './features/creator/creator.routes.js';
 import { campaignSubmissionRouter, submissionRouter } from './features/submission/submission.routes.js';
 import { creatorWalletRouter } from './features/wallet/creator-wallet.routes.js';
 import { walletRouter } from './features/wallet/wallet.routes.js';
+import { notificationRouter } from './features/notification/notification.routes.js';
 import { ErrorHandler } from './middleware/error.middleware.js';
 
 /**
@@ -54,6 +55,7 @@ export function CreateApp() {
   app.use('/submissions', submissionRouter);
   app.use('/wallet/creator', creatorWalletRouter);
   app.use('/wallet', walletRouter);
+  app.use('/notifications', notificationRouter);
 
   app.use(ErrorHandler);
 

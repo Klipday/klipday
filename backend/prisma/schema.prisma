@@ -157,6 +157,47 @@ enum CronTriggerSource {
   @@map("cron_trigger_source")
 }
 
+enum NotificationType {
+  // Creator types
+  SUBMISSION_APPROVED
+  SUBMISSION_REVISION_REQUESTED
+  SUBMISSION_REJECTED
+  WITHDRAWAL_APPROVED
+  WITHDRAWAL_REJECTED
+  KYC_VERIFIED
+  KYC_REJECTED
+
+  // Brand types
+  SUBMISSION_RECEIVED
+  CAMPAIGN_APPROVED
+  CAMPAIGN_REVISION_REQUESTED
+  CAMPAIGN_REJECTED
+  TOPUP_APPROVED
+  TOPUP_REJECTED
+  CAMPAIGN_BUDGET_EXHAUSTED
+
+  // Admin types
+  ADMIN_NEW_CAMPAIGN
+  ADMIN_NEW_TOPUP
+  ADMIN_NEW_WITHDRAWAL
+  ADMIN_NEW_KYC
+
+  // General system announcements
+  SYSTEM_ANNOUNCEMENT
+
+  @@map("notification_type")
+}
+
+enum NotificationCategory {
+  CAMPAIGN
+  SUBMISSION
+  FINANCE
+  ACCOUNT
+  SYSTEM
+
+  @@map("notification_category")
+}
+
 model Account {
   // id is the primary key for the account, and is generated as a UUID.
   id String @id @default(uuid())
@@ -188,6 +229,7 @@ model Account {
 
   verificationCodes   EmailVerificationCode[]
   passwordResetTokens PasswordResetToken[]
+  notifications       Notification[]
 
   @@map("accounts")
 }
@@ -979,5 +1021,28 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+model Notification {
+  id         String               @id @default(uuid())
+  accountId  String               @map("account_id")
+  account    Account              @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
+  type       NotificationType     @map("type")
+  category   NotificationCategory @default(SYSTEM) @map("category")
 
+  title      String               @map("title")
+  message    String               @map("message") @db.Text
+  actionUrl  String?              @map("action_url")
+
+  isRead     Boolean              @default(false) @map("is_read")
+  readAt     DateTime?            @map("read_at")
+
+  metadata   Json?                @map("metadata")
+
+  status     Status               @default(ACTIVE) @map("status")
+  createdAt  DateTime             @default(now()) @map("created_at")
+  updatedAt  DateTime             @updatedAt @map("updated_at")
+
+  @@index([accountId, isRead])
+  @@index([accountId, createdAt(sort: Desc)])
+  @@map("notifications")
+}

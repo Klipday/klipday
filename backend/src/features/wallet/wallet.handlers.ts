@@ -4,6 +4,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { Prisma } from '../../generated/prisma/client.js';
 import {
   CampaignStatus,
+  NotificationType,
   PaymentStatus,
   PayoutStatus,
   Role,
@@ -14,6 +15,7 @@ import {
 } from '../../generated/prisma/enums.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
 import { prisma } from '../../utils/prisma.js';
+import { NotifyAdminPendingItem } from '../../services/notification/notification.dispatcher.js';
 import {
   ALLOWED_PROOF_MIME_TYPES,
   KLIPDAY_DESTINATION_BANK,
@@ -789,6 +791,14 @@ export async function SubmitTopUpProof(
       updatedAt: updatedTopUp.updatedAt,
     };
 
+    void NotifyAdminPendingItem({
+      type: NotificationType.ADMIN_NEW_TOPUP,
+      title: 'Deposit Top-Up Menunggu Verifikasi',
+      message: `Deposit baru sebesar Rp ${Number(updatedTopUp.totalPayable).toLocaleString('id-ID')} menunggu pemeriksaan.`,
+      actionUrl: '/admin-dashboard/topups',
+      metadata: { topUpId: updatedTopUp.id, amount: Number(updatedTopUp.totalPayable) },
+    });
+
     SendSuccess(res, record, WALLET_MESSAGES.TOP_UP_SUBMIT_SUCCESS);
   } catch (err) {
     next(err);
@@ -1085,6 +1095,14 @@ export async function CreateWithdrawalRequest(
       createdAt: createdPayout.createdAt,
       updatedAt: createdPayout.updatedAt,
     };
+
+    void NotifyAdminPendingItem({
+      type: NotificationType.ADMIN_NEW_WITHDRAWAL,
+      title: 'Penarikan Saldo Menunggu Transfer',
+      message: `Permintaan penarikan saldo sebesar Rp ${Number(payload.amount).toLocaleString('id-ID')} menunggu transfer.`,
+      actionUrl: '/admin-dashboard/withdrawals',
+      metadata: { withdrawalId: createdPayout.id, amount: payload.amount },
+    });
 
     SendSuccess(res, record, WALLET_MESSAGES.WITHDRAWAL_CREATED_SUCCESS, 201);
   } catch (err) {

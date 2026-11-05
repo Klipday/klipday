@@ -42,6 +42,7 @@ const CampaignDetail = lazy(() => import('@/features/campaign/pages/CampaignDeta
 const BrandProfilePage = lazy(() => import('@/features/brand/pages/BrandProfilePage'));
 const CreatorProfilePage = lazy(() => import('@/features/creator/pages/CreatorProfilePage'));
 const HelpPage = lazy(() => import('@/features/knowledge/pages/HelpPage'));
+const NotificationsPage = lazy(() => import('@/features/notification/pages/NotificationsPage'));
 
 
 
@@ -175,6 +176,9 @@ const router = createBrowserRouter(
       </Route>
       <Route element={<ProtectedRoute allowedRoles={['BRAND', 'CREATOR', 'ADMIN']} />}>
         <Route path="dashboard" element={<DashboardRoleRedirect />} />
+        <Route path="notifications" element={<DashboardLayout />}>
+          <Route index element={<NotificationsPage />} />
+        </Route>
         <Route path="campaigns/:id" element={<DashboardLayout />}>
           <Route index element={<CampaignDetail />} />
         </Route>

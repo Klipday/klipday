@@ -3,6 +3,7 @@ import { TransformStream } from 'node:stream/web';
 import type { NextFunction, Request, Response } from 'express';
 import { Prisma } from '../../generated/prisma/client.js';
 import {
+  NotificationType,
   PayoutStatus,
   Role,
   Status,
@@ -11,6 +12,7 @@ import {
 } from '../../generated/prisma/enums.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
 import { prisma } from '../../utils/prisma.js';
+import { NotifyAdminPendingItem } from '../../services/notification/notification.dispatcher.js';
 import {
   ALLOWED_PROOF_MIME_TYPES,
   CREATOR_PAYOUT_LIMITS,
@@ -247,6 +249,14 @@ export async function CreateCreatorPayoutAccount(
       createdAt: createdAccount.createdAt,
       updatedAt: createdAccount.updatedAt,
     };
+
+    void NotifyAdminPendingItem({
+      type: NotificationType.ADMIN_NEW_KYC,
+      title: 'Dokumen KYC Baru Menunggu Verifikasi',
+      message: 'Creator baru mengajukan verifikasi data rekening / identitas.',
+      actionUrl: '/admin-dashboard/kyc',
+      metadata: { payoutAccountId: createdAccount.id },
+    });
 
     SendSuccess(res, record, CREATOR_WALLET_MESSAGES.PAYOUT_ACCOUNT_CREATED_SUCCESS, 201);
   } catch (err) {

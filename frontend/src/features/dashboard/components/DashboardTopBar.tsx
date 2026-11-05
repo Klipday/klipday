@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { UseNavbar } from '../hooks';
 import type { DashboardTopBarProps } from '../types';
 import { UserNav } from './UserNav';
+import { NotificationBell } from '@/features/notification';
 
 /**
  * Top bar header component positioned to the right of the sidebar.
@@ -36,7 +37,8 @@ export function DashboardTopBar({ userName, userEmail, userRole, avatarUrl }: Da
         </Link>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        <NotificationBell />
         <UserNav name={userName} email={userEmail} role={userRole} avatarUrl={avatarUrl} />
       </div>
     </header>

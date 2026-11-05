@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { Prisma, type PrismaClient } from '../../generated/prisma/client.js';
 import {
   CampaignStatus,
+  NotificationType,
   PaymentStatus,
   PayoutStatus,
   Platform,
@@ -13,6 +14,20 @@ import {
 } from '../../generated/prisma/enums.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
 import { prisma } from '../../utils/prisma.js';
+import {
+  DispatchNotification,
+  NotifyCampaignApproved,
+  NotifyCampaignRejected,
+  NotifyCampaignRevision,
+  NotifyKycApproved,
+  NotifyKycRejected,
+  NotifySettlementFinalizedForBrand,
+  NotifySettlementFinalizedForCreator,
+  NotifyTopUpApproved,
+  NotifyTopUpRejected,
+  NotifyWithdrawalApproved,
+  NotifyWithdrawalRejected,
+} from '../../services/notification/notification.dispatcher.js';
 import { CAMPAIGN_DETAIL_SELECT } from '../campaign/campaign.constants.js';
 import {
   GenerateWalletTransactionReferenceCode,
@@ -1103,6 +1118,13 @@ export async function FinalizeCampaignSettlement(
     const minViews = campaign.minViews ?? 0;
     const maxViews = campaign.maxViews ?? 0;
 
+    let brandRefundAmount = 0;
+    const settledCreatorPayouts: Array<{
+      creatorAccountId: string;
+      submissionId: string;
+      rewardAmount: number;
+    }> = [];
+
     await prisma.$transaction(async (tx) => {
       if (typeof tx.$queryRaw === 'function') {
         await tx.$queryRaw`SELECT id FROM campaigns WHERE id = ${campaign.id} FOR UPDATE`;
@@ -1156,6 +1178,14 @@ export async function FinalizeCampaignSettlement(
       for (const sub of approvedSubmissions) {
         const allocation = allocationById.get(sub.id);
         const finalReward = allocation ? allocation.allocatedEarnings : 0;
+
+        if (sub.creator?.accountId) {
+          settledCreatorPayouts.push({
+            creatorAccountId: sub.creator.accountId,
+            submissionId: sub.id,
+            rewardAmount: finalReward,
+          });
+        }
 
         const verifySubPayload = {
           where: { id: sub.id },
@@ -1230,7 +1260,7 @@ export async function FinalizeCampaignSettlement(
       await tx.submission.updateMany(closeUnapprovedPayload);
 
       // 3. Refund any unspent budget back to the Brand's wallet
-      const brandRefundAmount = finalFifo.remainingRefund;
+      brandRefundAmount = finalFifo.remainingRefund;
       if (brandRefundAmount > 0) {
         const brandWallet = await ProvisionAccountWallet(
           campaign.brand.accountId,
@@ -1280,6 +1310,27 @@ export async function FinalizeCampaignSettlement(
       };
       await tx.campaign.update(finishCampaignPayload);
     });
+
+    // Notify Brand about settlement completion
+    if (campaign.brand?.accountId) {
+      void NotifySettlementFinalizedForBrand({
+        brandAccountId: campaign.brand.accountId,
+        campaignTitle,
+        campaignId: campaign.id,
+        refundAmount: brandRefundAmount,
+      });
+    }
+
+    // Notify clippers (creators) about settlement reward distributed
+    for (const payout of settledCreatorPayouts) {
+      void NotifySettlementFinalizedForCreator({
+        creatorAccountId: payout.creatorAccountId,
+        campaignTitle,
+        campaignId: campaign.id,
+        submissionId: payout.submissionId,
+        rewardAmount: payout.rewardAmount,
+      });
+    }
 
     const settledSummary = await BuildCampaignSettlementSummaryById(campaign.id);
 
@@ -1906,6 +1957,28 @@ export async function ModerateCampaign(
     };
     const updatedCampaign = await prisma.campaign.findFirst(updatedCampaignQuery);
 
+    if (input.action === MODERATION_ACTION.APPROVE) {
+      void NotifyCampaignApproved({
+        brandAccountId: campaign.brand.accountId,
+        campaignTitle: campaign.title ?? 'Kampanye',
+        campaignId: campaign.id,
+      });
+    } else if (input.action === MODERATION_ACTION.REVISION) {
+      void NotifyCampaignRevision({
+        brandAccountId: campaign.brand.accountId,
+        campaignTitle: campaign.title ?? 'Kampanye',
+        campaignId: campaign.id,
+        adminNote: input.adminNote ?? '',
+      });
+    } else if (input.action === MODERATION_ACTION.REJECT_CAMPAIGN) {
+      void NotifyCampaignRejected({
+        brandAccountId: campaign.brand.accountId,
+        campaignTitle: campaign.title ?? 'Kampanye',
+        campaignId: campaign.id,
+        rejectionReason: input.adminNote ?? 'Kampanye tidak memenuhi kriteria moderasi platform.',
+      });
+    }
+
     SendSuccess(res, updatedCampaign, ADMIN_MESSAGES.MODERATE_CAMPAIGN_SUCCESS);
   } catch (err) {
     next(err);
@@ -2241,6 +2314,21 @@ export async function ReviewBrandTopUpRequest(
     }
 
     const result = MapAdminTopUpToDto(updatedTopUp);
+
+    if (topUp.wallet?.accountId) {
+      if (input.decision === TOPUP_REVIEW_ACTION.APPROVE) {
+        void NotifyTopUpApproved({
+          brandAccountId: topUp.wallet.accountId,
+          amount: Number(topUp.totalPayable),
+        });
+      } else {
+        void NotifyTopUpRejected({
+          brandAccountId: topUp.wallet.accountId,
+          amount: Number(topUp.totalPayable),
+          rejectionReason: input.rejectionReason ?? 'Bukti transfer tidak valid.',
+        });
+      }
+    }
 
     SendSuccess(res, result, ADMIN_MESSAGES.REVIEW_TOP_UP_SUCCESS);
   } catch (err) {
@@ -2658,6 +2746,21 @@ export async function ReviewWithdrawalRequest(
 
     const result = MapAdminWithdrawalToDto(updatedWithdrawal);
 
+    if (withdrawal.wallet?.accountId) {
+      if (input.decision === WITHDRAWAL_REVIEW_ACTION.APPROVE) {
+        void NotifyWithdrawalApproved({
+          creatorAccountId: withdrawal.wallet.accountId,
+          amount: Number(withdrawal.amount),
+        });
+      } else {
+        void NotifyWithdrawalRejected({
+          creatorAccountId: withdrawal.wallet.accountId,
+          amount: Number(withdrawal.amount),
+          rejectionReason: input.rejectionReason ?? 'Permintaan penarikan dana ditolak admin.',
+        });
+      }
+    }
+
     SendSuccess(res, result, ADMIN_MESSAGES.REVIEW_WITHDRAWAL_SUCCESS);
   } catch (err) {
     if (err instanceof Error && err.message === 'WITHDRAWAL_NOT_PENDING') {
@@ -2980,6 +3083,11 @@ export async function ReviewKycRequest(
         walletId: true,
         isPrimary: true,
         verificationStatus: true,
+        wallet: {
+          select: {
+            accountId: true,
+          },
+        },
       },
     };
 
@@ -3143,6 +3251,19 @@ export async function ReviewKycRequest(
       input.decision === KYC_REVIEW_ACTION.APPROVE
         ? ADMIN_MESSAGES.KYC_APPROVE_SUCCESS
         : ADMIN_MESSAGES.KYC_REJECT_SUCCESS;
+
+    if (targetKyc.wallet?.accountId) {
+      if (input.decision === KYC_REVIEW_ACTION.APPROVE) {
+        void NotifyKycApproved({
+          creatorAccountId: targetKyc.wallet.accountId,
+        });
+      } else {
+        void NotifyKycRejected({
+          creatorAccountId: targetKyc.wallet.accountId,
+          rejectionReason: input.rejectionReason ?? 'Dokumen belum memenuhi kriteria.',
+        });
+      }
+    }
 
     SendSuccess(res, result, successMessage);
   } catch (err) {

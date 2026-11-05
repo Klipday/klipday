@@ -5,6 +5,12 @@ import { prisma } from '../../utils/prisma.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
 import { IsSupabaseStorageUrl, PersistVideoThumbnailToStorage } from '../../services/supabase.js';
 import {
+  NotifySubmissionApproved,
+  NotifySubmissionReceived,
+  NotifySubmissionRejected,
+  NotifySubmissionRevision,
+} from '../../services/notification/notification.dispatcher.js';
+import {
   ALL_STATUS_FILTER,
   BUDGET_DECIMAL_PLACES,
   CPM_VIEW_DIVISOR,
@@ -429,10 +435,16 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
         campaign: {
           select: {
             id: true,
+            title: true,
             status: true,
             campaignStatus: true,
             budget: true,
             endDate: true,
+            brand: {
+              select: {
+                accountId: true,
+              },
+            },
             submissions: {
               where: {
                 status: Status.ACTIVE,
@@ -553,6 +565,16 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
       },
     };
     const finalizedSubmission = await prisma.submission.update(finalizeSubmissionPayload);
+
+    if (existingSubmission.campaign?.brand?.accountId) {
+      void NotifySubmissionReceived({
+        brandAccountId: existingSubmission.campaign.brand.accountId,
+        campaignTitle: existingSubmission.campaign.title ?? 'Kampanye',
+        creatorUsername: ownedSocialAccount.username,
+        submissionId: finalizedSubmission.id,
+        campaignId,
+      });
+    }
 
     const formattedSubmission = FormatSubmissionResponse(finalizedSubmission);
     SendSuccess(res, formattedSubmission, SUBMISSION_MESSAGES.SUBMIT_SUCCESS);
@@ -709,6 +731,16 @@ export async function AcceptSubmission(req: Request, res: Response, next: NextFu
       select: {
         id: true,
         submissionStatus: true,
+        campaign: {
+          select: {
+            title: true,
+          },
+        },
+        creator: {
+          select: {
+            accountId: true,
+          },
+        },
       },
     };
     const submissionTarget = await prisma.submission.findFirst(findSubmissionQuery);
@@ -755,6 +787,15 @@ export async function AcceptSubmission(req: Request, res: Response, next: NextFu
     };
 
     const updatedSubmission = await prisma.submission.update(updateSubmissionPayload);
+
+    if (submissionTarget.creator?.accountId) {
+      void NotifySubmissionApproved({
+        creatorAccountId: submissionTarget.creator.accountId,
+        campaignTitle: submissionTarget.campaign?.title ?? 'Kampanye',
+        submissionId: updatedSubmission.id,
+      });
+    }
+
     const formattedItem = FormatCampaignSubmissionReviewItem(updatedSubmission);
 
     SendSuccess(res, formattedItem, SUBMISSION_MESSAGES.ACCEPT_SUBMISSION_SUCCESS);
@@ -805,6 +846,16 @@ export async function RejectSubmission(req: Request, res: Response, next: NextFu
       select: {
         id: true,
         submissionStatus: true,
+        campaign: {
+          select: {
+            title: true,
+          },
+        },
+        creator: {
+          select: {
+            accountId: true,
+          },
+        },
       },
     };
     const submissionTarget = await prisma.submission.findFirst(findSubmissionQuery);
@@ -865,6 +916,16 @@ export async function RejectSubmission(req: Request, res: Response, next: NextFu
     };
 
     const updatedSubmission = await prisma.submission.update(updateSubmissionPayload);
+
+    if (submissionTarget.creator?.accountId) {
+      void NotifySubmissionRejected({
+        creatorAccountId: submissionTarget.creator.accountId,
+        campaignTitle: submissionTarget.campaign?.title ?? 'Kampanye',
+        submissionId: updatedSubmission.id,
+        rejectionReason: note || 'Tidak memenuhi kriteria brief kampanye.',
+      });
+    }
+
     const formattedItem = FormatCampaignSubmissionReviewItem(updatedSubmission);
 
     SendSuccess(res, formattedItem, SUBMISSION_MESSAGES.REJECT_SUBMISSION_SUCCESS);
@@ -915,6 +976,17 @@ export async function RequestSubmissionRevision(req: Request, res: Response, nex
       select: {
         id: true,
         submissionStatus: true,
+        campaign: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        creator: {
+          select: {
+            accountId: true,
+          },
+        },
       },
     };
     const submissionTarget = await prisma.submission.findFirst(findSubmissionQuery);
@@ -975,6 +1047,17 @@ export async function RequestSubmissionRevision(req: Request, res: Response, nex
     };
 
     const updatedSubmission = await prisma.submission.update(updateSubmissionPayload);
+
+    if (submissionTarget.creator?.accountId) {
+      void NotifySubmissionRevision({
+        creatorAccountId: submissionTarget.creator.accountId,
+        campaignTitle: submissionTarget.campaign?.title ?? 'Kampanye',
+        submissionId: updatedSubmission.id,
+        campaignId: submissionTarget.campaign?.id ?? '',
+        reviewNote: note,
+      });
+    }
+
     const formattedItem = FormatCampaignSubmissionReviewItem(updatedSubmission);
 
     SendSuccess(res, formattedItem, SUBMISSION_MESSAGES.REVISE_SUBMISSION_SUCCESS);
