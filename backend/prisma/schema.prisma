@@ -141,6 +141,22 @@ enum Category {
   @@map("category")
 }
 
+enum CronSyncStatus {
+  RUNNING
+  SUCCESS
+  PARTIAL_FAILURE
+  FAILED
+
+  @@map("cron_sync_status")
+}
+
+enum CronTriggerSource {
+  SCHEDULED
+  MANUAL_ADMIN
+
+  @@map("cron_trigger_source")
+}
+
 model Account {
   // id is the primary key for the account, and is generated as a UUID.
   id String @id @default(uuid())
@@ -348,6 +364,10 @@ model Campaign {
   // featuredUntil defines the expiration timestamp of the featured placement.
   featuredUntil DateTime? @map("featured_until")
 
+  // Metrics cron tracking timestamps for 12-hour sync and one-time post-expiry freeze snapshot.
+  lastMetricsSyncedAt   DateTime? @map("last_metrics_synced_at")
+  finalSnapshotSyncedAt DateTime? @map("final_snapshot_synced_at")
+
   // createdAt and updatedAt are used to track when the campaign was created and last updated.
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -487,6 +507,11 @@ model Submission {
 
   // submittedAt is the date and time when the submission was submitted, and is stamped on final submit.
   submittedAt DateTime? @map("submitted_at")
+
+  // Metrics sync diagnostics for freezing and flagging deleted/private/unreachable videos for Admin audit.
+  lastMetricsSyncedAt DateTime? @map("last_metrics_synced_at")
+  syncFailureStreak   Int       @default(0) @map("sync_failure_streak")
+  lastSyncError       String?   @map("last_sync_error") @db.Text
 
   // createdAt and updatedAt are used to track when the submission was created and last updated.
   createdAt DateTime @default(now()) @map("created_at")
@@ -883,6 +908,44 @@ model TopUpRequest {
   @@index([walletId])
   @@index([status, createdAt(sort: Desc)])
   @@map("top_up_requests")
+}
+
+model CronJobLock {
+  lockKey     String   @id @map("lock_key")
+  lockedBy    String   @map("locked_by")
+  lockedAt    DateTime @map("locked_at")
+  lockedUntil DateTime @map("locked_until")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("cron_job_locks")
+}
+
+model CronSyncRun {
+  id                     String            @id @default(uuid())
+  triggerSource          CronTriggerSource @map("trigger_source")
+  triggeredByAccountId   String?           @map("triggered_by_account_id")
+  targetCampaignId       String?           @map("target_campaign_id")
+  cronStatus             CronSyncStatus    @default(RUNNING) @map("cron_status")
+  startedAt              DateTime          @default(now()) @map("started_at")
+  finishedAt             DateTime?         @map("finished_at")
+  durationMs             Int?              @map("duration_ms")
+  campaignsEvaluated     Int               @default(0) @map("campaigns_evaluated")
+  campaignsSynced        Int               @default(0) @map("campaigns_synced")
+  campaignsSkippedFrozen Int               @default(0) @map("campaigns_skipped_frozen")
+  submissionsScraped     Int               @default(0) @map("submissions_scraped")
+  submissionsUpdated     Int               @default(0) @map("submissions_updated")
+  submissionsFailed      Int               @default(0) @map("submissions_failed")
+  totalViewsDelta        Int               @default(0) @map("total_views_delta")
+  totalAllocatedDelta    Decimal           @default(0) @map("total_allocated_delta") @db.Decimal(15, 2)
+  errorMessage           String?           @map("error_message") @db.Text
+  metadata               Json?
+  status                 Status            @default(ACTIVE)
+  createdAt              DateTime          @default(now()) @map("created_at")
+  updatedAt              DateTime          @updatedAt @map("updated_at")
+
+  @@index([startedAt(sort: Desc)])
+  @@index([cronStatus, startedAt(sort: Desc)])
+  @@map("cron_sync_runs")
 }
 
 

@@ -1,3 +1,4 @@
+import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { AdminFifoSubmissionRowProps } from '../types';
@@ -62,6 +63,12 @@ export function AdminFifoSubmissionRow({
                 @{submission.socialUsername}
               </span>
             )}
+            {submission.isFlaggedUnavailable && !isRejected && (
+              <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-500">
+                <AlertTriangle className="size-3" />
+                Video Privat / Dihapus
+              </span>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -84,6 +91,12 @@ export function AdminFifoSubmissionRow({
           {isRejected && submission.reviewNote && (
             <p className="text-[11px] text-muted-foreground italic line-clamp-1">
               Catatan: {submission.reviewNote}
+            </p>
+          )}
+
+          {submission.isFlaggedUnavailable && !isRejected && submission.lastSyncError && (
+            <p className="text-[11px] text-amber-500 font-medium line-clamp-1">
+              Kendala: {submission.lastSyncError} (Gagal sinkron {submission.syncFailureStreak ?? 1}x · Tayangan dibekukan)
             </p>
           )}
         </div>

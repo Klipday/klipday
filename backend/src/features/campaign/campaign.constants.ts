@@ -1,5 +1,5 @@
 import type { Prisma } from '../../generated/prisma/client.js';
-import { CampaignStatus, Status } from '../../generated/prisma/enums.js';
+import { CampaignStatus, Status, SubmissionStatus } from '../../generated/prisma/enums.js';
 
 /**
  * Whitelist of scalar fields copied 1:1 from the campaign edit payload into Prisma update queries.
@@ -142,6 +142,32 @@ export const CAMPAIGN_DETAIL_SELECT = {
       updatedAt: true,
     },
   },
+} as const satisfies Prisma.CampaignSelect;
+
+const ESCROW_SUBMISSIONS_SELECT = {
+  lastMetricsSyncedAt: true,
+  finalSnapshotSyncedAt: true,
+  submissions: {
+    where: {
+      status: Status.ACTIVE,
+      submissionStatus: {
+        in: [SubmissionStatus.APPROVED, SubmissionStatus.VERIFIED],
+      },
+    },
+    select: {
+      earnings: true,
+    },
+  },
+} as const satisfies Prisma.CampaignSelect;
+
+export const CAMPAIGN_CARD_ESCROW_SELECT = {
+  ...CAMPAIGN_CARD_SELECT,
+  ...ESCROW_SUBMISSIONS_SELECT,
+} as const satisfies Prisma.CampaignSelect;
+
+export const CAMPAIGN_DETAIL_ESCROW_SELECT = {
+  ...CAMPAIGN_DETAIL_SELECT,
+  ...ESCROW_SUBMISSIONS_SELECT,
 } as const satisfies Prisma.CampaignSelect;
 
 export const DEFAULT_KLIPDAY_BANK_NAME = 'BCA';

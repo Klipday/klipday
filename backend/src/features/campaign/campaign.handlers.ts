@@ -8,7 +8,8 @@ import { prisma } from '../../utils/prisma.js';
 import {
   ALLOWED_PAYMENT_PROOF_MIME_TYPES,
   ALLOWED_THUMBNAIL_MIME_TYPES,
-  CAMPAIGN_CARD_SELECT,
+  CAMPAIGN_CARD_ESCROW_SELECT,
+  CAMPAIGN_DETAIL_ESCROW_SELECT,
   CAMPAIGN_DETAIL_SELECT,
   CAMPAIGN_MESSAGES,
   DEFAULT_KLIPDAY_BANK_ACCOUNT_NAME,
@@ -29,6 +30,7 @@ import {
   BuildCampaignEditFields,
   BuildCampaignsOrderBy,
   BuildCampaignsWhereClause,
+  EnrichCampaignEscrowMetrics,
   GeneratePaymentUniqueCode,
   GenerateWalletTransactionReferenceCode,
 } from './campaign.helper.js';
@@ -248,19 +250,23 @@ export async function GetCampaigns(req: Request, res: Response, next: NextFuncti
         orderBy: orderByClause,
         skip,
         take: limit,
-        select: CAMPAIGN_CARD_SELECT,
+        select: CAMPAIGN_CARD_ESCROW_SELECT,
       }),
       prisma.campaign.count({
         where: whereClause,
       }),
     ]);
 
+    const enrichedCampaigns = campaigns.map((campaign) =>
+      EnrichCampaignEscrowMetrics(campaign),
+    );
+
     const totalPages = Math.ceil(totalCount / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
     const responsePayload: CampaignsPaginatedData = {
-      items: campaigns as never,
+      items: enrichedCampaigns as never,
       pagination: {
         page,
         limit,
@@ -317,7 +323,7 @@ export async function GetFeaturedCampaigns(req: Request, res: Response, next: Ne
       where: featuredWhereClause,
       orderBy: featuredOrderByClause,
       take: FEATURED_CAMPAIGNS_LIMIT,
-      select: CAMPAIGN_CARD_SELECT,
+      select: CAMPAIGN_CARD_ESCROW_SELECT,
     };
 
     const featuredCampaigns = await prisma.campaign.findMany(primaryQuery);
@@ -339,17 +345,24 @@ export async function GetFeaturedCampaigns(req: Request, res: Response, next: Ne
           { createdAt: 'desc' as const },
         ],
         take: backfillTake,
-        select: CAMPAIGN_CARD_SELECT,
+        select: CAMPAIGN_CARD_ESCROW_SELECT,
       };
 
       const backfillCampaigns = await prisma.campaign.findMany(backfillQuery);
       const combinedCampaigns = [...featuredCampaigns, ...backfillCampaigns];
+      const enrichedCombined = combinedCampaigns.map((campaign) =>
+        EnrichCampaignEscrowMetrics(campaign),
+      );
 
-      SendSuccess(res, combinedCampaigns, CAMPAIGN_MESSAGES.FEATURED_RETRIEVED_SUCCESS);
+      SendSuccess(res, enrichedCombined, CAMPAIGN_MESSAGES.FEATURED_RETRIEVED_SUCCESS);
       return;
     }
 
-    SendSuccess(res, featuredCampaigns, CAMPAIGN_MESSAGES.FEATURED_RETRIEVED_SUCCESS);
+    const enrichedFeatured = featuredCampaigns.map((campaign) =>
+      EnrichCampaignEscrowMetrics(campaign),
+    );
+
+    SendSuccess(res, enrichedFeatured, CAMPAIGN_MESSAGES.FEATURED_RETRIEVED_SUCCESS);
   } catch (err) {
     next(err);
   }
@@ -449,7 +462,7 @@ export async function GetCampaignById(req: Request, res: Response, next: NextFun
 
     const findDetailQuery = {
       where: whereClause,
-      select: CAMPAIGN_DETAIL_SELECT,
+      select: CAMPAIGN_DETAIL_ESCROW_SELECT,
     };
 
     const campaign = await prisma.campaign.findFirst(findDetailQuery);
@@ -459,7 +472,9 @@ export async function GetCampaignById(req: Request, res: Response, next: NextFun
       return;
     }
 
-    SendSuccess(res, campaign, CAMPAIGN_MESSAGES.DETAIL_RETRIEVED_SUCCESS);
+    const enrichedCampaign = EnrichCampaignEscrowMetrics(campaign);
+
+    SendSuccess(res, enrichedCampaign, CAMPAIGN_MESSAGES.DETAIL_RETRIEVED_SUCCESS);
   } catch (err) {
     next(err);
   }

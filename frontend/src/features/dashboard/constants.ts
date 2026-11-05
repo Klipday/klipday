@@ -176,3 +176,74 @@ export const CREATOR_SUBMISSION_STATUS_CONFIG: Record<
 
 export const DEFAULT_DISCORD_COMMUNITY_URL = 'https://discord.gg/S2wYRNt7Q';
 
+export const ADMIN_DASHBOARD_MESSAGES = {
+  TITLE_PREFIX: 'Halo, ',
+  DEFAULT_ADMIN_NAME: 'Admin Klipday',
+  SUBTITLE:
+    'Ringkasan antrean verifikasi, likuiditas dana kampanye, dan aktivitas operasional yang memerlukan tindakan Anda.',
+  ALL_CLEAN: 'Semua antrean bersih',
+  TASKS_WAITING_SUFFIX: 'tugas menunggu tindakan',
+  ACTION_REFRESH: 'Muat Ulang',
+
+  // Section Headers
+  ACTION_QUEUES_TITLE: 'Perlu Tindakan Admin',
+  ACTION_QUEUES_HINT: 'Klik kartu untuk membuka antrean terkait',
+  METRICS_SECTION_TITLE: 'Ringkasan Finansial & Ekosistem',
+
+  // 5 Queue Cards
+  QUEUE_CAMPAIGN_MODERATION: 'Moderasi Kampanye',
+  QUEUE_CAMPAIGN_SETTLEMENT: 'Settlement Kampanye',
+  QUEUE_TOP_UP: 'Verifikasi Top Up',
+  QUEUE_WITHDRAWAL: 'Pencairan Withdraw',
+  QUEUE_KYC: 'Verifikasi KYC',
+
+  // Queue Units
+  UNIT_CAMPAIGN: 'Kampanye',
+  UNIT_TOP_UP: 'Deposit',
+  UNIT_WITHDRAWAL: 'Penarikan',
+  UNIT_KYC: 'Rekening',
+
+  // Status Strings
+  QUEUE_CLEAN: 'Antrean bersih',
+  WITHDRAWAL_CANCEL_ALERT_SUFFIX: 'minta batal',
+
+  // 4 Metrics
+  METRICS_LOCKED_BUDGET: 'Dana Kampanye Aktif',
+  METRICS_TOTAL_USER_BALANCE: 'Total Saldo Dompet Pengguna',
+  METRICS_REWARDS_PAID: 'Total Reward Kreator Cair',
+  METRICS_USERS_AND_VIEWS: 'Pengguna & Penayangan Valid',
+
+  // Bento Widgets
+  FINANCE_WIDGET_TITLE: 'Antrean Transaksi Keuangan',
+  FINANCE_WIDGET_SUBTITLE: 'Diurutkan dari pengajuan terlama agar pencairan & deposit tepat waktu',
+  KYC_WIDGET_TITLE: 'Antrean Verifikasi KYC',
+  KYC_WIDGET_SUBTITLE: 'Rekening bank & e-wallet menunggu pemeriksaan',
+  CAMPAIGNS_WIDGET_TITLE: 'Kampanye Perlu Ditindaklanjuti',
+  CAMPAIGNS_WIDGET_SUBTITLE: 'Moderasi kampanye baru & finalisasi settlement anggaran',
+  LEDGER_WIDGET_TITLE: 'Mutasi Kas Terkini',
+  LEDGER_WIDGET_SUBTITLE: '5 transaksi dompet terbaru di seluruh platform',
+
+  // Action CTAs
+  ACTION_PROCESS: 'Proses',
+  ACTION_VERIFY: 'Verifikasi',
+  ACTION_REVIEW: 'Tinjau',
+  ACTION_VIEW_ALL: 'Semua',
+  ACTION_MANAGE: 'Kelola',
+  ACTION_SETTLE: 'Proses Settlement',
+  ACTION_MODERATE: 'Moderasi',
+
+  // Empty States
+  FINANCE_EMPTY_TITLE: 'Tidak ada transaksi tertunda',
+  FINANCE_EMPTY_DESC: 'Semua permintaan withdraw dan top up saldo telah selesai diproses.',
+  KYC_EMPTY_TITLE: 'Antrean KYC bersih',
+  KYC_EMPTY_DESC: 'Belum ada pengajuan rekening bank atau e-wallet baru yang menunggu verifikasi.',
+  CAMPAIGNS_EMPTY_TITLE: 'Tidak ada kampanye menunggu tindakan',
+  CAMPAIGNS_EMPTY_DESC: 'Semua pengajuan kampanye baru dan settlement anggaran telah diproses.',
+  LEDGER_EMPTY_TITLE: 'Belum ada mutasi dompet',
+  LEDGER_EMPTY_DESC: 'Transaksi dompet terbaru akan otomatis dicatat di sini.',
+
+  // Errors
+  FETCH_ERROR: 'Gagal memuat ringkasan dashboard admin. Silakan coba beberapa saat lagi.',
+} as const;
+
+

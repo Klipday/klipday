@@ -1,6 +1,11 @@
 import { apiClient, ExtractApiError } from '@/lib/api-client';
-import { CREATOR_DASHBOARD_MESSAGES, DASHBOARD_MESSAGES } from './constants';
+import {
+  ADMIN_DASHBOARD_MESSAGES,
+  CREATOR_DASHBOARD_MESSAGES,
+  DASHBOARD_MESSAGES,
+} from './constants';
 import type {
+  AdminDashboardResponse,
   ApiResponse,
   BrandDashboardResponse,
   CreatorDashboardResponse,
@@ -49,4 +54,27 @@ export async function GetCreatorDashboardSummary(): Promise<CreatorDashboardResp
     throw apiError;
   }
 }
+
+/**
+ * Retrieves the comprehensive operational admin dashboard summary.
+ * Aggregates all 5 actionable queues, platform financial & ecosystem metrics,
+ * and oldest-first triage preview lists in a single roundtrip.
+ *
+ * @returns Complete operational admin dashboard summary.
+ * @throws Standardized API error if the request fails.
+ */
+export async function GetAdminDashboardSummary(): Promise<AdminDashboardResponse> {
+  try {
+    const response = await apiClient.get<ApiResponse<AdminDashboardResponse>>('/admin/dashboard');
+    const result = response.data.data;
+    if (!result) {
+      throw new Error(ADMIN_DASHBOARD_MESSAGES.FETCH_ERROR);
+    }
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, ADMIN_DASHBOARD_MESSAGES.FETCH_ERROR);
+    throw apiError;
+  }
+}
+
 

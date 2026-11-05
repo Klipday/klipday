@@ -2,6 +2,8 @@ import { apiClient, ExtractApiError } from '@/lib/api-client';
 import type { ApiResponse, Campaign } from '@/features/campaign/types';
 import type {
   AdminCampaignSettlementSummaryDto,
+  AdminKycItem,
+  AdminKycPaginatedResponse,
   AdminModerateCampaignPayload,
   AdminModerationCampaignsPaginatedDto,
   AdminModerationQueryParams,
@@ -9,9 +11,16 @@ import type {
   AdminSettlementQueryParams,
   AdminTopUpItem,
   AdminTopUpsPaginated,
+  AdminWithdrawalItem,
+  AdminWithdrawalsPaginated,
   DisqualifySettlementSubmissionPayload,
+  GetAdminKycParams,
   GetAdminTopUpsParams,
+  GetAdminWithdrawalsParams,
+  ManualMetricsSyncResponseDto,
+  ReviewAdminWithdrawalPayload,
   ReviewBrandTopUpPayload,
+  ReviewKycPayload,
   UpdateSettlementSubmissionViewsPayload,
 } from './types';
 
@@ -273,4 +282,142 @@ export async function ReviewBrandTopUp(
     throw apiError;
   }
 }
+
+/**
+ * Fetches paginated withdrawal requests across creators and brands (`GET /admin/withdrawals`).
+ *
+ * @param params - Filter, role, search, page, and limit query parameters.
+ * @returns Paginated withdrawal items, tab counts, and pagination metadata.
+ */
+export async function GetAdminWithdrawals(
+  params?: GetAdminWithdrawalsParams,
+): Promise<AdminWithdrawalsPaginated> {
+  try {
+    const response = await apiClient.get<ApiResponse<AdminWithdrawalsPaginated>>(
+      '/admin/withdrawals',
+      { params },
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(
+      error,
+      'Gagal memuat antrean penarikan saldo. Silakan coba lagi.',
+    );
+    throw apiError;
+  }
+}
+
+/**
+ * Submits an administrative review decision (APPROVE or REJECT) for a creator/brand withdrawal request
+ * (`POST /admin/withdrawals/:id/review`).
+ *
+ * @param payload - Target withdrawal ID, decision, rejection reason, admin note, and transfer proof URL.
+ * @returns Updated withdrawal item record.
+ */
+export async function ReviewAdminWithdrawal(
+  payload: ReviewAdminWithdrawalPayload,
+): Promise<AdminWithdrawalItem> {
+  try {
+    const response = await apiClient.post<ApiResponse<AdminWithdrawalItem>>(
+      `/admin/withdrawals/${payload.id}/review`,
+      {
+        decision: payload.decision,
+        rejectionReason: payload.rejectionReason,
+        adminNote: payload.adminNote,
+        transferProofUrl: payload.transferProofUrl,
+      },
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(
+      error,
+      'Gagal memproses review penarikan saldo. Silakan coba lagi.',
+    );
+    throw apiError;
+  }
+}
+
+/**
+ * Fetches paginated payout account KYC submissions across creators and brands (`GET /admin/kyc`).
+ *
+ * @param params - Status filter, role filter, search keyword, page, and limit query parameters.
+ * @returns Paginated KYC items, status tab counts, and pagination metadata.
+ */
+export async function GetAdminKycList(
+  params?: GetAdminKycParams,
+): Promise<AdminKycPaginatedResponse> {
+  try {
+    const response = await apiClient.get<ApiResponse<AdminKycPaginatedResponse>>(
+      '/admin/kyc',
+      { params },
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(
+      error,
+      'Gagal memuat daftar antrean verifikasi rekening KYC. Silakan coba lagi.',
+    );
+    throw apiError;
+  }
+}
+
+/**
+ * Submits an administrative review decision (APPROVE or REJECT) for a payout account KYC submission
+ * (`POST /admin/kyc/:id/review`).
+ *
+ * @param payload - Target KYC payout account ID, decision, and optional rejection reason.
+ * @returns Updated KYC payout account item.
+ */
+export async function ReviewAdminKyc(payload: ReviewKycPayload): Promise<AdminKycItem> {
+  try {
+    const response = await apiClient.post<ApiResponse<AdminKycItem>>(
+      `/admin/kyc/${payload.id}/review`,
+      {
+        decision: payload.decision,
+        rejectionReason: payload.rejectionReason,
+      },
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(
+      error,
+      'Gagal memproses keputusan verifikasi rekening KYC. Silakan coba lagi.',
+    );
+    throw apiError;
+  }
+}
+
+/**
+ * Triggers an on-demand TikTok views & FIFO reward synchronization (`POST /admin/cron/metrics-sync`).
+ * Can optionally target a specific active campaign.
+ *
+ * @param campaignId - Optional target campaign ID to synchronize.
+ * @returns Synchronized run result and duration metrics.
+ */
+export async function TriggerCampaignMetricsSync(
+  campaignId?: string,
+): Promise<ManualMetricsSyncResponseDto> {
+  try {
+    const payload = campaignId ? { campaignId } : {};
+    const response = await apiClient.post<ApiResponse<ManualMetricsSyncResponseDto>>(
+      '/admin/cron/metrics-sync',
+      payload,
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(
+      error,
+      'Gagal menyinkronkan tayangan video kampanye.',
+    );
+    throw apiError;
+  }
+}
+
+
+
 

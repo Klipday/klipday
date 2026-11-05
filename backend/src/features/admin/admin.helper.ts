@@ -1,13 +1,18 @@
 import type { Prisma } from '../../generated/prisma/client.js';
-import { CampaignStatus } from '../../generated/prisma/enums.js';
+import { CampaignStatus, Role } from '../../generated/prisma/enums.js';
 import {
+  ADMIN_KYC_SELECT,
   ADMIN_TOPUP_SELECT,
-  CPM_VIEW_DIVISOR,
+  ADMIN_WITHDRAWAL_SELECT,
+  CPM_SEN_DIVISOR,
   FREEZE_REASON,
+  SEN_PER_RUPIAH,
   type FreezeReasonType,
 } from './admin.constants.js';
 import type {
+  AdminKycItemDto,
   AdminTopUpItemDto,
+  AdminWithdrawalItemDto,
   FifoCampaignAllocationSummary,
   FifoSubmissionAllocationInput,
   FifoSubmissionAllocationResult,
@@ -16,6 +21,7 @@ import type {
 /**
  * Calculates the maximum eligible Rupiah reward for a single video submission
  * based on verified views, campaign minimum/maximum view thresholds, and CPM rate.
+ * Uses exact BigInt Sen-scaled integer division to prevent IEEE-754 off-by-1-Rupiah rounding drift.
  *
  * @param verifiedViews - Current verified view count on the video.
  * @param minViews - Minimum views required before a clip becomes eligible for reward.
@@ -29,18 +35,22 @@ export function CalculateTargetReward(
   maxViews: number,
   cpm: number,
 ): number {
-  const safeViews = Math.max(0, Math.floor(verifiedViews));
-  const safeMinViews = Math.max(0, Math.floor(minViews));
-  const safeMaxViews = Math.max(0, Math.floor(maxViews));
-  const safeCpm = Math.max(0, cpm);
+  if (!Number.isFinite(verifiedViews) || !Number.isFinite(cpm)) {
+    return 0;
+  }
 
-  if (safeViews < safeMinViews || safeCpm <= 0) {
+  const safeViews = Math.max(0, Math.floor(verifiedViews));
+  const safeMinViews = Number.isFinite(minViews) ? Math.max(0, Math.floor(minViews)) : 0;
+  const safeMaxViews = Number.isFinite(maxViews) ? Math.max(0, Math.floor(maxViews)) : 0;
+  const cpmInSen = Math.round(Math.max(0, cpm) * SEN_PER_RUPIAH);
+
+  if (safeViews < safeMinViews || cpmInSen <= 0) {
     return 0;
   }
 
   const eligibleViews = safeMaxViews > 0 ? Math.min(safeViews, safeMaxViews) : safeViews;
-  const rawReward = (eligibleViews / CPM_VIEW_DIVISOR) * safeCpm;
-  const roundedReward = Math.floor(rawReward);
+  const targetRewardBigInt = (BigInt(eligibleViews) * BigInt(cpmInSen)) / CPM_SEN_DIVISOR;
+  const roundedReward = Number(targetRewardBigInt);
 
   return Math.max(0, roundedReward);
 }
@@ -55,7 +65,7 @@ export function CalculateTargetReward(
  * @param minViews - Minimum views threshold for the campaign.
  * @param maxViews - Maximum views cap per clip for the campaign.
  * @param cpm - Campaign CPM rate in Rupiah.
- * @param submissions - Approved submissions ordered by `submittedAt ASC, createdAt ASC`.
+ * @param submissions - Approved submissions ordered by `submittedAt ASC, createdAt ASC, id ASC`.
  * @returns Detailed per-submission allocations, total allocated creator rewards, and unspent brand refund.
  */
 export function ComputeCampaignFifoAllocations(
@@ -65,13 +75,15 @@ export function ComputeCampaignFifoAllocations(
   cpm: number,
   submissions: FifoSubmissionAllocationInput[],
 ): FifoCampaignAllocationSummary {
-  const safeBudget = Math.max(0, Math.floor(budget));
+  const safeBudget = Number.isFinite(budget) ? Math.max(0, Math.floor(budget)) : 0;
   let remainingBudget = safeBudget;
 
   // Pass 1: Compute target reward for each clip and preserve valid already-allocated earnings within budget
   const firstPassItems = submissions.map((sub) => {
     const targetEarnings = CalculateTargetReward(sub.verifiedViews, minViews, maxViews, cpm);
-    const sanitizedCurrent = Math.max(0, Math.floor(sub.currentEarnings));
+    const sanitizedCurrent = Number.isFinite(sub.currentEarnings)
+      ? Math.max(0, Math.floor(sub.currentEarnings))
+      : 0;
     const preservedEarnings = Math.min(sanitizedCurrent, targetEarnings, remainingBudget);
     remainingBudget = Math.max(0, remainingBudget - preservedEarnings);
 
@@ -203,5 +215,192 @@ export function MapAdminTopUpToDto(record: AdminTopUpRecordFromDb): AdminTopUpIt
   };
 
   return item;
+}
+
+export type AdminWithdrawalRecordFromDb = Prisma.PayoutRequestGetPayload<{
+  select: typeof ADMIN_WITHDRAWAL_SELECT;
+}>;
+
+/**
+ * Maps a Prisma payout request record selected with ADMIN_WITHDRAWAL_SELECT into a strictly-typed AdminWithdrawalItemDto.
+ * Converts numerical amounts from Prisma.Decimal to numbers, normalizes requester profile (Brand vs Creator),
+ * and structures the payout destination account snapshot.
+ *
+ * @param record - Payout request database record.
+ * @returns Serialized AdminWithdrawalItemDto contract.
+ */
+export function MapAdminWithdrawalToDto(
+  record: AdminWithdrawalRecordFromDb,
+): AdminWithdrawalItemDto {
+  const account = record.wallet.account;
+  const isBrand = account.role === Role.BRAND;
+  const displayName = isBrand
+    ? (account.brand?.companyName || 'Brand')
+    : (account.creator?.fullName || 'Kreator');
+  const avatarUrl = isBrand
+    ? (account.brand?.logoUrl ?? null)
+    : (account.creator?.avatarUrl ?? null);
+
+  const item: AdminWithdrawalItemDto = {
+    id: record.id,
+    referenceCode: record.referenceCode,
+    walletId: record.walletId,
+    amount: Number(record.amount),
+    accountProvider: record.accountProvider,
+    accountNumber: record.accountNumber,
+    accountHolderName: record.accountHolderName,
+    payoutStatus: record.payoutStatus,
+    rejectionReason: record.rejectionReason,
+    transferProofUrl: record.transferProofUrl,
+    adminNote: record.adminNote,
+    cancellationRequestedAt: record.cancellationRequestedAt,
+    cancellationReason: record.cancellationReason,
+    processedAt: record.processedAt,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    user: {
+      id: account.id,
+      email: account.email,
+      role: account.role,
+      displayName,
+      avatarUrl,
+    },
+    payoutAccount: record.payoutAccount
+      ? {
+          id: record.payoutAccount.id,
+          accountType: record.payoutAccount.accountType,
+          provider: record.payoutAccount.provider,
+          accountNumber: record.payoutAccount.accountNumber,
+          accountHolderName: record.payoutAccount.accountHolderName,
+          proofUrl: record.payoutAccount.proofUrl,
+          verificationStatus: record.payoutAccount.verificationStatus,
+        }
+      : null,
+  };
+
+  return item;
+}
+
+export type AdminKycRecordFromDb = Prisma.BrandPayoutAccountGetPayload<{
+  select: typeof ADMIN_KYC_SELECT;
+}>;
+
+/**
+ * Maps a Prisma payout account record selected with ADMIN_KYC_SELECT into a strictly-typed AdminKycItemDto.
+ * Normalizes requester profile attributes (displayName, phoneNumber, avatarUrl) across Brand and Creator roles.
+ *
+ * @param record - Payout account database record with nested wallet and account profile.
+ * @returns Serialized AdminKycItemDto contract.
+ */
+export function MapAdminKycToDto(record: AdminKycRecordFromDb): AdminKycItemDto {
+  const account = record.wallet.account;
+  const isBrand = account.role === Role.BRAND;
+  const displayName = isBrand
+    ? (account.brand?.companyName || 'Brand')
+    : (account.creator?.fullName || 'Kreator');
+  const phoneNumber = isBrand
+    ? (account.brand?.phoneNumber ?? null)
+    : (account.creator?.phoneNumber ?? null);
+  const avatarUrl = isBrand
+    ? (account.brand?.logoUrl ?? null)
+    : (account.creator?.avatarUrl ?? null);
+
+  const item: AdminKycItemDto = {
+    id: record.id,
+    walletId: record.walletId,
+    accountType: record.accountType,
+    provider: record.provider,
+    accountNumber: record.accountNumber,
+    accountHolderName: record.accountHolderName,
+    proofUrl: record.proofUrl,
+    isPrimary: record.isPrimary,
+    verificationStatus: record.verificationStatus,
+    rejectionReason: record.rejectionReason,
+    verifiedAt: record.verifiedAt,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    user: {
+      id: account.id,
+      email: account.email,
+      role: account.role,
+      displayName,
+      phoneNumber,
+      avatarUrl,
+    },
+  };
+
+  return item;
+}
+
+/**
+ * Computes alternative Indonesian phone/e-wallet number representations (`08...` <-> `628...`)
+ * when an admin searches by phone or e-wallet number, bridging normalized `628...` profile phones
+ * with `08...` or `628...` e-wallet account numbers.
+ *
+ * @param rawSearch - Trimmed search query entered by the admin.
+ * @returns Array of distinct normalized phone variants (excluding `rawSearch` itself).
+ */
+export function BuildKycPhoneSearchVariants(rawSearch: string): string[] {
+  const sanitized = rawSearch.replace(/[\s+-]/g, '');
+  const variants = new Set<string>();
+
+  if (/^08\d+$/.test(sanitized)) {
+    variants.add(sanitized);
+    variants.add(`62${sanitized.slice(1)}`);
+  } else if (/^628\d+$/.test(sanitized)) {
+    variants.add(sanitized);
+    variants.add(`0${sanitized.slice(2)}`);
+  }
+
+  variants.delete(rawSearch);
+  const result = Array.from(variants);
+  return result;
+}
+
+/**
+ * Determines whether a payout account holder name differs significantly from the profile's registered name.
+ * Normalizes strings by lowercasing, trimming, and stripping punctuation and company prefixes.
+ *
+ * @param holderName - Account holder name on passbook or e-wallet profile.
+ * @param profileName - Registered brand company name or creator full name.
+ * @returns True if there is a likely mismatch between holder and profile name.
+ */
+export function CheckHolderNameMismatch(holderName: string, profileName: string): boolean {
+  const cleanHolder = holderName.toLowerCase().replace(/^(pt|cv)\.?\s+/i, '').replace(/[^a-z0-9]/g, '');
+  const cleanProfile = profileName.toLowerCase().replace(/^(pt|cv)\.?\s+/i, '').replace(/[^a-z0-9]/g, '');
+
+  if (!cleanHolder || !cleanProfile) {
+    return false;
+  }
+
+  if (
+    cleanHolder === cleanProfile ||
+    cleanHolder.includes(cleanProfile) ||
+    cleanProfile.includes(cleanHolder)
+  ) {
+    return false;
+  }
+
+  // Token-based matching: handles reordered words (e.g. "Santoso Budi" vs "Budi Santoso")
+  const holderTokens = holderName
+    .toLowerCase()
+    .replace(/^(pt|cv)\.?\s+/i, '')
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length >= 3);
+  const profileTokens = profileName
+    .toLowerCase()
+    .replace(/^(pt|cv)\.?\s+/i, '')
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length >= 3);
+
+  const hasSharedSignificantToken = holderTokens.some((ht) =>
+    profileTokens.some((pt) => ht === pt || ht.includes(pt) || pt.includes(ht)),
+  );
+
+  if (hasSharedSignificantToken) {
+    return false;
+  }
+
+  return true;
 }
 

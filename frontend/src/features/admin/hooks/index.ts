@@ -4,12 +4,17 @@ import {
   DisqualifySettlementSubmission,
   FinalizeCampaignSettlement,
   GetAdminCampaignSettlementSummary,
+  GetAdminKycList,
   GetAdminModerationCampaigns,
   GetAdminSettlementCampaigns,
   GetAdminTopUps,
+  GetAdminWithdrawals,
   ModerateCampaign,
   RecalculateCampaignSettlementFifo,
+  ReviewAdminKyc,
+  ReviewAdminWithdrawal,
   ReviewBrandTopUp,
+  TriggerCampaignMetricsSync,
   UpdateSettlementSubmissionViews,
 } from '../api';
 import type {
@@ -17,14 +22,21 @@ import type {
   AdminModerationQueryParams,
   AdminSettlementQueryParams,
   DisqualifySettlementSubmissionPayload,
+  GetAdminKycParams,
   GetAdminTopUpsParams,
+  GetAdminWithdrawalsParams,
+  ReviewAdminWithdrawalPayload,
   ReviewBrandTopUpPayload,
+  ReviewKycPayload,
   UpdateSettlementSubmissionViewsPayload,
 } from '../types';
 
 export const ADMIN_SETTLEMENTS_QUERY_KEY = ['admin-settlements'] as const;
 export const ADMIN_MODERATION_CAMPAIGNS_QUERY_KEY = ['admin-moderation-campaigns'] as const;
 export const ADMIN_TOPUPS_QUERY_KEY = ['admin-top-ups'] as const;
+export const ADMIN_WITHDRAWALS_QUERY_KEY = ['admin-withdrawals'] as const;
+export const ADMIN_KYC_QUERY_KEY = ['admin', 'kyc'] as const;
+export const ADMIN_DASHBOARD_QUERY_KEY = ['admin', 'dashboard'] as const;
 
 /**
  * Queries the paginated list of campaigns ready for settlement review (`GET /admin/settlements`).
@@ -89,6 +101,7 @@ export function UseDisqualifySettlementSubmissionMutation() {
       queryClient.invalidateQueries({
         queryKey: ['campaign', variables.campaignId],
       });
+      queryClient.invalidateQueries({ queryKey: ADMIN_DASHBOARD_QUERY_KEY });
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Gagal mendiskualifikasi pengajuan video.');
@@ -118,6 +131,7 @@ export function UseUpdateSettlementSubmissionViewsMutation() {
       queryClient.invalidateQueries({
         queryKey: ['campaign-submissions', variables.campaignId],
       });
+      queryClient.invalidateQueries({ queryKey: ADMIN_DASHBOARD_QUERY_KEY });
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Gagal memperbarui tayangan video.');
@@ -143,6 +157,7 @@ export function UseRecalculateSettlementFifoMutation() {
         queryKey: ['admin-campaign-settlement', campaignId],
       });
       queryClient.invalidateQueries({ queryKey: ADMIN_SETTLEMENTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ADMIN_DASHBOARD_QUERY_KEY });
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Gagal menghitung ulang alokasi reward FIFO.');
@@ -180,6 +195,7 @@ export function UseFinalizeCampaignSettlementMutation() {
       queryClient.invalidateQueries({
         queryKey: ['campaigns'],
       });
+      queryClient.invalidateQueries({ queryKey: ADMIN_DASHBOARD_QUERY_KEY });
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Gagal menyelesaikan settlement kampanye.');
@@ -244,6 +260,7 @@ export function UseModerateCampaignMutation(
       queryClient.invalidateQueries({ queryKey: ADMIN_MODERATION_CAMPAIGNS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['brand-campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ADMIN_DASHBOARD_QUERY_KEY });
 
       options?.onSuccess?.();
     },
@@ -292,6 +309,7 @@ export function UseReviewBrandTopUpMutation(options?: { onSuccess?: () => void }
       queryClient.invalidateQueries({ queryKey: ADMIN_TOPUPS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
       queryClient.invalidateQueries({ queryKey: ['brand-wallet'] });
+      queryClient.invalidateQueries({ queryKey: ADMIN_DASHBOARD_QUERY_KEY });
 
       options?.onSuccess?.();
     },
@@ -302,4 +320,154 @@ export function UseReviewBrandTopUpMutation(options?: { onSuccess?: () => void }
 
   return mutation;
 }
+
+/**
+ * Queries the paginated list of creator and brand withdrawal requests (`GET /admin/withdrawals`).
+ *
+ * @param params - Filter, role, search, page, and limit query parameters.
+ * @returns TanStack Query result containing withdrawal items, counts, and pagination metadata.
+ */
+export function UseAdminWithdrawalsQuery(params?: GetAdminWithdrawalsParams) {
+  const queryResult = useQuery({
+    queryKey: [...ADMIN_WITHDRAWALS_QUERY_KEY, params],
+    queryFn: () => GetAdminWithdrawals(params),
+    staleTime: 1000 * 10,
+  });
+
+  return queryResult;
+}
+
+/**
+ * Mutation hook to review a withdrawal request (APPROVE or REJECT).
+ *
+ * @param options - Optional callbacks including onSuccess.
+ * @returns TanStack Mutation object.
+ */
+export function UseReviewAdminWithdrawalMutation(options?: { onSuccess?: () => void }) {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (payload: ReviewAdminWithdrawalPayload) => ReviewAdminWithdrawal(payload),
+    onSuccess: (_data, variables) => {
+      if (variables.decision === 'APPROVE') {
+        toast.success('Penarikan saldo berhasil disetujui. Bukti transfer telah dicatat.');
+      } else {
+        toast.success('Penarikan saldo ditolak dan saldo berhasil dikembalikan ke akun pemohon.');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ADMIN_WITHDRAWALS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['creator-wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['creator-active-withdrawals'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-active-withdrawals'] });
+      queryClient.invalidateQueries({ queryKey: ADMIN_DASHBOARD_QUERY_KEY });
+
+      options?.onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal memproses review penarikan saldo.');
+    },
+  });
+
+  return mutation;
+}
+
+/**
+ * Queries the paginated list of creator and brand payout account KYC submissions (`GET /admin/kyc`).
+ *
+ * @param params - Filter, role, search, page, and limit query parameters.
+ * @returns TanStack Query result containing KYC items, status counts, and pagination metadata.
+ */
+export function UseAdminKycQuery(params?: GetAdminKycParams) {
+  const queryResult = useQuery({
+    queryKey: [...ADMIN_KYC_QUERY_KEY, params],
+    queryFn: () => GetAdminKycList(params),
+    staleTime: 1000 * 10,
+  });
+
+  return queryResult;
+}
+
+/**
+ * Mutation hook to review a creator or brand payout account KYC submission (APPROVE or REJECT).
+ * Invalidates admin KYC queue as well as creator and brand payout account caches.
+ *
+ * @param options - Optional callbacks including onSuccess.
+ * @returns TanStack Mutation object.
+ */
+export function UseReviewAdminKycMutation(options?: { onSuccess?: () => void }) {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (payload: ReviewKycPayload) => ReviewAdminKyc(payload),
+    onSuccess: (_data, variables) => {
+      if (variables.decision === 'APPROVE') {
+        toast.success(
+          'Rekening KYC berhasil diverifikasi dan siap digunakan untuk penarikan saldo.',
+        );
+      } else {
+        toast.success('Pengajuan rekening KYC berhasil ditolak.');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ADMIN_KYC_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['creator-payout-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-payout-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['brand', 'payout-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ADMIN_WITHDRAWALS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ADMIN_DASHBOARD_QUERY_KEY });
+
+      options?.onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal memproses verifikasi rekening KYC.');
+      queryClient.invalidateQueries({ queryKey: ADMIN_KYC_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ADMIN_DASHBOARD_QUERY_KEY });
+    },
+  });
+
+  return mutation;
+}
+
+/**
+ * Mutation hook to trigger an on-demand TikTok views and FIFO reward recalculation sync.
+ *
+ * @param options - Optional callbacks including onSuccess.
+ * @returns TanStack Mutation object.
+ */
+export function UseTriggerCampaignMetricsSyncMutation(options?: { onSuccess?: () => void }) {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (campaignId?: string) => TriggerCampaignMetricsSync(campaignId),
+    onSuccess: (data, campaignId) => {
+      const updatedCount = data.run.submissionsUpdated;
+      const scrapedCount = data.run.submissionsScraped;
+      toast.success(
+        `Sinkronisasi selesai: ${scrapedCount} video diperiksa, ${updatedCount} tayangan diperbarui.`,
+      );
+
+      if (campaignId) {
+        queryClient.invalidateQueries({
+          queryKey: ['admin-campaign-settlement', campaignId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['campaign-submissions', campaignId],
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ADMIN_SETTLEMENTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ADMIN_DASHBOARD_QUERY_KEY });
+
+      options?.onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal menyinkronkan tayangan video.');
+    },
+  });
+
+  return mutation;
+}
+
+
+
 

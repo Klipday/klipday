@@ -75,7 +75,7 @@ export function AdminTopUpItemRow({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-12 sm:items-center">
         {/* Brand & Account Info (7 cols) */}
         <div className="sm:col-span-7 flex items-start gap-3 min-w-0">
-          <Avatar className="size-9 shrink-0 rounded-full border border-border/60 bg-muted overflow-hidden">
+          <Avatar className="size-12 shrink-0 rounded-full border border-border/60 bg-muted overflow-hidden">
             <AvatarImage
               src={topUp.brand.logoUrl ?? undefined}
               alt={topUp.brand.companyName}
@@ -94,7 +94,7 @@ export function AdminTopUpItemRow({
               <span className="text-xs text-muted-foreground truncate">{topUp.brand.email}</span>
             </div>
 
-            <div className="grid grid-cols-1 gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+            <div className="flex flex-col gap-1 text-xs text-muted-foreground">
               <div className="truncate">
                 <span className="text-foreground/80 font-medium">Pengirim: </span>
                 {topUp.senderBank ?? '-'} a.n {topUp.senderAccountName ?? '-'}
@@ -114,10 +114,6 @@ export function AdminTopUpItemRow({
           </p>
           <p className="font-mono text-base font-semibold tabular-nums text-foreground">
             {FormatRupiah(topUp.totalPayable)}
-          </p>
-          <p className="text-[11px] text-muted-foreground">
-            Nominal: {FormatRupiah(topUp.amount)}{' '}
-            <span className="text-muted-foreground/60">&middot;</span> Kode Unik: +{topUp.uniqueCode}
           </p>
         </div>
       </div>

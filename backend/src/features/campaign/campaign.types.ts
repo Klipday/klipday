@@ -54,6 +54,10 @@ export interface CampaignCardItem {
   minViews: number | null;
   maxViews: number | null;
   budget: Prisma.Decimal | number | null;
+  allocatedBudget?: number;
+  remainingBudget?: number;
+  lastMetricsSyncedAt?: Date | null;
+  finalSnapshotSyncedAt?: Date | null;
   startDate: Date | null;
   endDate: Date | null;
   status: Status;

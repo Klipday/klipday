@@ -9,6 +9,17 @@ export default defineConfig({
   server: {
     host: true,
     allowedHosts: true,
+    proxy: {
+      '/auth': 'http://localhost:3000',
+      '/admin': 'http://localhost:3000',
+      '/brand': 'http://localhost:3000',
+      '/creator': 'http://localhost:3000',
+      '/campaigns': 'http://localhost:3000',
+      '/submissions': 'http://localhost:3000',
+      '/social-accounts': 'http://localhost:3000',
+      '/wallet': 'http://localhost:3000',
+      '/health': 'http://localhost:3000',
+    },
   },
   resolve: {
     alias: {

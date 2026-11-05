@@ -3,15 +3,26 @@ import type {
   CampaignType,
   Category,
   PaymentStatus,
+  PayoutAccountType,
+  PayoutStatus,
+  Role,
   SubmissionStatus,
+  VerificationStatus,
+  WalletTransactionType,
 } from '../../generated/prisma/enums.js';
 import type {
   FreezeReasonType,
+  KycFilterOption,
+  KycReviewAction,
+  KycRoleFilterOption,
   ModerationActionType,
   ModerationFilterOption,
   SettlementFilterOption,
   TopUpFilterOption,
   TopUpReviewAction,
+  WithdrawalFilterOption,
+  WithdrawalReviewAction,
+  WithdrawalRoleFilterOption,
 } from './admin.constants.js';
 
 export interface AdminSettlementQueryInput {
@@ -46,6 +57,8 @@ export interface AdminSettlementCampaignCardDto {
   approvedSubmissionsCount: number;
   verifiedSubmissionsCount: number;
   disqualifiedSubmissionsCount: number;
+  flaggedSubmissionsCount: number;
+  lastMetricsSyncedAt: Date | null;
   endDate: Date | null;
   createdAt: Date;
   brand: {
@@ -83,6 +96,10 @@ export interface AdminFifoSubmissionItemDto {
   targetEarnings: number;
   unpaidShortfall: number;
   isCappedByBudget: boolean;
+  lastMetricsSyncedAt: Date | null;
+  syncFailureStreak: number;
+  lastSyncError: string | null;
+  isFlaggedUnavailable: boolean;
   submittedAt: Date | null;
   createdAt: Date;
 }
@@ -104,6 +121,9 @@ export interface AdminCampaignSettlementSummaryDto {
   approvedCount: number;
   verifiedCount: number;
   disqualifiedCount: number;
+  flaggedSubmissionsCount: number;
+  lastMetricsSyncedAt: Date | null;
+  finalSnapshotSyncedAt: Date | null;
   endDate: Date | null;
   brand: {
     id: string;
@@ -259,4 +279,267 @@ export interface ReviewBrandTopUpPayload {
   decision: TopUpReviewAction;
   rejectionReason?: string | undefined;
 }
+
+export interface AdminWithdrawalUserDto {
+  id: string;
+  email: string;
+  role: Role;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface AdminWithdrawalPayoutAccountDto {
+  id: string;
+  accountType: string;
+  provider: string;
+  accountNumber: string;
+  accountHolderName: string;
+  proofUrl: string;
+  verificationStatus: string;
+}
+
+export interface AdminWithdrawalItemDto {
+  id: string;
+  referenceCode: string;
+  walletId: string;
+  amount: number;
+  accountProvider: string;
+  accountNumber: string;
+  accountHolderName: string;
+  payoutStatus: PayoutStatus;
+  rejectionReason: string | null;
+  transferProofUrl: string | null;
+  adminNote: string | null;
+  cancellationRequestedAt: Date | string | null;
+  cancellationReason: string | null;
+  processedAt: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  user: AdminWithdrawalUserDto;
+  payoutAccount: AdminWithdrawalPayoutAccountDto | null;
+}
+
+export interface AdminWithdrawalCountsDto {
+  pending: number;
+  cancellation: number;
+  approved: number;
+  rejected: number;
+  all: number;
+}
+
+export interface AdminWithdrawalsPaginatedDto {
+  items: AdminWithdrawalItemDto[];
+  counts: AdminWithdrawalCountsDto;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface ReviewWithdrawalPayload {
+  decision: WithdrawalReviewAction;
+  rejectionReason?: string | undefined;
+  adminNote?: string | undefined;
+  transferProofUrl?: string | undefined;
+}
+
+export interface AdminKycQueryInput {
+  filter: KycFilterOption;
+  role: KycRoleFilterOption;
+  search?: string | undefined;
+  page: number;
+  limit: number;
+}
+
+export interface AdminKycUserDto {
+  id: string;
+  email: string;
+  role: Role;
+  displayName: string;
+  phoneNumber: string | null;
+  avatarUrl: string | null;
+}
+
+export interface AdminKycItemDto {
+  id: string;
+  walletId: string;
+  accountType: PayoutAccountType;
+  provider: string;
+  accountNumber: string;
+  accountHolderName: string;
+  proofUrl: string;
+  isPrimary: boolean;
+  verificationStatus: VerificationStatus;
+  rejectionReason: string | null;
+  verifiedAt: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  user: AdminKycUserDto;
+}
+
+export interface AdminKycCountsDto {
+  pending: number;
+  verified: number;
+  rejected: number;
+  all: number;
+}
+
+export interface AdminKycPaginatedDto {
+  items: AdminKycItemDto[];
+  counts: AdminKycCountsDto;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface ReviewKycPayload {
+  decision: KycReviewAction;
+  rejectionReason?: string | undefined;
+}
+
+export interface AdminDashboardCampaignsQueueDto {
+  inReviewCount: number;
+  manualPaymentSubmittedCount: number;
+  revisionCount: number;
+}
+
+export interface AdminDashboardSettlementsQueueDto {
+  needSettlementCount: number;
+  budgetFullCount: number;
+  expiredCount: number;
+  unsettledBudgetTotal: number;
+}
+
+export interface AdminDashboardTopUpsQueueDto {
+  submittedCount: number;
+  submittedTotalPayable: number;
+  pendingUploadCount: number;
+}
+
+export interface AdminDashboardWithdrawalsQueueDto {
+  pendingCount: number;
+  pendingTotalAmount: number;
+  cancellationRequestedCount: number;
+}
+
+export interface AdminDashboardKycQueueDto {
+  pendingCount: number;
+  pendingCreatorCount: number;
+  pendingBrandCount: number;
+}
+
+export interface AdminDashboardQueuesDto {
+  totalActionableCount: number;
+  campaigns: AdminDashboardCampaignsQueueDto;
+  settlements: AdminDashboardSettlementsQueueDto;
+  topUps: AdminDashboardTopUpsQueueDto;
+  withdrawals: AdminDashboardWithdrawalsQueueDto;
+  kyc: AdminDashboardKycQueueDto;
+}
+
+export interface AdminDashboardMetricsDto {
+  lockedCampaignBudget: number;
+  activeCampaignsCount: number;
+  finishedCampaignsCount: number;
+  totalUserWalletBalance: number;
+  brandWalletBalance: number;
+  creatorWalletBalance: number;
+  totalCreatorRewardsPaid: number;
+  totalApprovedWithdrawalsAmount: number;
+  totalApprovedTopUpsAmount: number;
+  totalVerifiedViews: number;
+  totalCreatorsCount: number;
+  totalBrandsCount: number;
+  verifiedTikTokCreatorsCount: number;
+}
+
+export interface AdminDashboardWithdrawalActionItemDto {
+  id: string;
+  referenceCode: string;
+  userName: string;
+  userRole: Role;
+  userAvatarUrl: string | null;
+  bankName: string;
+  accountNumber: string;
+  amount: number;
+  cancellationRequestedAt: Date | string | null;
+  createdAt: Date | string;
+}
+
+export interface AdminDashboardTopUpActionItemDto {
+  id: string;
+  referenceCode: string;
+  brandName: string;
+  brandLogoUrl: string | null;
+  senderBank: string | null;
+  senderAccountName: string | null;
+  totalPayable: number;
+  amount: number;
+  createdAt: Date | string;
+}
+
+export interface AdminDashboardKycActionItemDto {
+  id: string;
+  userName: string;
+  userRole: Role;
+  userAvatarUrl: string | null;
+  accountType: PayoutAccountType;
+  provider: string;
+  accountNumber: string;
+  accountHolderName: string;
+  isHolderNameMismatch: boolean;
+  createdAt: Date | string;
+}
+
+export interface AdminDashboardCampaignActionItemDto {
+  id: string;
+  title: string;
+  brandName: string;
+  brandLogoUrl: string | null;
+  budget: number;
+  campaignStatus: CampaignStatus;
+  freezeReason: FreezeReasonType;
+  paymentStatus: PaymentStatus;
+  actionType: 'MODERATION' | 'SETTLEMENT';
+  tagLabel: string;
+  createdAt: Date | string;
+}
+
+export interface AdminDashboardTransactionActionItemDto {
+  id: string;
+  referenceCode: string | null;
+  type: WalletTransactionType;
+  amount: number;
+  userName: string;
+  userRole: Role;
+  createdAt: Date | string;
+  transactionDate: Date | string;
+}
+
+export interface AdminDashboardActionItemsDto {
+  pendingWithdrawals: AdminDashboardWithdrawalActionItemDto[];
+  submittedTopUps: AdminDashboardTopUpActionItemDto[];
+  pendingKycRequests: AdminDashboardKycActionItemDto[];
+  actionableCampaigns: AdminDashboardCampaignActionItemDto[];
+  recentTransactions: AdminDashboardTransactionActionItemDto[];
+}
+
+export interface AdminDashboardSummaryDto {
+  admin: {
+    id: string;
+    accountId: string;
+    name: string;
+    email: string;
+  };
+  queues: AdminDashboardQueuesDto;
+  metrics: AdminDashboardMetricsDto;
+  actionItems: AdminDashboardActionItemsDto;
+}
+
+
 

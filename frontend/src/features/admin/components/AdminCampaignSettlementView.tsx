@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AlertTriangle, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -6,6 +7,7 @@ import {
   UseAdminCampaignSettlementSummaryQuery,
   UseDisqualifySettlementSubmissionMutation,
   UseFinalizeCampaignSettlementMutation,
+  UseTriggerCampaignMetricsSyncMutation,
 } from '../hooks';
 import type {
   AdminCampaignSettlementViewProps,
@@ -14,6 +16,7 @@ import type {
 import {
   FormatCompactViews,
   FormatRupiah,
+  FormatSubmissionTimestamp,
   GetFreezeReasonLabel,
 } from '../utils/formatters';
 import { AdminDisqualifySubmissionDialog } from './AdminDisqualifySubmissionDialog';
@@ -42,6 +45,7 @@ export function AdminCampaignSettlementView({
 
   const disqualifyMutation = UseDisqualifySettlementSubmissionMutation();
   const finalizeMutation = UseFinalizeCampaignSettlementMutation();
+  const syncMutation = UseTriggerCampaignMetricsSyncMutation();
 
   const [targetDisqualifySub, setTargetDisqualifySub] =
     useState<AdminFifoSubmissionItemDto | null>(null);
@@ -223,15 +227,53 @@ export function AdminCampaignSettlementView({
         </div>
       )}
 
+      {/* Flagged Deleted/Private Videos Warning Banner */}
+      {Boolean(summary.flaggedSubmissionsCount && summary.flaggedSubmissionsCount > 0 && !isSettled) && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-200">
+          <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-500" />
+          <div className="space-y-1">
+            <p className="font-semibold text-amber-400">
+              Perhatian: Terdapat {summary.flaggedSubmissionsCount} Video Terindikasi Dihapus atau Privat
+            </p>
+            <p className="text-amber-200/90 leading-relaxed">
+              Tayangan video tersebut dibekukan pada nilai terakhir. Silakan tinjau dan lakukan diskualifikasi pada baris video yang bersangkutan jika memang telah dihapus agar alokasi anggaran otomatis dialihkan secara FIFO ke kreator berikutnya.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Submissions Queue Section */}
       <div className="overflow-hidden rounded-xl border border-border/60 bg-card">
-        <div className="flex flex-col gap-1 border-b border-border/50 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-[13px] font-semibold tracking-tight text-foreground">
-            Daftar Pengajuan Video
-          </span>
-          <span className="text-xs text-muted-foreground">
-            Diurutkan berdasarkan waktu pengiriman video paling awal
-          </span>
+        <div className="flex flex-col gap-2 border-b border-border/50 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-semibold tracking-tight text-foreground">
+                Daftar Pengajuan Video
+              </span>
+              <span className="text-xs text-muted-foreground">
+                · Urutan FIFO
+              </span>
+            </div>
+            {summary.lastMetricsSyncedAt && (
+              <p className="text-[11px] text-muted-foreground">
+                Sinkronisasi tayangan terakhir: {FormatSubmissionTimestamp(summary.lastMetricsSyncedAt)}
+              </p>
+            )}
+          </div>
+
+          {!isSettled && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={syncMutation.isPending}
+              onClick={() => syncMutation.mutate(campaignId)}
+              className="h-8 shrink-0 gap-1.5 rounded-lg border-border/60 bg-card text-xs font-medium text-foreground hover:bg-muted/40 cursor-pointer"
+            >
+              <RotateCw className={cn('size-3.5', syncMutation.isPending && 'animate-spin')} />
+              <span>{syncMutation.isPending ? 'Menyinkronkan...' : 'Sinkronkan Views'}</span>
+            </Button>
+          )}
         </div>
 
         {summary.submissions.length === 0 ? (

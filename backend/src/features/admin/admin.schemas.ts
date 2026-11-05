@@ -3,9 +3,17 @@ import {
   ADMIN_MESSAGES,
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
+  KYC_FILTER,
+  KYC_FILTER_OPTIONS,
+  KYC_REVIEW_ACTION,
+  KYC_REVIEW_ACTION_OPTIONS,
+  KYC_ROLE_FILTER,
+  KYC_ROLE_FILTER_OPTIONS,
   MAX_LIMIT,
+  MAX_REJECTION_REASON_LENGTH,
   MAX_REVIEW_NOTE_LENGTH,
   MAX_SEARCH_LENGTH,
+  MIN_REJECTION_REASON_LENGTH,
   MODERATION_ACTION_OPTIONS,
   MODERATION_FILTER,
   MODERATION_FILTER_OPTIONS,
@@ -14,6 +22,11 @@ import {
   TOPUP_FILTER,
   TOPUP_FILTER_OPTIONS,
   TOPUP_REVIEW_ACTION_OPTIONS,
+  WITHDRAWAL_FILTER,
+  WITHDRAWAL_FILTER_OPTIONS,
+  WITHDRAWAL_REVIEW_ACTION_OPTIONS,
+  WITHDRAWAL_ROLE_FILTER,
+  WITHDRAWAL_ROLE_FILTER_OPTIONS,
 } from './admin.constants.js';
 
 export const AdminSettlementQuerySchema = z.object({
@@ -163,3 +176,128 @@ export const ReviewBrandTopUpSchema = z
   );
 
 export type ReviewBrandTopUpInput = z.infer<typeof ReviewBrandTopUpSchema>;
+
+export const AdminWithdrawalQuerySchema = z.object({
+  filter: z
+    .enum(WITHDRAWAL_FILTER_OPTIONS, { error: ADMIN_MESSAGES.WITHDRAWAL_FILTER_INVALID })
+    .default(WITHDRAWAL_FILTER.PENDING),
+  role: z
+    .enum(WITHDRAWAL_ROLE_FILTER_OPTIONS, { error: ADMIN_MESSAGES.WITHDRAWAL_ROLE_FILTER_INVALID })
+    .default(WITHDRAWAL_ROLE_FILTER.ALL),
+  search: z
+    .string()
+    .trim()
+    .max(MAX_SEARCH_LENGTH, ADMIN_MESSAGES.SEARCH_MAX_EXCEEDED)
+    .optional(),
+  page: z.coerce
+    .number({ error: ADMIN_MESSAGES.PAGE_NUMBER_REQUIRED })
+    .int(ADMIN_MESSAGES.PAGE_INTEGER)
+    .positive(ADMIN_MESSAGES.PAGE_POSITIVE)
+    .default(DEFAULT_PAGE),
+  limit: z.coerce
+    .number({ error: ADMIN_MESSAGES.LIMIT_NUMBER_REQUIRED })
+    .int(ADMIN_MESSAGES.LIMIT_INTEGER)
+    .positive(ADMIN_MESSAGES.LIMIT_POSITIVE)
+    .max(MAX_LIMIT, ADMIN_MESSAGES.LIMIT_MAX_EXCEEDED)
+    .default(DEFAULT_LIMIT),
+});
+
+export type AdminWithdrawalQuery = z.infer<typeof AdminWithdrawalQuerySchema>;
+
+export const ReviewWithdrawalSchema = z
+  .object({
+    decision: z.enum(WITHDRAWAL_REVIEW_ACTION_OPTIONS, {
+      error: ADMIN_MESSAGES.WITHDRAWAL_ACTION_INVALID,
+    }),
+    rejectionReason: z
+      .string()
+      .trim()
+      .max(500, ADMIN_MESSAGES.WITHDRAWAL_REJECTION_REASON_MAX)
+      .optional(),
+    adminNote: z
+      .string()
+      .trim()
+      .max(500, ADMIN_MESSAGES.WITHDRAWAL_ADMIN_NOTE_MAX)
+      .optional(),
+    transferProofUrl: z
+      .union([z.string().url('URL bukti transfer tidak valid'), z.literal('')])
+      .optional()
+      .transform((val) => (val && val.trim().length > 0 ? val.trim() : undefined)),
+  })
+  .refine(
+    (data) => {
+      if (data.decision === 'REJECT') {
+        return Boolean(data.rejectionReason && data.rejectionReason.trim().length >= 5);
+      }
+      return true;
+    },
+    {
+      message: ADMIN_MESSAGES.WITHDRAWAL_REJECTION_REASON_REQUIRED,
+      path: ['rejectionReason'],
+    },
+  );
+
+export type ReviewWithdrawalInput = z.infer<typeof ReviewWithdrawalSchema>;
+
+export const AdminKycQuerySchema = z.object(
+  {
+    filter: z
+      .enum(KYC_FILTER_OPTIONS, { error: ADMIN_MESSAGES.KYC_FILTER_INVALID })
+      .default(KYC_FILTER.PENDING),
+    role: z
+      .enum(KYC_ROLE_FILTER_OPTIONS, { error: ADMIN_MESSAGES.KYC_ROLE_FILTER_INVALID })
+      .default(KYC_ROLE_FILTER.ALL),
+    search: z
+      .string({ error: ADMIN_MESSAGES.INVALID_PAYLOAD })
+      .trim()
+      .max(MAX_SEARCH_LENGTH, ADMIN_MESSAGES.SEARCH_MAX_EXCEEDED)
+      .optional(),
+    page: z.coerce
+      .number({ error: ADMIN_MESSAGES.PAGE_NUMBER_REQUIRED })
+      .int(ADMIN_MESSAGES.PAGE_INTEGER)
+      .positive(ADMIN_MESSAGES.PAGE_POSITIVE)
+      .default(DEFAULT_PAGE),
+    limit: z.coerce
+      .number({ error: ADMIN_MESSAGES.LIMIT_NUMBER_REQUIRED })
+      .int(ADMIN_MESSAGES.LIMIT_INTEGER)
+      .positive(ADMIN_MESSAGES.LIMIT_POSITIVE)
+      .max(MAX_LIMIT, ADMIN_MESSAGES.LIMIT_MAX_EXCEEDED)
+      .default(DEFAULT_LIMIT),
+  },
+  { error: ADMIN_MESSAGES.INVALID_PAYLOAD },
+);
+
+export type AdminKycQuery = z.infer<typeof AdminKycQuerySchema>;
+
+export const ReviewKycSchema = z
+  .object(
+    {
+      decision: z.enum(KYC_REVIEW_ACTION_OPTIONS, {
+        error: ADMIN_MESSAGES.KYC_ACTION_INVALID,
+      }),
+      rejectionReason: z
+        .string({ error: ADMIN_MESSAGES.KYC_REJECTION_REASON_REQUIRED })
+        .trim()
+        .max(MAX_REJECTION_REASON_LENGTH, ADMIN_MESSAGES.KYC_REJECTION_REASON_MAX)
+        .nullable()
+        .optional()
+        .transform((val) => val ?? undefined),
+    },
+    { error: ADMIN_MESSAGES.INVALID_PAYLOAD },
+  )
+  .superRefine((data, ctx) => {
+    if (
+      data.decision === KYC_REVIEW_ACTION.REJECT &&
+      (!data.rejectionReason ||
+        data.rejectionReason.trim().length < MIN_REJECTION_REASON_LENGTH)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: ADMIN_MESSAGES.KYC_REJECTION_REASON_REQUIRED,
+        path: ['rejectionReason'],
+      });
+    }
+  });
+
+export type ReviewKycInput = z.infer<typeof ReviewKycSchema>;
+

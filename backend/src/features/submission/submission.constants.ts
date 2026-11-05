@@ -55,6 +55,8 @@ export const SUBMISSION_MESSAGES = {
   CAMPAIGN_NOT_FOUND: 'Campaign not found.',
   CAMPAIGN_NOT_FOUND_OR_INACTIVE: 'Campaign not found or not active.',
   CAMPAIGN_ENDED: 'This campaign has ended and is no longer accepting new submissions.',
+  CAMPAIGN_BUDGET_FULL:
+    'Anggaran kampanye ini telah habis dialokasikan dan tidak lagi menerima pengajuan baru.',
   BUDGET_BELOW_MINIMUM: 'Campaign budget is below the minimum required payout.',
   CREATOR_NOT_FOUND: 'Creator profile not found.',
   SUBMISSION_NOT_FOUND: 'Campaign submission record not found.',

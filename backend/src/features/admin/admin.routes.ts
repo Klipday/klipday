@@ -4,18 +4,34 @@ import {
   DisqualifySettlementSubmission,
   FinalizeCampaignSettlement,
   GetAdminCampaignSettlementSummary,
+  GetAdminDashboardSummary,
+  GetAdminKycRequests,
   GetAdminModerationCampaigns,
   GetAdminSettlementCampaigns,
   GetAdminTopUpRequests,
+  GetAdminWithdrawals,
   ModerateCampaign,
   RecalculateCampaignSettlementFifo,
   ReviewBrandTopUpRequest,
+  ReviewKycRequest,
+  ReviewWithdrawalRequest,
   UpdateSettlementSubmissionViews,
 } from './admin.handlers.js';
 
 export const adminRouter = Router();
 
 adminRouter.use(RequireAuth);
+
+// Operational Admin Dashboard (Phase 6)
+adminRouter.get('/dashboard', GetAdminDashboardSummary);
+
+// KYC Verification Review (Phase 5)
+adminRouter.get('/kyc', GetAdminKycRequests);
+adminRouter.post('/kyc/:id/review', ReviewKycRequest);
+
+// Withdrawal Review (Phase 4)
+adminRouter.get('/withdrawals', GetAdminWithdrawals);
+adminRouter.post('/withdrawals/:id/review', ReviewWithdrawalRequest);
 
 // Top Up Review (Phase 3)
 adminRouter.get('/top-ups', GetAdminTopUpRequests);

@@ -1,4 +1,8 @@
 import { useNavigate } from 'react-router';
+import {
+  GetCampaignCategoryBadgeLabel,
+  GetCampaignTypeBadgeLabel,
+} from '@/features/campaign/utils/campaign-card';
 import type { AdminModerationCampaignCardProps } from '../types';
 import { FormatRupiah } from '../utils/formatters';
 
@@ -63,6 +67,8 @@ export function AdminModerationCampaignCard({ campaign }: AdminModerationCampaig
     paymentBadgeClass = 'border-border/60 bg-muted/40 text-muted-foreground';
   }
 
+  const typeLabel = GetCampaignTypeBadgeLabel(campaign.campaignType);
+  const categoryLabel = GetCampaignCategoryBadgeLabel(campaign.campaignCategory);
   const dateRangeText = FormatCampaignDateRange(campaign.startDate, campaign.endDate);
   const amountToDisplay =
     paymentStatus === 'SUBMITTED' && campaign.payment?.totalPayable
@@ -93,7 +99,7 @@ export function AdminModerationCampaignCard({ campaign }: AdminModerationCampaig
             {campaign.title}
           </h3>
           <p className="text-xs text-muted-foreground">
-            {campaign.campaignType} · {campaign.campaignCategory} · {dateRangeText}
+            {typeLabel} · {categoryLabel} · {dateRangeText}
           </p>
         </div>
 
@@ -114,17 +120,6 @@ export function AdminModerationCampaignCard({ campaign }: AdminModerationCampaig
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Footer: Material/Brief completeness + CTA */}
-      <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-3 text-xs text-muted-foreground">
-        <span>
-          {campaign.materialsCount} Materi ·{' '}
-          {campaign.isBriefComplete ? 'Brief Lengkap' : 'Brief Perlu Dilengkapi'}
-        </span>
-        <span className="font-medium text-foreground group-hover:translate-x-0.5 transition-transform">
-          Tinjau Kampanye →
-        </span>
       </div>
     </div>
   );

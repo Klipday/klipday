@@ -505,5 +505,201 @@ export interface CreatorDashboardErrorStateProps {
   className?: string;
 }
 
+/**
+ * --------------------------------------------------------------------------
+ * Admin Operational Dashboard Contracts & Component Props (Phase 6)
+ * --------------------------------------------------------------------------
+ */
+
+export interface AdminDashboardCampaignsQueue {
+  inReviewCount: number;
+  manualPaymentSubmittedCount: number;
+  revisionCount: number;
+}
+
+export interface AdminDashboardSettlementsQueue {
+  needSettlementCount: number;
+  budgetFullCount: number;
+  expiredCount: number;
+  unsettledBudgetTotal: number;
+}
+
+export interface AdminDashboardTopUpsQueue {
+  submittedCount: number;
+  submittedTotalPayable: number;
+  pendingUploadCount: number;
+}
+
+export interface AdminDashboardWithdrawalsQueue {
+  pendingCount: number;
+  pendingTotalAmount: number;
+  cancellationRequestedCount: number;
+}
+
+export interface AdminDashboardKycQueue {
+  pendingCount: number;
+  pendingCreatorCount: number;
+  pendingBrandCount: number;
+}
+
+export interface AdminDashboardQueues {
+  totalActionableCount: number;
+  campaigns: AdminDashboardCampaignsQueue;
+  settlements: AdminDashboardSettlementsQueue;
+  topUps: AdminDashboardTopUpsQueue;
+  withdrawals: AdminDashboardWithdrawalsQueue;
+  kyc: AdminDashboardKycQueue;
+}
+
+export interface AdminDashboardMetrics {
+  lockedCampaignBudget: number;
+  activeCampaignsCount: number;
+  finishedCampaignsCount: number;
+  totalUserWalletBalance: number;
+  brandWalletBalance: number;
+  creatorWalletBalance: number;
+  totalCreatorRewardsPaid: number;
+  totalApprovedWithdrawalsAmount: number;
+  totalApprovedTopUpsAmount: number;
+  totalVerifiedViews: number;
+  totalCreatorsCount: number;
+  totalBrandsCount: number;
+  verifiedTikTokCreatorsCount: number;
+}
+
+export interface AdminDashboardWithdrawalActionItem {
+  id: string;
+  referenceCode: string;
+  userName: string;
+  userRole: string;
+  userAvatarUrl: string | null;
+  bankName: string;
+  accountNumber: string;
+  amount: number;
+  cancellationRequestedAt: string | null;
+  createdAt: string;
+}
+
+export interface AdminDashboardTopUpActionItem {
+  id: string;
+  referenceCode: string;
+  brandName: string;
+  brandLogoUrl: string | null;
+  senderBank: string | null;
+  senderAccountName: string | null;
+  totalPayable: number;
+  amount: number;
+  createdAt: string;
+}
+
+export interface AdminDashboardKycActionItem {
+  id: string;
+  userName: string;
+  userRole: string;
+  userAvatarUrl: string | null;
+  accountType: string;
+  provider: string;
+  accountNumber: string;
+  accountHolderName: string;
+  isHolderNameMismatch: boolean;
+  createdAt: string;
+}
+
+export interface AdminDashboardCampaignActionItem {
+  id: string;
+  title: string;
+  brandName: string;
+  brandLogoUrl: string | null;
+  budget: number;
+  campaignStatus: string;
+  freezeReason: string;
+  paymentStatus: string;
+  actionType: 'MODERATION' | 'SETTLEMENT';
+  tagLabel: string;
+  createdAt: string;
+}
+
+export interface AdminDashboardTransactionActionItem {
+  id: string;
+  referenceCode: string | null;
+  type: string;
+  amount: number;
+  userName: string;
+  userRole: string;
+  createdAt: string;
+  transactionDate: string;
+}
+
+export interface AdminDashboardActionItems {
+  pendingWithdrawals: AdminDashboardWithdrawalActionItem[];
+  submittedTopUps: AdminDashboardTopUpActionItem[];
+  pendingKycRequests: AdminDashboardKycActionItem[];
+  actionableCampaigns: AdminDashboardCampaignActionItem[];
+  recentTransactions: AdminDashboardTransactionActionItem[];
+}
+
+export interface AdminDashboardResponse {
+  admin: {
+    id: string;
+    accountId: string;
+    name: string;
+    email: string;
+  };
+  queues: AdminDashboardQueues;
+  metrics: AdminDashboardMetrics;
+  actionItems: AdminDashboardActionItems;
+}
+
+export interface AdminDashboardHeaderProps {
+  adminName?: string | null;
+  totalActionableCount: number;
+  onRefresh: () => void;
+  isRefreshing?: boolean;
+  className?: string;
+}
+
+export interface AdminActionQueuesGridProps {
+  queues: AdminDashboardQueues;
+  className?: string;
+}
+
+export interface AdminPlatformMetricsGridProps {
+  metrics: AdminDashboardMetrics;
+  className?: string;
+}
+
+export type AdminFinanceTab = 'WITHDRAW' | 'TOPUP';
+
+export interface AdminPendingFinanceWidgetProps {
+  withdrawals: AdminDashboardWithdrawalActionItem[];
+  topUps: AdminDashboardTopUpActionItem[];
+  className?: string;
+}
+
+export interface AdminPendingKycWidgetProps {
+  kycRequests: AdminDashboardKycActionItem[];
+  className?: string;
+}
+
+export interface AdminActionableCampaignsWidgetProps {
+  campaigns: AdminDashboardCampaignActionItem[];
+  className?: string;
+}
+
+export interface AdminRecentLedgerWidgetProps {
+  transactions: AdminDashboardTransactionActionItem[];
+  className?: string;
+}
+
+export interface AdminDashboardSkeletonProps {
+  className?: string;
+}
+
+export interface AdminDashboardErrorStateProps {
+  onRetry: () => void;
+  className?: string;
+}
+
+
 
 

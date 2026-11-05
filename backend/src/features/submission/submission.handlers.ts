@@ -65,6 +65,19 @@ export async function JoinCampaign(req: Request, res: Response, next: NextFuncti
         status: Status.ACTIVE,
         campaignStatus: CampaignStatus.ACTIVE,
       },
+      include: {
+        submissions: {
+          where: {
+            status: Status.ACTIVE,
+            submissionStatus: {
+              in: [SubmissionStatus.APPROVED, SubmissionStatus.VERIFIED],
+            },
+          },
+          select: {
+            earnings: true,
+          },
+        },
+      },
     };
     const campaign = await prisma.campaign.findFirst(findCampaignQuery);
 
@@ -118,6 +131,28 @@ export async function JoinCampaign(req: Request, res: Response, next: NextFuncti
         return;
       }
     } else {
+      const approvedSubmissions = Array.isArray(campaign.submissions) ? campaign.submissions : [];
+      const allocatedEscrow = approvedSubmissions.reduce((sum, item) => {
+        const rawEarnings = item.earnings !== null && item.earnings !== undefined
+          ? Number(item.earnings)
+          : 0;
+        const safeEarnings = Number.isFinite(rawEarnings)
+          ? Math.max(0, Math.floor(rawEarnings))
+          : 0;
+        return sum + safeEarnings;
+      }, 0);
+      const remainingEscrow = Math.max(0, currentBudget - allocatedEscrow);
+
+      if (currentBudget > 0 && remainingEscrow <= 0) {
+        SendError(res, SUBMISSION_MESSAGES.CAMPAIGN_BUDGET_FULL, 400);
+        return;
+      }
+
+      if (remainingEscrow < minimumBudgetExists) {
+        SendError(res, SUBMISSION_MESSAGES.BUDGET_BELOW_MINIMUM, 400);
+        return;
+      }
+
       const createSubmissionPayload = {
         data: {
           campaignId: campaign.id,
@@ -390,6 +425,28 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
         creatorId: creator.id,
         status: Status.ACTIVE,
       },
+      include: {
+        campaign: {
+          select: {
+            id: true,
+            status: true,
+            campaignStatus: true,
+            budget: true,
+            endDate: true,
+            submissions: {
+              where: {
+                status: Status.ACTIVE,
+                submissionStatus: {
+                  in: [SubmissionStatus.APPROVED, SubmissionStatus.VERIFIED],
+                },
+              },
+              select: {
+                earnings: true,
+              },
+            },
+          },
+        },
+      },
     };
     const existingSubmission = await prisma.submission.findFirst(findExistingSubmissionQuery);
 
@@ -419,6 +476,42 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
 
       SendError(res, SUBMISSION_MESSAGES.SUBMISSION_STATUS_NOT_RESUBMITTABLE, 400);
       return;
+    }
+
+    if (existingSubmission.campaign) {
+      const parentCampaign = existingSubmission.campaign;
+      if (
+        parentCampaign.status !== Status.ACTIVE ||
+        parentCampaign.campaignStatus !== CampaignStatus.ACTIVE
+      ) {
+        SendError(res, SUBMISSION_MESSAGES.CAMPAIGN_NOT_FOUND_OR_INACTIVE, 404);
+        return;
+      }
+
+      if (parentCampaign.endDate && new Date(parentCampaign.endDate) <= new Date()) {
+        SendError(res, SUBMISSION_MESSAGES.CAMPAIGN_ENDED, 400);
+        return;
+      }
+
+      const campaignBudget = parentCampaign.budget ? Number(parentCampaign.budget) : 0;
+      const approvedList = Array.isArray(parentCampaign.submissions)
+        ? parentCampaign.submissions
+        : [];
+      const allocatedEscrow = approvedList.reduce((sum, item) => {
+        const rawEarnings = item.earnings !== null && item.earnings !== undefined
+          ? Number(item.earnings)
+          : 0;
+        const safeEarnings = Number.isFinite(rawEarnings)
+          ? Math.max(0, Math.floor(rawEarnings))
+          : 0;
+        return sum + safeEarnings;
+      }, 0);
+      const remainingEscrow = Math.max(0, campaignBudget - allocatedEscrow);
+
+      if (campaignBudget > 0 && remainingEscrow <= 0) {
+        SendError(res, SUBMISSION_MESSAGES.CAMPAIGN_BUDGET_FULL, 400);
+        return;
+      }
     }
 
     const findOwnedSocialAccountQuery = {

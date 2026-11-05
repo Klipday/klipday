@@ -3,9 +3,12 @@ import { Prisma, type PrismaClient } from '../../generated/prisma/client.js';
 import {
   CampaignStatus,
   PaymentStatus,
+  PayoutStatus,
+  Platform,
   Role,
   Status,
   SubmissionStatus,
+  VerificationStatus,
   WalletTransactionType,
 } from '../../generated/prisma/enums.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
@@ -16,34 +19,54 @@ import {
   ProvisionAccountWallet,
 } from '../wallet/wallet.helper.js';
 import {
+  ADMIN_KYC_SELECT,
   ADMIN_MESSAGES,
   ADMIN_TOPUP_SELECT,
+  ADMIN_WITHDRAWAL_SELECT,
+  DASHBOARD_PREVIEW_LIMIT,
+  FIFO_SUBMISSION_ORDER_BY,
   FREEZE_REASON,
+  KYC_FILTER,
+  KYC_REVIEW_ACTION,
+  KYC_ROLE_FILTER,
   MODERATION_ACTION,
   MODERATION_FILTER,
   SETTLEMENT_FILTER,
   TOPUP_FILTER,
   TOPUP_REVIEW_ACTION,
+  WITHDRAWAL_FILTER,
+  WITHDRAWAL_REVIEW_ACTION,
+  WITHDRAWAL_ROLE_FILTER,
 } from './admin.constants.js';
 import {
+  BuildKycPhoneSearchVariants,
   CalculateTargetReward,
+  CheckHolderNameMismatch,
   ComputeCampaignFifoAllocations,
   DetermineCampaignFreezeReason,
   GenerateSettlementTransactionRefCode,
+  MapAdminKycToDto,
   MapAdminTopUpToDto,
+  MapAdminWithdrawalToDto,
 } from './admin.helper.js';
 import {
+  AdminKycQuerySchema,
   AdminModerateCampaignSchema,
   AdminModerationQuerySchema,
   AdminSettlementQuerySchema,
   AdminTopUpQuerySchema,
+  AdminWithdrawalQuerySchema,
   DisqualifySubmissionSchema,
   ReviewBrandTopUpSchema,
+  ReviewKycSchema,
+  ReviewWithdrawalSchema,
   UpdateSubmissionViewsSchema,
 } from './admin.schemas.js';
 import type {
   AdminCampaignSettlementSummaryDto,
   AdminFifoSubmissionItemDto,
+  AdminKycItemDto,
+  AdminKycPaginatedDto,
   AdminModerationCampaignCardDto,
   AdminModerationCampaignsPaginatedDto,
   AdminSettlementCampaignCardDto,
@@ -51,6 +74,18 @@ import type {
   AdminSettlementCountsDto,
   AdminTopUpItemDto,
   AdminTopUpsPaginatedDto,
+  AdminWithdrawalCountsDto,
+  AdminWithdrawalItemDto,
+  AdminWithdrawalsPaginatedDto,
+  AdminDashboardActionItemsDto,
+  AdminDashboardCampaignActionItemDto,
+  AdminDashboardKycActionItemDto,
+  AdminDashboardMetricsDto,
+  AdminDashboardQueuesDto,
+  AdminDashboardSummaryDto,
+  AdminDashboardTopUpActionItemDto,
+  AdminDashboardTransactionActionItemDto,
+  AdminDashboardWithdrawalActionItemDto,
   FifoSubmissionAllocationInput,
 } from './admin.types.js';
 
@@ -80,6 +115,8 @@ export async function BuildCampaignSettlementSummaryById(
       maxViews: true,
       budget: true,
       endDate: true,
+      lastMetricsSyncedAt: true,
+      finalSnapshotSyncedAt: true,
       brand: {
         select: {
           id: true,
@@ -92,10 +129,7 @@ export async function BuildCampaignSettlementSummaryById(
           status: Status.ACTIVE,
           submissionStatus: { not: SubmissionStatus.JOINED },
         },
-        orderBy: [
-          { submittedAt: 'asc' as const },
-          { createdAt: 'asc' as const },
-        ],
+        orderBy: FIFO_SUBMISSION_ORDER_BY,
         select: {
           id: true,
           creatorId: true,
@@ -106,6 +140,9 @@ export async function BuildCampaignSettlementSummaryById(
           reviewNote: true,
           verifiedViews: true,
           earnings: true,
+          lastMetricsSyncedAt: true,
+          syncFailureStreak: true,
+          lastSyncError: true,
           submittedAt: true,
           createdAt: true,
           creator: {
@@ -179,7 +216,7 @@ export async function BuildCampaignSettlementSummaryById(
   const allocatedCreatorRewards = isFinished
     ? verifiedCreatorRewards
     : fifoSummary.totalAllocated;
-  const brandRefundAmount = Math.max(0, budget - allocatedCreatorRewards);
+  const brandRefundAmount = Math.max(0, Math.floor(budget) - allocatedCreatorRewards);
 
   const now = new Date();
   const freezeReason = DetermineCampaignFreezeReason(
@@ -191,6 +228,7 @@ export async function BuildCampaignSettlementSummaryById(
   );
 
   let activeFifoSequence = 0;
+  let flaggedSubmissionsCount = 0;
 
   const submissionItems: AdminFifoSubmissionItemDto[] = campaign.submissions.map((sub) => {
     const isEligibleFifoQueueMember =
@@ -217,6 +255,17 @@ export async function BuildCampaignSettlementSummaryById(
       : 0;
     const isCappedByBudget = isEligibleFifoQueueMember && unpaidShortfall > 0;
 
+    const syncFailureStreak = sub.syncFailureStreak ?? 0;
+    const lastSyncError = sub.lastSyncError ?? null;
+    const isFlaggedUnavailable =
+      sub.submissionStatus === SubmissionStatus.APPROVED &&
+      syncFailureStreak > 0 &&
+      Boolean(lastSyncError);
+
+    if (isFlaggedUnavailable) {
+      flaggedSubmissionsCount += 1;
+    }
+
     const item: AdminFifoSubmissionItemDto = {
       id: sub.id,
       fifoOrder,
@@ -234,6 +283,10 @@ export async function BuildCampaignSettlementSummaryById(
       targetEarnings: rawTarget,
       unpaidShortfall,
       isCappedByBudget,
+      lastMetricsSyncedAt: sub.lastMetricsSyncedAt ?? null,
+      syncFailureStreak,
+      lastSyncError,
+      isFlaggedUnavailable,
       submittedAt: sub.submittedAt,
       createdAt: sub.createdAt,
     };
@@ -260,6 +313,9 @@ export async function BuildCampaignSettlementSummaryById(
     approvedCount: approvedSubmissions.length,
     verifiedCount: verifiedSubmissions.length,
     disqualifiedCount: disqualifiedSubmissions.length,
+    flaggedSubmissionsCount,
+    lastMetricsSyncedAt: campaign.lastMetricsSyncedAt ?? null,
+    finalSnapshotSyncedAt: campaign.finalSnapshotSyncedAt ?? null,
     endDate: campaign.endDate,
     brand: {
       id: campaign.brand.id,
@@ -330,6 +386,7 @@ export async function GetAdminSettlementCampaigns(
         maxViews: true,
         budget: true,
         endDate: true,
+        lastMetricsSyncedAt: true,
         createdAt: true,
         brand: {
           select: {
@@ -349,15 +406,14 @@ export async function GetAdminSettlementCampaigns(
               ],
             },
           },
-          orderBy: [
-            { submittedAt: 'asc' as const },
-            { createdAt: 'asc' as const },
-          ],
+          orderBy: FIFO_SUBMISSION_ORDER_BY,
           select: {
             id: true,
             submissionStatus: true,
             verifiedViews: true,
             earnings: true,
+            syncFailureStreak: true,
+            lastSyncError: true,
           },
         },
       },
@@ -381,6 +437,9 @@ export async function GetAdminSettlementCampaigns(
       const disqualifiedSubs = campaign.submissions.filter(
         (sub) => sub.submissionStatus === SubmissionStatus.REJECTED,
       );
+      const flaggedSubsCount = approvedSubs.filter(
+        (sub) => (sub.syncFailureStreak ?? 0) > 0 && Boolean(sub.lastSyncError),
+      ).length;
 
       const fifoInputs: FifoSubmissionAllocationInput[] = approvedSubs.map((sub) => ({
         id: sub.id,
@@ -406,7 +465,7 @@ export async function GetAdminSettlementCampaigns(
           ? verifiedEarnings
           : fifoSummary.totalAllocated;
 
-      const remainingRefund = Math.max(0, budget - allocatedEarnings);
+      const remainingRefund = Math.max(0, Math.floor(budget) - allocatedEarnings);
       const freezeReason = DetermineCampaignFreezeReason(
         campaign.campaignStatus,
         budget,
@@ -433,6 +492,8 @@ export async function GetAdminSettlementCampaigns(
         approvedSubmissionsCount: approvedSubs.length,
         verifiedSubmissionsCount: verifiedSubs.length,
         disqualifiedSubmissionsCount: disqualifiedSubs.length,
+        flaggedSubmissionsCount: flaggedSubsCount,
+        lastMetricsSyncedAt: campaign.lastMetricsSyncedAt ?? null,
         endDate: campaign.endDate,
         createdAt: campaign.createdAt,
         brand: {
@@ -650,10 +711,7 @@ export async function DisqualifySettlementSubmission(
           status: Status.ACTIVE,
           submissionStatus: SubmissionStatus.APPROVED,
         },
-        orderBy: [
-          { submittedAt: 'asc' as const },
-          { createdAt: 'asc' as const },
-        ],
+        orderBy: FIFO_SUBMISSION_ORDER_BY,
         select: {
           id: true,
           verifiedViews: true,
@@ -784,6 +842,9 @@ export async function UpdateSettlementSubmissionViews(
         where: { id: targetSubmission.id },
         data: {
           verifiedViews: parsedBody.data.verifiedViews,
+          syncFailureStreak: 0,
+          lastSyncError: null,
+          lastMetricsSyncedAt: new Date(),
         },
       };
       await tx.submission.update(updateViewsPayload);
@@ -794,10 +855,7 @@ export async function UpdateSettlementSubmissionViews(
           status: Status.ACTIVE,
           submissionStatus: SubmissionStatus.APPROVED,
         },
-        orderBy: [
-          { submittedAt: 'asc' as const },
-          { createdAt: 'asc' as const },
-        ],
+        orderBy: FIFO_SUBMISSION_ORDER_BY,
         select: {
           id: true,
           verifiedViews: true,
@@ -913,10 +971,7 @@ export async function RecalculateCampaignSettlementFifo(
           status: Status.ACTIVE,
           submissionStatus: SubmissionStatus.APPROVED,
         },
-        orderBy: [
-          { submittedAt: 'asc' as const },
-          { createdAt: 'asc' as const },
-        ],
+        orderBy: FIFO_SUBMISSION_ORDER_BY,
         select: {
           id: true,
           verifiedViews: true,
@@ -1049,16 +1104,17 @@ export async function FinalizeCampaignSettlement(
     const maxViews = campaign.maxViews ?? 0;
 
     await prisma.$transaction(async (tx) => {
+      if (typeof tx.$queryRaw === 'function') {
+        await tx.$queryRaw`SELECT id FROM campaigns WHERE id = ${campaign.id} FOR UPDATE`;
+      }
+
       const approvedQuery = {
         where: {
           campaignId: campaign.id,
           status: Status.ACTIVE,
           submissionStatus: SubmissionStatus.APPROVED,
         },
-        orderBy: [
-          { submittedAt: 'asc' as const },
-          { createdAt: 'asc' as const },
-        ],
+        orderBy: FIFO_SUBMISSION_ORDER_BY,
         select: {
           id: true,
           creatorId: true,
@@ -2195,4 +2251,1799 @@ export async function ReviewBrandTopUpRequest(
     next(err);
   }
 }
+
+/**
+ * Handles `GET /api/admin/withdrawals`: queries paginated withdrawal requests across creators and brands,
+ * with status filter, role filter, keyword search, and live tab counts.
+ *
+ * @param req - Express request with filter, role, search, page, limit query parameters.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function GetAdminWithdrawals(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, ADMIN_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.ADMIN) {
+      SendError(res, ADMIN_MESSAGES.ADMIN_ONLY, 403);
+      return;
+    }
+
+    const parseResult = AdminWithdrawalQuerySchema.safeParse(req.query);
+    if (!parseResult.success) {
+      const firstIssue = parseResult.error.issues[0];
+      SendError(res, firstIssue?.message || ADMIN_MESSAGES.INVALID_PAYLOAD, 400);
+      return;
+    }
+
+    const { filter, role, search, page, limit } = parseResult.data;
+
+    const baseWhereClause: Prisma.PayoutRequestWhereInput = {
+      status: Status.ACTIVE,
+      wallet: {
+        status: Status.ACTIVE,
+        account: {
+          status: Status.ACTIVE,
+          ...(role === WITHDRAWAL_ROLE_FILTER.CREATOR
+            ? { role: Role.CREATOR }
+            : role === WITHDRAWAL_ROLE_FILTER.BRAND
+              ? { role: Role.BRAND }
+              : {}),
+        },
+      },
+    };
+
+    const whereClause: Prisma.PayoutRequestWhereInput = {
+      ...baseWhereClause,
+    };
+
+    if (filter === WITHDRAWAL_FILTER.PENDING) {
+      whereClause.payoutStatus = PayoutStatus.PENDING;
+      whereClause.cancellationRequestedAt = null;
+    } else if (filter === WITHDRAWAL_FILTER.CANCELLATION) {
+      whereClause.payoutStatus = PayoutStatus.PENDING;
+      whereClause.cancellationRequestedAt = { not: null };
+    } else if (filter === WITHDRAWAL_FILTER.APPROVED) {
+      whereClause.payoutStatus = PayoutStatus.APPROVED;
+    } else if (filter === WITHDRAWAL_FILTER.REJECTED) {
+      whereClause.payoutStatus = PayoutStatus.REJECTED;
+    } else if (filter === WITHDRAWAL_FILTER.ALL) {
+      whereClause.payoutStatus = {
+        in: [
+          PayoutStatus.PENDING,
+          PayoutStatus.APPROVED,
+          PayoutStatus.REJECTED,
+        ],
+      };
+    }
+
+    if (search && search.trim().length > 0) {
+      const queryTrimmed = search.trim();
+      whereClause.AND = [
+        {
+          OR: [
+            { referenceCode: { contains: queryTrimmed, mode: 'insensitive' } },
+            { accountProvider: { contains: queryTrimmed, mode: 'insensitive' } },
+            { accountNumber: { contains: queryTrimmed, mode: 'insensitive' } },
+            { accountHolderName: { contains: queryTrimmed, mode: 'insensitive' } },
+            {
+              wallet: {
+                account: {
+                  email: { contains: queryTrimmed, mode: 'insensitive' },
+                },
+              },
+            },
+            {
+              wallet: {
+                account: {
+                  brand: {
+                    companyName: { contains: queryTrimmed, mode: 'insensitive' },
+                  },
+                },
+              },
+            },
+            {
+              wallet: {
+                account: {
+                  creator: {
+                    fullName: { contains: queryTrimmed, mode: 'insensitive' },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const findWithdrawalsQuery = {
+      where: whereClause,
+      orderBy: { createdAt: 'desc' as const },
+      skip,
+      take: limit,
+      select: ADMIN_WITHDRAWAL_SELECT,
+    };
+    const countFilteredQuery = { where: whereClause };
+    const countPendingQuery = {
+      where: {
+        ...baseWhereClause,
+        payoutStatus: PayoutStatus.PENDING,
+        cancellationRequestedAt: null,
+      },
+    };
+    const countCancellationQuery = {
+      where: {
+        ...baseWhereClause,
+        payoutStatus: PayoutStatus.PENDING,
+        cancellationRequestedAt: { not: null },
+      },
+    };
+    const countApprovedQuery = {
+      where: { ...baseWhereClause, payoutStatus: PayoutStatus.APPROVED },
+    };
+    const countRejectedQuery = {
+      where: { ...baseWhereClause, payoutStatus: PayoutStatus.REJECTED },
+    };
+    const countAllQuery = {
+      where: {
+        ...baseWhereClause,
+        payoutStatus: {
+          in: [
+            PayoutStatus.PENDING,
+            PayoutStatus.APPROVED,
+            PayoutStatus.REJECTED,
+          ],
+        },
+      },
+    };
+
+    const [
+      withdrawals,
+      totalFiltered,
+      countPending,
+      countCancellation,
+      countApproved,
+      countRejected,
+      countAll,
+    ] = await Promise.all([
+      prisma.payoutRequest.findMany(findWithdrawalsQuery),
+      prisma.payoutRequest.count(countFilteredQuery),
+      prisma.payoutRequest.count(countPendingQuery),
+      prisma.payoutRequest.count(countCancellationQuery),
+      prisma.payoutRequest.count(countApprovedQuery),
+      prisma.payoutRequest.count(countRejectedQuery),
+      prisma.payoutRequest.count(countAllQuery),
+    ]);
+
+    const items: AdminWithdrawalItemDto[] = withdrawals.map(MapAdminWithdrawalToDto);
+
+    const totalPages = Math.ceil(totalFiltered / limit) || 1;
+
+    const result: AdminWithdrawalsPaginatedDto = {
+      items,
+      counts: {
+        pending: countPending,
+        cancellation: countCancellation,
+        approved: countApproved,
+        rejected: countRejected,
+        all: countAll,
+      },
+      pagination: {
+        page,
+        limit,
+        total: totalFiltered,
+        totalPages,
+      },
+    };
+
+    SendSuccess(res, result, ADMIN_MESSAGES.GET_WITHDRAWALS_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles `POST /api/admin/withdrawals/:id/review`:
+ * Reviews a pending withdrawal request from a creator or brand.
+ * On APPROVE: marks payoutStatus APPROVED, records admin details, and ensures a WITHDRAWAL transaction exists.
+ * On REJECT: marks payoutStatus REJECTED, records rejectionReason, refunds amount to wallet balance,
+ * and soft-deletes any premature WITHDRAWAL transaction.
+ *
+ * @param req - Express request with withdrawal id parameter and review decision payload.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function ReviewWithdrawalRequest(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, ADMIN_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.ADMIN) {
+      SendError(res, ADMIN_MESSAGES.ADMIN_ONLY, 403);
+      return;
+    }
+
+    const findAdminQuery = {
+      where: { accountId: account.sub, status: Status.ACTIVE },
+      select: { id: true },
+    };
+    const admin = await prisma.admin.findFirst(findAdminQuery);
+
+    if (!admin) {
+      SendError(res, ADMIN_MESSAGES.ADMIN_ACCOUNT_NOT_FOUND, 403);
+      return;
+    }
+
+    const withdrawalId = req.params.id as string;
+
+    const parseResult = ReviewWithdrawalSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      const firstIssue = parseResult.error.issues[0];
+      SendError(res, firstIssue?.message || ADMIN_MESSAGES.INVALID_PAYLOAD, 400);
+      return;
+    }
+
+    const input = parseResult.data;
+
+    const findWithdrawalQuery = {
+      where: {
+        id: withdrawalId,
+        status: Status.ACTIVE,
+        wallet: { status: Status.ACTIVE },
+      },
+      include: {
+        wallet: true,
+      },
+    };
+
+    const withdrawal = await prisma.payoutRequest.findFirst(findWithdrawalQuery);
+
+    if (!withdrawal) {
+      SendError(res, ADMIN_MESSAGES.WITHDRAWAL_NOT_FOUND, 404);
+      return;
+    }
+
+    if (withdrawal.payoutStatus !== PayoutStatus.PENDING) {
+      SendError(res, ADMIN_MESSAGES.WITHDRAWAL_NOT_PENDING, 400);
+      return;
+    }
+
+    const processedDate = new Date();
+
+    if (input.decision === WITHDRAWAL_REVIEW_ACTION.APPROVE) {
+      await prisma.$transaction(async (tx) => {
+        const updatePayoutPayload = {
+          where: {
+            id: withdrawal.id,
+            payoutStatus: PayoutStatus.PENDING,
+            status: Status.ACTIVE,
+          },
+          data: {
+            payoutStatus: PayoutStatus.APPROVED,
+            processedByAdminId: admin.id,
+            processedAt: processedDate,
+            adminNote: input.adminNote ?? null,
+            transferProofUrl: input.transferProofUrl ?? null,
+          },
+        };
+        const updateResult = await tx.payoutRequest.updateMany(updatePayoutPayload);
+
+        if (updateResult.count === 0) {
+          throw new Error('WITHDRAWAL_NOT_PENDING');
+        }
+
+        const findExistingTxnQuery = {
+          where: {
+            walletId: withdrawal.walletId,
+            type: WalletTransactionType.WITHDRAWAL,
+            status: Status.ACTIVE,
+            OR: [
+              { referenceCode: withdrawal.referenceCode },
+              { description: { contains: withdrawal.referenceCode } },
+            ],
+          },
+        };
+        const existingTxn = await tx.walletTransaction.findFirst(findExistingTxnQuery);
+
+        if (!existingTxn) {
+          const transactionReference = GenerateWalletTransactionReferenceCode();
+          const findWalletQuery = {
+            where: { id: withdrawal.walletId },
+          };
+          const currentWallet = await tx.wallet.findUniqueOrThrow(findWalletQuery);
+          const withdrawalAmount = Number(withdrawal.amount);
+          const balanceAfter = Number(currentWallet.balance);
+          const balanceBefore = balanceAfter + withdrawalAmount;
+
+          const transactionPayload = {
+            data: {
+              referenceCode: transactionReference,
+              walletId: withdrawal.walletId,
+              type: WalletTransactionType.WITHDRAWAL,
+              amount: new Prisma.Decimal(withdrawalAmount),
+              balanceBefore: new Prisma.Decimal(balanceBefore),
+              balanceAfter: new Prisma.Decimal(balanceAfter),
+              description: `Penarikan saldo ke ${withdrawal.accountProvider} (${withdrawal.accountNumber}) a.n ${withdrawal.accountHolderName} (${withdrawal.referenceCode})`,
+              transactionDate: processedDate,
+              status: Status.ACTIVE,
+            },
+          };
+          await tx.walletTransaction.create(transactionPayload);
+        }
+      });
+    } else if (input.decision === WITHDRAWAL_REVIEW_ACTION.REJECT) {
+      await prisma.$transaction(async (tx) => {
+        const updatePayoutPayload = {
+          where: {
+            id: withdrawal.id,
+            payoutStatus: PayoutStatus.PENDING,
+            status: Status.ACTIVE,
+          },
+          data: {
+            payoutStatus: PayoutStatus.REJECTED,
+            rejectionReason: input.rejectionReason,
+            processedByAdminId: admin.id,
+            processedAt: processedDate,
+            adminNote: input.adminNote ?? null,
+          },
+        };
+        const updateResult = await tx.payoutRequest.updateMany(updatePayoutPayload);
+
+        if (updateResult.count === 0) {
+          throw new Error('WITHDRAWAL_NOT_PENDING');
+        }
+
+        const refundPayload = {
+          where: { id: withdrawal.walletId },
+          data: {
+            balance: {
+              increment: withdrawal.amount,
+            },
+          },
+        };
+        await tx.wallet.update(refundPayload);
+
+        const findPrematureTxnQuery = {
+          where: {
+            walletId: withdrawal.walletId,
+            type: WalletTransactionType.WITHDRAWAL,
+            status: Status.ACTIVE,
+            OR: [
+              { referenceCode: withdrawal.referenceCode },
+              { description: { contains: withdrawal.referenceCode } },
+            ],
+          },
+        };
+        const prematureTxn = await tx.walletTransaction.findFirst(findPrematureTxnQuery);
+
+        if (prematureTxn) {
+          const deletePrematureTxnPayload = {
+            where: { id: prematureTxn.id },
+            data: { status: Status.DELETED },
+          };
+          await tx.walletTransaction.update(deletePrematureTxnPayload);
+        }
+      });
+    }
+
+    const updatedWithdrawalQuery = {
+      where: { id: withdrawal.id, status: Status.ACTIVE },
+      select: ADMIN_WITHDRAWAL_SELECT,
+    };
+    const updatedWithdrawal = await prisma.payoutRequest.findFirst(updatedWithdrawalQuery);
+
+    if (!updatedWithdrawal) {
+      SendError(res, ADMIN_MESSAGES.WITHDRAWAL_NOT_FOUND, 404);
+      return;
+    }
+
+    const result = MapAdminWithdrawalToDto(updatedWithdrawal);
+
+    SendSuccess(res, result, ADMIN_MESSAGES.REVIEW_WITHDRAWAL_SUCCESS);
+  } catch (err) {
+    if (err instanceof Error && err.message === 'WITHDRAWAL_NOT_PENDING') {
+      SendError(res, ADMIN_MESSAGES.WITHDRAWAL_NOT_PENDING, 400);
+      return;
+    }
+    next(err);
+  }
+}
+
+/**
+ * Handles `GET /api/admin/kyc`: queries paginated payout account KYC submissions across creators and brands,
+ * enforcing soft-delete filters, status/role filters, keyword search, and live status tab counts.
+ *
+ * @param req - Express request with filter, role, search, page, limit query parameters.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ * @returns Promise resolving after sending the standardized JSON response.
+ */
+export async function GetAdminKycRequests(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, ADMIN_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.ADMIN) {
+      SendError(res, ADMIN_MESSAGES.ADMIN_ONLY, 403);
+      return;
+    }
+
+    const parseResult = AdminKycQuerySchema.safeParse(req.query);
+    if (!parseResult.success) {
+      const firstIssue = parseResult.error.issues[0];
+      SendError(res, firstIssue?.message || ADMIN_MESSAGES.INVALID_PAYLOAD, 400);
+      return;
+    }
+
+    const { filter, role, search, page, limit } = parseResult.data;
+
+    const accountRoleWhere: Prisma.AccountWhereInput =
+      role === KYC_ROLE_FILTER.CREATOR
+        ? {
+            status: Status.ACTIVE,
+            role: Role.CREATOR,
+            creator: { status: Status.ACTIVE },
+          }
+        : role === KYC_ROLE_FILTER.BRAND
+          ? {
+              status: Status.ACTIVE,
+              role: Role.BRAND,
+              brand: { status: Status.ACTIVE },
+            }
+          : {
+              status: Status.ACTIVE,
+              OR: [
+                { role: Role.CREATOR, creator: { status: Status.ACTIVE } },
+                { role: Role.BRAND, brand: { status: Status.ACTIVE } },
+              ],
+            };
+
+    const baseWhereClause: Prisma.BrandPayoutAccountWhereInput = {
+      status: Status.ACTIVE,
+      wallet: {
+        status: Status.ACTIVE,
+        account: accountRoleWhere,
+      },
+    };
+
+    const whereClause: Prisma.BrandPayoutAccountWhereInput = {
+      ...baseWhereClause,
+    };
+
+    if (filter === KYC_FILTER.PENDING) {
+      whereClause.verificationStatus = VerificationStatus.PENDING;
+    } else if (filter === KYC_FILTER.VERIFIED) {
+      whereClause.verificationStatus = VerificationStatus.VERIFIED;
+    } else if (filter === KYC_FILTER.REJECTED) {
+      whereClause.verificationStatus = VerificationStatus.REJECTED;
+    } else if (filter === KYC_FILTER.ALL) {
+      whereClause.verificationStatus = {
+        in: [
+          VerificationStatus.PENDING,
+          VerificationStatus.VERIFIED,
+          VerificationStatus.REJECTED,
+        ],
+      };
+    }
+
+    if (search && search.trim().length > 0) {
+      const queryTrimmed = search.trim();
+      const phoneVariants = BuildKycPhoneSearchVariants(queryTrimmed);
+      const searchConditions: Prisma.BrandPayoutAccountWhereInput[] = [
+        { provider: { contains: queryTrimmed, mode: 'insensitive' } },
+        { accountNumber: { contains: queryTrimmed, mode: 'insensitive' } },
+        { accountHolderName: { contains: queryTrimmed, mode: 'insensitive' } },
+        {
+          wallet: {
+            account: {
+              email: { contains: queryTrimmed, mode: 'insensitive' },
+            },
+          },
+        },
+        {
+          wallet: {
+            account: {
+              brand: {
+                companyName: { contains: queryTrimmed, mode: 'insensitive' },
+              },
+            },
+          },
+        },
+        {
+          wallet: {
+            account: {
+              brand: {
+                phoneNumber: { contains: queryTrimmed, mode: 'insensitive' },
+              },
+            },
+          },
+        },
+        {
+          wallet: {
+            account: {
+              creator: {
+                fullName: { contains: queryTrimmed, mode: 'insensitive' },
+              },
+            },
+          },
+        },
+        {
+          wallet: {
+            account: {
+              creator: {
+                phoneNumber: { contains: queryTrimmed, mode: 'insensitive' },
+              },
+            },
+          },
+        },
+      ];
+
+      for (const variant of phoneVariants) {
+        searchConditions.push(
+          { accountNumber: { contains: variant, mode: 'insensitive' } },
+          {
+            wallet: {
+              account: {
+                brand: {
+                  phoneNumber: { contains: variant, mode: 'insensitive' },
+                },
+              },
+            },
+          },
+          {
+            wallet: {
+              account: {
+                creator: {
+                  phoneNumber: { contains: variant, mode: 'insensitive' },
+                },
+              },
+            },
+          },
+        );
+      }
+
+      whereClause.AND = [{ OR: searchConditions }];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const findKycRequestsQuery = {
+      where: whereClause,
+      orderBy: { createdAt: 'desc' as const },
+      skip,
+      take: limit,
+      select: ADMIN_KYC_SELECT,
+    };
+    const countFilteredQuery = { where: whereClause };
+    const countPendingQuery = {
+      where: {
+        ...baseWhereClause,
+        verificationStatus: VerificationStatus.PENDING,
+      },
+    };
+    const countVerifiedQuery = {
+      where: {
+        ...baseWhereClause,
+        verificationStatus: VerificationStatus.VERIFIED,
+      },
+    };
+    const countRejectedQuery = {
+      where: {
+        ...baseWhereClause,
+        verificationStatus: VerificationStatus.REJECTED,
+      },
+    };
+    const countAllQuery = {
+      where: {
+        ...baseWhereClause,
+        verificationStatus: {
+          in: [
+            VerificationStatus.PENDING,
+            VerificationStatus.VERIFIED,
+            VerificationStatus.REJECTED,
+          ],
+        },
+      },
+    };
+
+    const [
+      kycRecords,
+      totalFiltered,
+      countPending,
+      countVerified,
+      countRejected,
+      countAll,
+    ] = await Promise.all([
+      prisma.brandPayoutAccount.findMany(findKycRequestsQuery),
+      prisma.brandPayoutAccount.count(countFilteredQuery),
+      prisma.brandPayoutAccount.count(countPendingQuery),
+      prisma.brandPayoutAccount.count(countVerifiedQuery),
+      prisma.brandPayoutAccount.count(countRejectedQuery),
+      prisma.brandPayoutAccount.count(countAllQuery),
+    ]);
+
+    const items: AdminKycItemDto[] = kycRecords.map(MapAdminKycToDto);
+
+    const totalPages = Math.ceil(totalFiltered / limit) || 1;
+
+    const result: AdminKycPaginatedDto = {
+      items,
+      counts: {
+        pending: countPending,
+        verified: countVerified,
+        rejected: countRejected,
+        all: countAll,
+      },
+      pagination: {
+        page,
+        limit,
+        total: totalFiltered,
+        totalPages,
+      },
+    };
+
+    SendSuccess(res, result, ADMIN_MESSAGES.GET_KYC_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles `POST /api/admin/kyc/:id/review`: approves or rejects a pending payout account KYC submission.
+ * Enforces fast-fail guard ordering (401 -> 403 -> 400 -> 404/409 -> atomic transaction) and reconciles
+ * `isPrimary` automatically inside the database transaction so every wallet maintains at most one primary
+ * account and falls back to an active verified account whenever no primary remains.
+ *
+ * @param req - Express request with KYC payout account ID parameter and review decision payload.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ * @returns Promise resolving after sending the standardized JSON response.
+ */
+export async function ReviewKycRequest(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, ADMIN_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.ADMIN) {
+      SendError(res, ADMIN_MESSAGES.ADMIN_ONLY, 403);
+      return;
+    }
+
+    const rawKycId = req.params.id;
+    const kycId = typeof rawKycId === 'string' ? rawKycId.trim() : '';
+    if (kycId.length === 0) {
+      SendError(res, ADMIN_MESSAGES.INVALID_PAYLOAD, 400);
+      return;
+    }
+
+    const parseResult = ReviewKycSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      const firstIssue = parseResult.error.issues[0];
+      SendError(res, firstIssue?.message || ADMIN_MESSAGES.INVALID_PAYLOAD, 400);
+      return;
+    }
+
+    const input = parseResult.data;
+
+    const findKycQuery = {
+      where: {
+        id: kycId,
+        status: Status.ACTIVE,
+        wallet: {
+          status: Status.ACTIVE,
+          account: {
+            status: Status.ACTIVE,
+            OR: [
+              { role: Role.CREATOR, creator: { status: Status.ACTIVE } },
+              { role: Role.BRAND, brand: { status: Status.ACTIVE } },
+            ],
+          },
+        },
+      },
+      select: {
+        id: true,
+        walletId: true,
+        isPrimary: true,
+        verificationStatus: true,
+      },
+    };
+
+    const targetKyc = await prisma.brandPayoutAccount.findFirst(findKycQuery);
+
+    if (!targetKyc) {
+      SendError(res, ADMIN_MESSAGES.KYC_NOT_FOUND, 404);
+      return;
+    }
+
+    if (targetKyc.verificationStatus !== VerificationStatus.PENDING) {
+      SendError(res, ADMIN_MESSAGES.KYC_NOT_PENDING, 409);
+      return;
+    }
+
+    const reviewedAt = new Date();
+
+    if (input.decision === KYC_REVIEW_ACTION.APPROVE) {
+      await prisma.$transaction(async (tx) => {
+        const approveUpdatePayload = {
+          where: {
+            id: targetKyc.id,
+            verificationStatus: VerificationStatus.PENDING,
+            status: Status.ACTIVE,
+          },
+          data: {
+            verificationStatus: VerificationStatus.VERIFIED,
+            verifiedAt: reviewedAt,
+            rejectionReason: null,
+          },
+        };
+        const updateResult = await tx.brandPayoutAccount.updateMany(approveUpdatePayload);
+
+        if (updateResult.count === 0) {
+          throw new Error('KYC_NOT_PENDING');
+        }
+
+        const findVerifiedPrimaryQuery = {
+          where: {
+            walletId: targetKyc.walletId,
+            status: Status.ACTIVE,
+            verificationStatus: VerificationStatus.VERIFIED,
+            isPrimary: true,
+            id: { not: targetKyc.id },
+          },
+          select: { id: true },
+        };
+        const existingVerifiedPrimary = await tx.brandPayoutAccount.findFirst(
+          findVerifiedPrimaryQuery,
+        );
+
+        if (!existingVerifiedPrimary) {
+          const clearOtherPrimaryPayload = {
+            where: {
+              walletId: targetKyc.walletId,
+              status: Status.ACTIVE,
+              id: { not: targetKyc.id },
+              isPrimary: true,
+            },
+            data: {
+              isPrimary: false,
+            },
+          };
+          await tx.brandPayoutAccount.updateMany(clearOtherPrimaryPayload);
+
+          const promoteApprovedPayload = {
+            where: { id: targetKyc.id },
+            data: { isPrimary: true },
+          };
+          await tx.brandPayoutAccount.update(promoteApprovedPayload);
+        } else {
+          // Enforce <= 1 primary inside the transaction without trusting pre-tx targetKyc.isPrimary
+          const demoteDuplicatePrimaryPayload = {
+            where: {
+              id: targetKyc.id,
+              status: Status.ACTIVE,
+              isPrimary: true,
+            },
+            data: { isPrimary: false },
+          };
+          await tx.brandPayoutAccount.updateMany(demoteDuplicatePrimaryPayload);
+        }
+      });
+    } else {
+      await prisma.$transaction(async (tx) => {
+        const rejectUpdatePayload = {
+          where: {
+            id: targetKyc.id,
+            verificationStatus: VerificationStatus.PENDING,
+            status: Status.ACTIVE,
+          },
+          data: {
+            verificationStatus: VerificationStatus.REJECTED,
+            rejectionReason: input.rejectionReason ?? null,
+            verifiedAt: null,
+            isPrimary: false,
+          },
+        };
+        const updateResult = await tx.brandPayoutAccount.updateMany(rejectUpdatePayload);
+
+        if (updateResult.count === 0) {
+          throw new Error('KYC_NOT_PENDING');
+        }
+
+        // Determine remaining primary status strictly inside tx to prevent concurrent primary-switch races
+        const findRemainingPrimaryQuery = {
+          where: {
+            walletId: targetKyc.walletId,
+            status: Status.ACTIVE,
+            isPrimary: true,
+            id: { not: targetKyc.id },
+          },
+          select: { id: true },
+        };
+        const remainingPrimaryAccount = await tx.brandPayoutAccount.findFirst(
+          findRemainingPrimaryQuery,
+        );
+
+        if (!remainingPrimaryAccount) {
+          const findFallbackVerifiedQuery = {
+            where: {
+              walletId: targetKyc.walletId,
+              status: Status.ACTIVE,
+              verificationStatus: VerificationStatus.VERIFIED,
+              id: { not: targetKyc.id },
+            },
+            orderBy: [
+              { verifiedAt: 'desc' as const },
+              { createdAt: 'desc' as const },
+            ],
+            select: { id: true },
+          };
+          const fallbackVerifiedAccount = await tx.brandPayoutAccount.findFirst(
+            findFallbackVerifiedQuery,
+          );
+
+          if (fallbackVerifiedAccount) {
+            const promoteFallbackPayload = {
+              where: { id: fallbackVerifiedAccount.id },
+              data: { isPrimary: true },
+            };
+            await tx.brandPayoutAccount.update(promoteFallbackPayload);
+          }
+        }
+      });
+    }
+
+    const updatedKycQuery = {
+      where: { id: targetKyc.id, status: Status.ACTIVE },
+      select: ADMIN_KYC_SELECT,
+    };
+    const updatedKyc = await prisma.brandPayoutAccount.findFirst(updatedKycQuery);
+
+    if (!updatedKyc) {
+      SendError(res, ADMIN_MESSAGES.KYC_NOT_FOUND, 404);
+      return;
+    }
+
+    const result = MapAdminKycToDto(updatedKyc);
+    const successMessage =
+      input.decision === KYC_REVIEW_ACTION.APPROVE
+        ? ADMIN_MESSAGES.KYC_APPROVE_SUCCESS
+        : ADMIN_MESSAGES.KYC_REJECT_SUCCESS;
+
+    SendSuccess(res, result, successMessage);
+  } catch (err) {
+    if (err instanceof Error && err.message === 'KYC_NOT_PENDING') {
+      SendError(res, ADMIN_MESSAGES.KYC_NOT_PENDING, 409);
+      return;
+    }
+    next(err);
+  }
+}
+
+/**
+ * Retrieves the comprehensive operational admin dashboard summary.
+ * Aggregates all 5 actionable review queues (Moderation, Settlement, Top Up, Withdraw, KYC),
+ * platform-wide financial & ecosystem health metrics (Locked Campaign Budgets, User Wallets,
+ * Paid Rewards, Views, User counts), and oldest-first triage preview lists in a single roundtrip.
+ *
+ * @param req - Express request object containing authenticated admin session.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function GetAdminDashboardSummary(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, ADMIN_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.ADMIN) {
+      SendError(res, ADMIN_MESSAGES.ADMIN_ONLY, 403);
+      return;
+    }
+
+    const adminQuery = {
+      where: {
+        accountId: account.sub,
+        status: Status.ACTIVE,
+      },
+      include: {
+        account: {
+          select: {
+            email: true,
+            status: true,
+          },
+        },
+      },
+    };
+    const admin = await prisma.admin.findFirst(adminQuery);
+
+    if (!admin || admin.account.status !== Status.ACTIVE) {
+      SendError(res, ADMIN_MESSAGES.ADMIN_ACCOUNT_NOT_FOUND, 404);
+      return;
+    }
+
+    // 1. Queue 1: Campaign Moderation counts
+    const campaignInReviewCountQuery = {
+      where: {
+        campaignStatus: CampaignStatus.IN_REVIEW,
+        status: Status.ACTIVE,
+        brand: { status: Status.ACTIVE },
+      },
+    };
+    const campaignInReviewCountPromise = prisma.campaign.count(campaignInReviewCountQuery);
+
+    const campaignManualPaymentCountQuery = {
+      where: {
+        campaignStatus: CampaignStatus.IN_REVIEW,
+        paymentStatus: PaymentStatus.SUBMITTED,
+        status: Status.ACTIVE,
+        brand: { status: Status.ACTIVE },
+      },
+    };
+    const campaignManualPaymentCountPromise = prisma.campaign.count(campaignManualPaymentCountQuery);
+
+    const campaignRevisionCountQuery = {
+      where: {
+        campaignStatus: CampaignStatus.REVISION,
+        status: Status.ACTIVE,
+        brand: { status: Status.ACTIVE },
+      },
+    };
+    const campaignRevisionCountPromise = prisma.campaign.count(campaignRevisionCountQuery);
+
+    // 2. Queue 2: Settlement Campaigns
+    const settlementCampaignsQuery = {
+      where: {
+        status: Status.ACTIVE,
+        brand: { status: Status.ACTIVE },
+        campaignStatus: {
+          in: [CampaignStatus.ACTIVE, CampaignStatus.FINISHED],
+        },
+      },
+      orderBy: { createdAt: 'asc' as const },
+      select: {
+        id: true,
+        title: true,
+        campaignCategory: true,
+        campaignType: true,
+        campaignStatus: true,
+        thumbnailUrl: true,
+        cpm: true,
+        minViews: true,
+        maxViews: true,
+        budget: true,
+        endDate: true,
+        createdAt: true,
+        paymentStatus: true,
+        brand: {
+          select: {
+            id: true,
+            companyName: true,
+            logoUrl: true,
+          },
+        },
+        submissions: {
+          where: {
+            status: Status.ACTIVE,
+          },
+          orderBy: [
+            { submittedAt: 'asc' as const },
+            { createdAt: 'asc' as const },
+          ],
+          select: {
+            id: true,
+            submissionStatus: true,
+            verifiedViews: true,
+            earnings: true,
+          },
+        },
+      },
+    };
+    const settlementCampaignsPromise = prisma.campaign.findMany(settlementCampaignsQuery);
+
+    // 3. Queue 3: Top Ups
+    const topUpsSubmittedCountQuery = {
+      where: {
+        status: PaymentStatus.SUBMITTED,
+        recordStatus: Status.ACTIVE,
+        wallet: {
+          status: Status.ACTIVE,
+          account: {
+            status: Status.ACTIVE,
+            brand: { status: Status.ACTIVE },
+          },
+        },
+      },
+    };
+    const topUpsSubmittedCountPromise = prisma.topUpRequest.count(topUpsSubmittedCountQuery);
+
+    const topUpsSubmittedSumQuery: Prisma.TopUpRequestAggregateArgs = {
+      where: {
+        status: PaymentStatus.SUBMITTED,
+        recordStatus: Status.ACTIVE,
+        wallet: {
+          status: Status.ACTIVE,
+          account: {
+            status: Status.ACTIVE,
+            brand: { status: Status.ACTIVE },
+          },
+        },
+      },
+      _sum: {
+        totalPayable: true,
+      },
+    };
+    const topUpsSubmittedSumPromise = prisma.topUpRequest.aggregate(topUpsSubmittedSumQuery);
+
+    const topUpsPendingCountQuery = {
+      where: {
+        status: PaymentStatus.PENDING,
+        recordStatus: Status.ACTIVE,
+        wallet: {
+          status: Status.ACTIVE,
+          account: {
+            status: Status.ACTIVE,
+            brand: { status: Status.ACTIVE },
+          },
+        },
+      },
+    };
+    const topUpsPendingCountPromise = prisma.topUpRequest.count(topUpsPendingCountQuery);
+
+    // 4. Queue 4: Withdrawals
+    const withdrawalsPendingCountQuery = {
+      where: {
+        payoutStatus: PayoutStatus.PENDING,
+        status: Status.ACTIVE,
+        wallet: {
+          status: Status.ACTIVE,
+          account: { status: Status.ACTIVE },
+        },
+      },
+    };
+    const withdrawalsPendingCountPromise = prisma.payoutRequest.count(withdrawalsPendingCountQuery);
+
+    const withdrawalsPendingSumQuery: Prisma.PayoutRequestAggregateArgs = {
+      where: {
+        payoutStatus: PayoutStatus.PENDING,
+        status: Status.ACTIVE,
+        wallet: {
+          status: Status.ACTIVE,
+          account: { status: Status.ACTIVE },
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+    };
+    const withdrawalsPendingSumPromise = prisma.payoutRequest.aggregate(withdrawalsPendingSumQuery);
+
+    const withdrawalsCancellationCountQuery = {
+      where: {
+        payoutStatus: PayoutStatus.PENDING,
+        status: Status.ACTIVE,
+        cancellationRequestedAt: { not: null },
+        wallet: {
+          status: Status.ACTIVE,
+          account: { status: Status.ACTIVE },
+        },
+      },
+    };
+    const withdrawalsCancellationCountPromise = prisma.payoutRequest.count(withdrawalsCancellationCountQuery);
+
+    // 5. Queue 5: KYC Verification
+    const kycPendingCountQuery = {
+      where: {
+        verificationStatus: VerificationStatus.PENDING,
+        status: Status.ACTIVE,
+        wallet: {
+          status: Status.ACTIVE,
+          account: { status: Status.ACTIVE },
+        },
+      },
+    };
+    const kycPendingCountPromise = prisma.brandPayoutAccount.count(kycPendingCountQuery);
+
+    const kycPendingCreatorCountQuery = {
+      where: {
+        verificationStatus: VerificationStatus.PENDING,
+        status: Status.ACTIVE,
+        wallet: {
+          status: Status.ACTIVE,
+          account: {
+            status: Status.ACTIVE,
+            role: Role.CREATOR,
+          },
+        },
+      },
+    };
+    const kycPendingCreatorCountPromise = prisma.brandPayoutAccount.count(kycPendingCreatorCountQuery);
+
+    const kycPendingBrandCountQuery = {
+      where: {
+        verificationStatus: VerificationStatus.PENDING,
+        status: Status.ACTIVE,
+        wallet: {
+          status: Status.ACTIVE,
+          account: {
+            status: Status.ACTIVE,
+            role: Role.BRAND,
+          },
+        },
+      },
+    };
+    const kycPendingBrandCountPromise = prisma.brandPayoutAccount.count(kycPendingBrandCountQuery);
+
+    // 6. Financial & Ecosystem Metrics
+    const activeCampaignsCountQuery = {
+      where: {
+        campaignStatus: CampaignStatus.ACTIVE,
+        status: Status.ACTIVE,
+        brand: { status: Status.ACTIVE },
+      },
+    };
+    const activeCampaignsCountPromise = prisma.campaign.count(activeCampaignsCountQuery);
+
+    const activeCampaignsBudgetQuery: Prisma.CampaignAggregateArgs = {
+      where: {
+        campaignStatus: CampaignStatus.ACTIVE,
+        status: Status.ACTIVE,
+        brand: { status: Status.ACTIVE },
+      },
+      _sum: {
+        budget: true,
+      },
+    };
+    const activeCampaignsBudgetPromise = prisma.campaign.aggregate(activeCampaignsBudgetQuery);
+
+    const finishedCampaignsCountQuery = {
+      where: {
+        campaignStatus: CampaignStatus.FINISHED,
+        status: Status.ACTIVE,
+        brand: { status: Status.ACTIVE },
+      },
+    };
+    const finishedCampaignsCountPromise = prisma.campaign.count(finishedCampaignsCountQuery);
+
+    const userWalletsQuery = {
+      where: {
+        status: Status.ACTIVE,
+        account: {
+          status: Status.ACTIVE,
+          role: {
+            in: [Role.BRAND, Role.CREATOR],
+          },
+        },
+      },
+      select: {
+        balance: true,
+        account: {
+          select: {
+            role: true,
+          },
+        },
+      },
+    };
+    const userWalletsPromise = prisma.wallet.findMany(userWalletsQuery);
+
+    const totalCreatorRewardsPaidQuery: Prisma.WalletTransactionAggregateArgs = {
+      where: {
+        type: WalletTransactionType.CAMPAIGN_EARNING,
+        status: Status.ACTIVE,
+      },
+      _sum: {
+        amount: true,
+      },
+    };
+    const totalCreatorRewardsPaidPromise = prisma.walletTransaction.aggregate(totalCreatorRewardsPaidQuery);
+
+    const totalApprovedWithdrawalsAmountQuery: Prisma.PayoutRequestAggregateArgs = {
+      where: {
+        payoutStatus: PayoutStatus.APPROVED,
+        status: Status.ACTIVE,
+      },
+      _sum: {
+        amount: true,
+      },
+    };
+    const totalApprovedWithdrawalsAmountPromise = prisma.payoutRequest.aggregate(totalApprovedWithdrawalsAmountQuery);
+
+    const totalApprovedTopUpsAmountQuery: Prisma.TopUpRequestAggregateArgs = {
+      where: {
+        status: PaymentStatus.APPROVED,
+        recordStatus: Status.ACTIVE,
+      },
+      _sum: {
+        totalPayable: true,
+      },
+    };
+    const totalApprovedTopUpsAmountPromise = prisma.topUpRequest.aggregate(totalApprovedTopUpsAmountQuery);
+
+    const totalVerifiedViewsQuery: Prisma.SubmissionAggregateArgs = {
+      where: {
+        status: Status.ACTIVE,
+        submissionStatus: {
+          in: [SubmissionStatus.APPROVED, SubmissionStatus.VERIFIED],
+        },
+        campaign: {
+          status: Status.ACTIVE,
+        },
+      },
+      _sum: {
+        verifiedViews: true,
+      },
+    };
+    const totalVerifiedViewsPromise = prisma.submission.aggregate(totalVerifiedViewsQuery);
+
+    const totalCreatorsCountQuery = {
+      where: {
+        status: Status.ACTIVE,
+        account: { status: Status.ACTIVE },
+      },
+    };
+    const totalCreatorsCountPromise = prisma.creator.count(totalCreatorsCountQuery);
+
+    const totalBrandsCountQuery = {
+      where: {
+        status: Status.ACTIVE,
+        account: { status: Status.ACTIVE },
+      },
+    };
+    const totalBrandsCountPromise = prisma.brand.count(totalBrandsCountQuery);
+
+    const verifiedTikTokCreatorsCountQuery = {
+      where: {
+        platform: Platform.TIKTOK,
+        isVerified: true,
+        status: Status.ACTIVE,
+        creator: {
+          status: Status.ACTIVE,
+          account: { status: Status.ACTIVE },
+        },
+      },
+    };
+    const verifiedTikTokCreatorsCountPromise = prisma.creatorSocialAccount.count(verifiedTikTokCreatorsCountQuery);
+
+    // 7. Triage Preview Items
+    const pendingWithdrawalsQuery = {
+      where: {
+        payoutStatus: PayoutStatus.PENDING,
+        status: Status.ACTIVE,
+        wallet: {
+          status: Status.ACTIVE,
+          account: { status: Status.ACTIVE },
+        },
+      },
+      select: ADMIN_WITHDRAWAL_SELECT,
+      orderBy: [
+        { createdAt: 'asc' as const },
+      ],
+      take: 20,
+    };
+    const pendingWithdrawalsPromise = prisma.payoutRequest.findMany(pendingWithdrawalsQuery);
+
+    const previewTopUpsQuery = {
+      where: {
+        status: PaymentStatus.SUBMITTED,
+        recordStatus: Status.ACTIVE,
+        wallet: {
+          status: Status.ACTIVE,
+          account: {
+            status: Status.ACTIVE,
+            brand: { status: Status.ACTIVE },
+          },
+        },
+      },
+      select: ADMIN_TOPUP_SELECT,
+      orderBy: {
+        createdAt: 'asc' as const,
+      },
+      take: DASHBOARD_PREVIEW_LIMIT,
+    };
+    const previewTopUpsPromise = prisma.topUpRequest.findMany(previewTopUpsQuery);
+
+    const previewKycQuery = {
+      where: {
+        verificationStatus: VerificationStatus.PENDING,
+        status: Status.ACTIVE,
+        wallet: {
+          status: Status.ACTIVE,
+          account: { status: Status.ACTIVE },
+        },
+      },
+      select: ADMIN_KYC_SELECT,
+      orderBy: {
+        createdAt: 'asc' as const,
+      },
+      take: DASHBOARD_PREVIEW_LIMIT,
+    };
+    const previewKycPromise = prisma.brandPayoutAccount.findMany(previewKycQuery);
+
+    const moderationCampaignsPreviewQuery = {
+      where: {
+        campaignStatus: CampaignStatus.IN_REVIEW,
+        status: Status.ACTIVE,
+        brand: { status: Status.ACTIVE },
+      },
+      select: {
+        id: true,
+        title: true,
+        budget: true,
+        campaignStatus: true,
+        paymentStatus: true,
+        createdAt: true,
+        brand: {
+          select: {
+            companyName: true,
+            logoUrl: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'asc' as const,
+      },
+      take: DASHBOARD_PREVIEW_LIMIT,
+    };
+    const moderationCampaignsPreviewPromise = prisma.campaign.findMany(moderationCampaignsPreviewQuery);
+
+    const recentTransactionsQuery = {
+      where: {
+        status: Status.ACTIVE,
+        wallet: {
+          status: Status.ACTIVE,
+          account: { status: Status.ACTIVE },
+        },
+      },
+      select: {
+        id: true,
+        referenceCode: true,
+        type: true,
+        amount: true,
+        createdAt: true,
+        transactionDate: true,
+        wallet: {
+          select: {
+            account: {
+              select: {
+                role: true,
+                brand: { select: { companyName: true } },
+                creator: { select: { fullName: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        transactionDate: 'desc' as const,
+      },
+      take: DASHBOARD_PREVIEW_LIMIT,
+    };
+    const recentTransactionsPromise = prisma.walletTransaction.findMany(recentTransactionsQuery);
+
+    const [
+      [
+        campaignInReviewCount,
+        campaignManualPaymentCount,
+        campaignRevisionCount,
+        settlementCampaigns,
+        topUpsSubmittedCount,
+        topUpsSubmittedSum,
+        topUpsPendingCount,
+        withdrawalsPendingCount,
+        withdrawalsPendingSum,
+        withdrawalsCancellationCount,
+        kycPendingCount,
+        kycPendingCreatorCount,
+        kycPendingBrandCount,
+        activeCampaignsBudget,
+        activeCampaignsCount,
+        finishedCampaignsCount,
+        userWallets,
+        totalCreatorRewardsPaid,
+        totalApprovedWithdrawalsAmount,
+        totalApprovedTopUpsAmount,
+        totalVerifiedViews,
+        totalCreatorsCount,
+        totalBrandsCount,
+        verifiedTikTokCreatorsCount,
+      ],
+      [
+        rawPendingWithdrawals,
+        rawSubmittedTopUps,
+        rawPendingKyc,
+        rawModerationCampaigns,
+        rawRecentTransactions,
+      ],
+    ] = await Promise.all([
+      Promise.all([
+        campaignInReviewCountPromise,
+        campaignManualPaymentCountPromise,
+        campaignRevisionCountPromise,
+        settlementCampaignsPromise,
+        topUpsSubmittedCountPromise,
+        topUpsSubmittedSumPromise,
+        topUpsPendingCountPromise,
+        withdrawalsPendingCountPromise,
+        withdrawalsPendingSumPromise,
+        withdrawalsCancellationCountPromise,
+        kycPendingCountPromise,
+        kycPendingCreatorCountPromise,
+        kycPendingBrandCountPromise,
+        activeCampaignsBudgetPromise,
+        activeCampaignsCountPromise,
+        finishedCampaignsCountPromise,
+        userWalletsPromise,
+        totalCreatorRewardsPaidPromise,
+        totalApprovedWithdrawalsAmountPromise,
+        totalApprovedTopUpsAmountPromise,
+        totalVerifiedViewsPromise,
+        totalCreatorsCountPromise,
+        totalBrandsCountPromise,
+        verifiedTikTokCreatorsCountPromise,
+      ] as const),
+      Promise.all([
+        pendingWithdrawalsPromise,
+        previewTopUpsPromise,
+        previewKycPromise,
+        moderationCampaignsPreviewPromise,
+        recentTransactionsPromise,
+      ] as const),
+    ]);
+
+    // Compute Settlement queue counts and candidate campaigns
+    const now = new Date();
+    let settlementNeedSettlementCount = 0;
+    let settlementBudgetFullCount = 0;
+    let settlementExpiredCount = 0;
+    let unsettledBudgetTotal = 0;
+
+    const actionableSettlementCampaigns: AdminDashboardCampaignActionItemDto[] = [];
+
+    for (const campaign of settlementCampaigns) {
+      const budget = Number(campaign.budget ?? 0);
+      const cpm = Number(campaign.cpm ?? 0);
+      const minViews = campaign.minViews ?? 0;
+      const maxViews = campaign.maxViews ?? 0;
+
+      const approvedSubs = campaign.submissions.filter(
+        (sub) => sub.submissionStatus === SubmissionStatus.APPROVED,
+      );
+      const verifiedSubs = campaign.submissions.filter(
+        (sub) => sub.submissionStatus === SubmissionStatus.VERIFIED,
+      );
+
+      const fifoInputs: FifoSubmissionAllocationInput[] = approvedSubs.map((sub) => ({
+        id: sub.id,
+        verifiedViews: sub.verifiedViews,
+        currentEarnings: Number(sub.earnings ?? 0),
+      }));
+
+      const fifoSummary = ComputeCampaignFifoAllocations(
+        budget,
+        minViews,
+        maxViews,
+        cpm,
+        fifoInputs,
+      );
+
+      const verifiedEarnings = verifiedSubs.reduce(
+        (sum, sub) => sum + Math.floor(Number(sub.earnings ?? 0)),
+        0,
+      );
+
+      const allocatedEarnings =
+        campaign.campaignStatus === CampaignStatus.FINISHED
+          ? verifiedEarnings
+          : fifoSummary.totalAllocated;
+
+      const freezeReason = DetermineCampaignFreezeReason(
+        campaign.campaignStatus,
+        budget,
+        allocatedEarnings,
+        campaign.endDate,
+        now,
+      );
+
+      const isBudgetFull = freezeReason === FREEZE_REASON.BUDGET_FULL;
+      const isExpired = freezeReason === FREEZE_REASON.EXPIRED;
+      const needsSettlement =
+        isBudgetFull ||
+        isExpired ||
+        (campaign.campaignStatus === CampaignStatus.ACTIVE && approvedSubs.length > 0);
+
+      if (isBudgetFull) {
+        settlementBudgetFullCount += 1;
+      }
+      if (isExpired) {
+        settlementExpiredCount += 1;
+      }
+      if (needsSettlement) {
+        settlementNeedSettlementCount += 1;
+        unsettledBudgetTotal += budget;
+      }
+
+      if (needsSettlement) {
+        const tagLabel = isBudgetFull
+          ? 'Kuota Penuh · Siap Settlement'
+          : isExpired
+            ? 'Periode Berakhir · Siap Settlement'
+            : 'Submisi Disetujui · Siap Audit';
+
+        actionableSettlementCampaigns.push({
+          id: campaign.id,
+          title: campaign.title ?? 'Kampanye Tanpa Judul',
+          brandName: campaign.brand.companyName ?? 'Brand',
+          brandLogoUrl: campaign.brand.logoUrl,
+          budget,
+          campaignStatus: campaign.campaignStatus,
+          freezeReason,
+          paymentStatus: campaign.paymentStatus,
+          actionType: 'SETTLEMENT',
+          tagLabel,
+          createdAt: campaign.createdAt,
+        });
+      }
+    }
+
+    // Moderation campaign preview items
+    const moderationActionItems: AdminDashboardCampaignActionItemDto[] = rawModerationCampaigns.map(
+      (c) => {
+        const isManualTransfer = c.paymentStatus === PaymentStatus.SUBMITTED;
+        const tagLabel = isManualTransfer
+          ? 'Perlu Moderasi (Transfer Manual)'
+          : 'Perlu Moderasi (Saldo Dompet)';
+
+        return {
+          id: c.id,
+          title: c.title ?? 'Kampanye Tanpa Judul',
+          brandName: c.brand.companyName ?? 'Brand',
+          brandLogoUrl: c.brand.logoUrl,
+          budget: Number(c.budget ?? 0),
+          campaignStatus: c.campaignStatus,
+          freezeReason: FREEZE_REASON.ACTIVE_RUNNING,
+          paymentStatus: c.paymentStatus,
+          actionType: 'MODERATION',
+          tagLabel,
+          createdAt: c.createdAt,
+        };
+      },
+    );
+
+    // Combine actionable campaigns: settlement campaigns + moderation campaigns, sorted oldest first (FIFO) and capped at DASHBOARD_PREVIEW_LIMIT
+    const combinedActionableCampaigns = [
+      ...actionableSettlementCampaigns,
+      ...moderationActionItems,
+    ]
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      .slice(0, DASHBOARD_PREVIEW_LIMIT);
+
+    // Sort pending withdrawals: cancellationRequestedAt != null first, then oldest createdAt
+    const sortedPendingWithdrawals: AdminDashboardWithdrawalActionItemDto[] = [
+      ...rawPendingWithdrawals,
+    ]
+      .sort((a, b) => {
+        const aHasCancel = a.cancellationRequestedAt != null ? 1 : 0;
+        const bHasCancel = b.cancellationRequestedAt != null ? 1 : 0;
+        if (aHasCancel !== bHasCancel) {
+          return bHasCancel - aHasCancel;
+        }
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      })
+      .slice(0, DASHBOARD_PREVIEW_LIMIT)
+      .map((w) => {
+        const account = w.wallet.account;
+        const isBrand = account.role === Role.BRAND;
+        const userName = isBrand
+          ? (account.brand?.companyName || 'Brand')
+          : (account.creator?.fullName || 'Kreator');
+        const userAvatarUrl = isBrand
+          ? (account.brand?.logoUrl ?? null)
+          : (account.creator?.avatarUrl ?? null);
+
+        return {
+          id: w.id,
+          referenceCode: w.referenceCode,
+          userName,
+          userRole: account.role,
+          userAvatarUrl,
+          bankName: w.accountProvider,
+          accountNumber: w.accountNumber,
+          amount: Number(w.amount),
+          cancellationRequestedAt: w.cancellationRequestedAt,
+          createdAt: w.createdAt,
+        };
+      });
+
+    // Top-up action items
+    const topUpActionItems: AdminDashboardTopUpActionItemDto[] = rawSubmittedTopUps.map((t) => ({
+      id: t.id,
+      referenceCode: t.referenceCode,
+      brandName: t.wallet.account.brand?.companyName ?? 'Brand',
+      brandLogoUrl: t.wallet.account.brand?.logoUrl ?? null,
+      senderBank: t.senderBank,
+      senderAccountName: t.senderAccountName,
+      totalPayable: Number(t.totalPayable),
+      amount: Number(t.amount),
+      createdAt: t.createdAt,
+    }));
+
+    // KYC action items
+    const kycActionItems: AdminDashboardKycActionItemDto[] = rawPendingKyc.map((k) => {
+      const account = k.wallet.account;
+      const isBrand = account.role === Role.BRAND;
+      const userName = isBrand
+        ? (account.brand?.companyName || 'Brand')
+        : (account.creator?.fullName || 'Kreator');
+      const userAvatarUrl = isBrand
+        ? (account.brand?.logoUrl ?? null)
+        : (account.creator?.avatarUrl ?? null);
+
+      const isHolderNameMismatch = CheckHolderNameMismatch(k.accountHolderName, userName);
+
+      return {
+        id: k.id,
+        userName,
+        userRole: account.role,
+        userAvatarUrl,
+        accountType: k.accountType,
+        provider: k.provider,
+        accountNumber: k.accountNumber,
+        accountHolderName: k.accountHolderName,
+        isHolderNameMismatch,
+        createdAt: k.createdAt,
+      };
+    });
+
+    // Recent transactions
+    const transactionActionItems: AdminDashboardTransactionActionItemDto[] = rawRecentTransactions.map(
+      (tx) => {
+        const account = tx.wallet.account;
+        const isBrand = account.role === Role.BRAND;
+        const userName = isBrand
+          ? (account.brand?.companyName || 'Brand')
+          : (account.creator?.fullName || 'Kreator');
+
+        return {
+          id: tx.id,
+          referenceCode: tx.referenceCode,
+          type: tx.type,
+          amount: Number(tx.amount),
+          userName,
+          userRole: account.role,
+          createdAt: tx.createdAt,
+          transactionDate: tx.transactionDate,
+        };
+      },
+    );
+
+    // Calculate wallet balances (Brand vs Creator)
+    let brandWalletBalance = 0;
+    let creatorWalletBalance = 0;
+    for (const w of userWallets) {
+      const bal = Number(w.balance);
+      if (w.account.role === Role.BRAND) {
+        brandWalletBalance += bal;
+      } else if (w.account.role === Role.CREATOR) {
+        creatorWalletBalance += bal;
+      }
+    }
+    const totalUserWalletBalance = brandWalletBalance + creatorWalletBalance;
+
+    // Total actionable tasks count across all 5 queues
+    const totalActionableCount =
+      campaignInReviewCount +
+      settlementNeedSettlementCount +
+      topUpsSubmittedCount +
+      withdrawalsPendingCount +
+      kycPendingCount;
+
+    const summary: AdminDashboardSummaryDto = {
+      admin: {
+        id: admin.id,
+        accountId: admin.accountId,
+        name: admin.fullName,
+        email: admin.account.email,
+      },
+      queues: {
+        totalActionableCount,
+        campaigns: {
+          inReviewCount: campaignInReviewCount,
+          manualPaymentSubmittedCount: campaignManualPaymentCount,
+          revisionCount: campaignRevisionCount,
+        },
+        settlements: {
+          needSettlementCount: settlementNeedSettlementCount,
+          budgetFullCount: settlementBudgetFullCount,
+          expiredCount: settlementExpiredCount,
+          unsettledBudgetTotal,
+        },
+        topUps: {
+          submittedCount: topUpsSubmittedCount,
+          submittedTotalPayable: Number(topUpsSubmittedSum._sum?.totalPayable ?? 0),
+          pendingUploadCount: topUpsPendingCount,
+        },
+        withdrawals: {
+          pendingCount: withdrawalsPendingCount,
+          pendingTotalAmount: Number(withdrawalsPendingSum._sum?.amount ?? 0),
+          cancellationRequestedCount: withdrawalsCancellationCount,
+        },
+        kyc: {
+          pendingCount: kycPendingCount,
+          pendingCreatorCount: kycPendingCreatorCount,
+          pendingBrandCount: kycPendingBrandCount,
+        },
+      },
+      metrics: {
+        lockedCampaignBudget: Number(activeCampaignsBudget._sum?.budget ?? 0),
+        activeCampaignsCount,
+        finishedCampaignsCount,
+        totalUserWalletBalance,
+        brandWalletBalance,
+        creatorWalletBalance,
+        totalCreatorRewardsPaid: Number(totalCreatorRewardsPaid._sum?.amount ?? 0),
+        totalApprovedWithdrawalsAmount: Number(totalApprovedWithdrawalsAmount._sum?.amount ?? 0),
+        totalApprovedTopUpsAmount: Number(totalApprovedTopUpsAmount._sum?.totalPayable ?? 0),
+        totalVerifiedViews: totalVerifiedViews._sum?.verifiedViews ?? 0,
+        totalCreatorsCount,
+        totalBrandsCount,
+        verifiedTikTokCreatorsCount,
+      },
+      actionItems: {
+        pendingWithdrawals: sortedPendingWithdrawals,
+        submittedTopUps: topUpActionItems,
+        pendingKycRequests: kycActionItems,
+        actionableCampaigns: combinedActionableCampaigns,
+        recentTransactions: transactionActionItems,
+      },
+    };
+
+    SendSuccess(res, summary, ADMIN_MESSAGES.GET_ADMIN_DASHBOARD_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+
+
 

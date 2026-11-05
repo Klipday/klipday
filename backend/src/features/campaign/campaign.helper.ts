@@ -295,3 +295,51 @@ export function GenerateWalletTransactionReferenceCode(): string {
   return refCode;
 }
 
+/**
+ * Computes real-time `allocatedBudget` and `remainingBudget` from approved/verified submission rewards
+ * and strips the internal `submissions` relation array before returning the campaign DTO.
+ * Safely returns records without `submissions` (such as unit test fixtures) untouched.
+ *
+ * @param campaign - Raw Prisma campaign payload from `CAMPAIGN_CARD_ESCROW_SELECT` or `CAMPAIGN_DETAIL_ESCROW_SELECT`.
+ * @returns Enriched campaign object with `allocatedBudget` and `remainingBudget`.
+ */
+export function EnrichCampaignEscrowMetrics<
+  TCampaign extends {
+    budget?: Prisma.Decimal | number | null;
+    submissions?: Array<{ earnings: Prisma.Decimal | number }>;
+  },
+>(
+  campaign: TCampaign,
+): Omit<TCampaign, 'submissions'> & { allocatedBudget?: number; remainingBudget?: number } {
+  if (!('submissions' in campaign) || !Array.isArray(campaign.submissions)) {
+    return campaign;
+  }
+
+  const { submissions, ...restCampaign } = campaign;
+  const rawBudget = restCampaign.budget !== null && restCampaign.budget !== undefined
+    ? Number(restCampaign.budget)
+    : 0;
+  const safeBudget = Number.isFinite(rawBudget) ? Math.max(0, Math.floor(rawBudget)) : 0;
+
+  const allocatedBudget = submissions.reduce((sum, item) => {
+    const rawEarnings = item.earnings !== null && item.earnings !== undefined
+      ? Number(item.earnings)
+      : 0;
+    const safeEarnings = Number.isFinite(rawEarnings)
+      ? Math.max(0, Math.floor(rawEarnings))
+      : 0;
+    return sum + safeEarnings;
+  }, 0);
+
+  const remainingBudget = Math.max(0, safeBudget - allocatedBudget);
+
+  const enriched = {
+    ...restCampaign,
+    allocatedBudget,
+    remainingBudget,
+  };
+
+  return enriched;
+}
+
+

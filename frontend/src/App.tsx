@@ -10,6 +10,7 @@ import CampaignWizardLayout from '@/features/campaign/layouts/CampaignWizardLayo
 import { SubmissionWizardIndexRedirect } from '@/features/submission/components';
 import DashboardLayout from '@/features/dashboard/layouts/DashboardLayout';
 import { DashboardRoleRedirect } from '@/features/dashboard/components';
+import { AdminKycSkeleton } from '@/features/admin/components/AdminKycSkeleton';
 
 const Home = lazy(() => import('@/features/home/pages/Home'));
 const SignIn = lazy(() => import('@/features/authentication/pages/SignIn'));
@@ -114,7 +115,14 @@ const router = createBrowserRouter(
           <Route path="top-ups" element={<AdminTopUpsPage />} />
           <Route path="withdrawals" element={<AdminWithdrawalsPage />} />
           <Route path="withdraw" element={<Navigate to="/admin-dashboard/withdrawals" replace />} />
-          <Route path="kyc" element={<AdminKycPage />} />
+          <Route
+            path="kyc"
+            element={
+              <Suspense fallback={<AdminKycSkeleton count={5} />}>
+                <AdminKycPage />
+              </Suspense>
+            }
+          />
         </Route>
         <Route path="dashboard/admin-campaigns" element={<Navigate to="/admin-dashboard/campaigns" replace />} />
         <Route path="admin-dashboard/admin-campaigns" element={<Navigate to="/admin-dashboard/campaigns" replace />} />

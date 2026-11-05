@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { RotateCw, Search, X } from 'lucide-react';
 import { useSearchParams } from 'react-router';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import {
   AdminSettlementCard,
   AdminSettlementsEmptyState,
@@ -9,7 +11,10 @@ import {
   AdminSettlementsSkeleton,
   AdminSettlementTabs,
 } from '../components';
-import { UseAdminSettlementCampaignsQuery } from '../hooks';
+import {
+  UseAdminSettlementCampaignsQuery,
+  UseTriggerCampaignMetricsSyncMutation,
+} from '../hooks';
 import type { SettlementFilterOption } from '../types';
 import { VALID_SETTLEMENT_FILTER_KEYS } from '../utils/formatters';
 
@@ -29,6 +34,8 @@ export default function AdminSettlementsPage() {
     rawFilter && VALID_SETTLEMENT_FILTER_KEYS.includes(rawFilter)
       ? rawFilter
       : 'NEED_SETTLEMENT';
+
+  const syncMutation = UseTriggerCampaignMetricsSyncMutation();
 
   const { data, isLoading, isError, error, refetch } = UseAdminSettlementCampaignsQuery({
     filter: activeFilter,
@@ -59,14 +66,27 @@ export default function AdminSettlementsPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Verifikasi & Settlement
-        </h1>
-        <p className="text-[13px] text-muted-foreground">
-          Tinjau kampanye yang telah berakhir atau mencapai 100% batas anggaran sebelum
-          pencairan reward ke kreator dan pengembalian sisa saldo ke brand.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            Verifikasi & Settlement
+          </h1>
+          <p className="text-[13px] text-muted-foreground">
+            Tinjau kampanye yang telah berakhir atau mencapai 100% batas anggaran sebelum
+            pencairan reward ke kreator dan pengembalian sisa saldo ke brand.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={syncMutation.isPending}
+          onClick={() => syncMutation.mutate(undefined)}
+          className="h-9 shrink-0 gap-2 rounded-xl border-border/60 bg-card text-xs font-medium text-foreground hover:bg-muted/40 cursor-pointer self-start sm:self-auto"
+        >
+          <RotateCw className={cn('size-3.5', syncMutation.isPending && 'animate-spin')} />
+          <span>{syncMutation.isPending ? 'Menyinkronkan...' : 'Sinkronisasi Views'}</span>
+        </Button>
       </div>
 
       {/* Left-Aligned Segmented Filter Tabs & Search Bar */}

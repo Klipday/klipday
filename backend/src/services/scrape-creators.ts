@@ -1,8 +1,36 @@
 export const SCRAPECREATORS_BASE_URL = 'https://api.scrapecreators.com';
+export const DEFAULT_SCRAPE_TIMEOUT_MS = 15_000;
 
 export interface ScrapeCreatorsRequestOptions extends RequestInit {
   apiKey?: string;
   baseUrl?: string;
+  timeoutMs?: number;
+}
+
+export interface ScrapeCreatorsErrorParams {
+  message: string;
+  statusCode?: number | undefined;
+  isRetryable?: boolean | undefined;
+  isVideoUnavailable?: boolean | undefined;
+}
+
+/**
+ * Structured error class for ScrapeCreators HTTP and payload resolution failures.
+ * Classifies transient rate-limit/upstream errors (`isRetryable`) separately from
+ * deleted, private, or missing TikTok videos (`isVideoUnavailable`).
+ */
+export class ScrapeCreatorsApiError extends Error {
+  public readonly statusCode: number | undefined;
+  public readonly isRetryable: boolean;
+  public readonly isVideoUnavailable: boolean;
+
+  constructor(params: ScrapeCreatorsErrorParams) {
+    super(params.message);
+    this.name = 'ScrapeCreatorsApiError';
+    this.statusCode = params.statusCode;
+    this.isRetryable = Boolean(params.isRetryable);
+    this.isVideoUnavailable = Boolean(params.isVideoUnavailable);
+  }
 }
 
 export interface TikTokUserProfile {
@@ -50,6 +78,11 @@ interface ScrapeCreatorsAwemeItem {
   aweme_id?: string;
   desc?: string;
   create_time?: number;
+  status?: {
+    is_delete?: boolean;
+    is_private?: boolean;
+    private_status?: number;
+  };
   author?: {
     unique_id?: string;
     nickname?: string;
@@ -83,6 +116,9 @@ interface ScrapeCreatorsV2VideoDetailsResponse {
   success?: boolean;
   aweme_detail?: ScrapeCreatorsAwemeItem;
 }
+
+const RETRYABLE_HTTP_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
+const UNAVAILABLE_HTTP_STATUS_CODES = new Set([404, 410]);
 
 /**
  * Validates that a video URL string is well-formed, uses http/https, and belongs to a TikTok domain.
@@ -138,30 +174,60 @@ export function GetScrapeCreatorsApiKey(customKey?: string): string {
 
 /**
  * Core functional HTTP client for making authenticated requests to ScrapeCreators.
- * Direct fetch wrapper with authentication headers and error handling.
+ * Enforces bounded socket timeouts via AbortSignal and classifies upstream errors.
  *
  * @param endpoint - API path with query parameters (e.g. '/v1/tiktok/profile?handle=john').
- * @param options - Optional fetch configuration and credentials.
+ * @param options - Optional fetch configuration, timeout, and credentials.
  * @returns Parsed JSON response payload.
  */
 export async function ScrapeCreatorsRequest<T>(endpoint: string, options?: ScrapeCreatorsRequestOptions): Promise<T> {
   const apiKey = GetScrapeCreatorsApiKey(options?.apiKey);
   const baseUrl = options?.baseUrl ?? SCRAPECREATORS_BASE_URL;
+  const timeoutMs = options?.timeoutMs ?? DEFAULT_SCRAPE_TIMEOUT_MS;
   const targetUrl = `${baseUrl}${endpoint}`;
 
-  const response = await fetch(targetUrl, {
-    method: options?.method ?? 'GET',
-    headers: {
-      'x-api-key': apiKey,
-      Accept: 'application/json',
-      ...options?.headers,
-    },
-    ...options,
-  });
+  const {
+    apiKey: _apiKey,
+    baseUrl: _baseUrl,
+    timeoutMs: _timeoutMs,
+    headers: customHeaders,
+    signal: customSignal,
+    ...fetchInit
+  } = options ?? {};
+
+  const requestSignal = customSignal ?? AbortSignal.timeout(timeoutMs);
+
+  let response: Response;
+  try {
+    response = await fetch(targetUrl, {
+      ...fetchInit,
+      method: fetchInit.method ?? 'GET',
+      signal: requestSignal,
+      headers: {
+        'x-api-key': apiKey,
+        Accept: 'application/json',
+        ...customHeaders,
+      },
+    });
+  } catch (err) {
+    const rawMessage = err instanceof Error ? err.message : 'Network request failed';
+    throw new ScrapeCreatorsApiError({
+      message: `ScrapeCreators network error: ${rawMessage}`,
+      isRetryable: true,
+      isVideoUnavailable: false,
+    });
+  }
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => '');
-    throw new Error(`ScrapeCreators API error (${response.status} ${response.statusText}): ${errorText || 'Unknown error'}`);
+    const isRetryable = RETRYABLE_HTTP_STATUS_CODES.has(response.status);
+    const isVideoUnavailable = UNAVAILABLE_HTTP_STATUS_CODES.has(response.status);
+    throw new ScrapeCreatorsApiError({
+      message: `ScrapeCreators API error (${response.status} ${response.statusText}): ${errorText || 'Unknown error'}`,
+      statusCode: response.status,
+      isRetryable,
+      isVideoUnavailable,
+    });
   }
 
   const payload = (await response.json()) as T;
@@ -185,9 +251,10 @@ function ExtractBestCoverUrl(urlList?: string[]): string | undefined {
  * Expands shortened TikTok links (vt.tiktok.com / vm.tiktok.com) to their full canonical web URL.
  *
  * @param url - Raw video URL entered by the user.
+ * @param timeoutMs - Maximum timeout in milliseconds for redirect expansion.
  * @returns Resolved full URL or original URL.
  */
-async function ResolveTikTokUrl(url: string): Promise<string> {
+async function ResolveTikTokUrl(url: string, timeoutMs = DEFAULT_SCRAPE_TIMEOUT_MS): Promise<string> {
   const trimmedUrl = url.trim();
 
   if (trimmedUrl.includes('vt.tiktok.com') || trimmedUrl.includes('vm.tiktok.com')) {
@@ -195,6 +262,7 @@ async function ResolveTikTokUrl(url: string): Promise<string> {
       const response = await fetch(trimmedUrl, {
         method: 'HEAD',
         redirect: 'follow',
+        signal: AbortSignal.timeout(timeoutMs),
       });
       return response.url || trimmedUrl;
     } catch {
@@ -304,13 +372,31 @@ export async function GetTikTokRecentVideos(
  */
 export async function GetTikTokVideoDetails(videoUrl: string, options?: ScrapeCreatorsRequestOptions): Promise<TikTokVideoItem> {
   const validatedUrl = ValidateTikTokVideoUrl(videoUrl);
-  const resolvedUrl = await ResolveTikTokUrl(validatedUrl);
+  const timeoutMs = options?.timeoutMs ?? DEFAULT_SCRAPE_TIMEOUT_MS;
+  const resolvedUrl = await ResolveTikTokUrl(validatedUrl, timeoutMs);
   const endpoint = `/v2/tiktok/video?url=${encodeURIComponent(resolvedUrl)}`;
   const payload = await ScrapeCreatorsRequest<ScrapeCreatorsV2VideoDetailsResponse>(endpoint, options);
   const item = payload.aweme_detail;
 
   if (!item || !item.aweme_id) {
-    throw new Error('Video details could not be resolved from URL.');
+    throw new ScrapeCreatorsApiError({
+      message: 'Video details could not be resolved from URL.',
+      isRetryable: false,
+      isVideoUnavailable: true,
+    });
+  }
+
+  const isDeletedOrPrivate =
+    Boolean(item.status?.is_delete) ||
+    Boolean(item.status?.is_private) ||
+    (typeof item.status?.private_status === 'number' && item.status.private_status !== 0);
+
+  if (isDeletedOrPrivate) {
+    throw new ScrapeCreatorsApiError({
+      message: 'TikTok video is deleted or set to private.',
+      isRetryable: false,
+      isVideoUnavailable: true,
+    });
   }
 
   const videoId = item.aweme_id;

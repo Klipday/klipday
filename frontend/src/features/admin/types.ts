@@ -92,6 +92,10 @@ export interface AdminFifoSubmissionItemDto {
   targetEarnings: number;
   unpaidShortfall: number;
   isCappedByBudget: boolean;
+  lastMetricsSyncedAt?: string | null;
+  syncFailureStreak?: number;
+  lastSyncError?: string | null;
+  isFlaggedUnavailable?: boolean;
   submittedAt: string | null;
   createdAt: string;
 }
@@ -113,6 +117,9 @@ export interface AdminCampaignSettlementSummaryDto {
   approvedCount: number;
   verifiedCount: number;
   disqualifiedCount: number;
+  flaggedSubmissionsCount?: number;
+  lastMetricsSyncedAt?: string | null;
+  finalSnapshotSyncedAt?: string | null;
   endDate: string | null;
   brand: {
     id: string;
@@ -120,6 +127,26 @@ export interface AdminCampaignSettlementSummaryDto {
     logoUrl: string | null;
   };
   submissions: AdminFifoSubmissionItemDto[];
+}
+
+export interface ManualMetricsSyncResponseDto {
+  acquiredLock: boolean;
+  run: {
+    id: string;
+    triggerSource: string;
+    cronStatus: string;
+    durationMs: number | null;
+    campaignsEvaluated: number;
+    campaignsSynced: number;
+    campaignsSkippedFrozen: number;
+    submissionsScraped: number;
+    submissionsUpdated: number;
+    submissionsFailed: number;
+    totalViewsDelta: number;
+    totalAllocatedDelta: number;
+    errorMessage: string | null;
+    createdAt: string;
+  };
 }
 
 export interface DisqualifySettlementSubmissionPayload {
@@ -470,5 +497,291 @@ export interface AdminTopUpErrorStateProps {
 export interface AdminTopUpSkeletonProps {
   count?: number;
 }
+
+// Withdrawal Verification & Disbursement Types (Phase 4)
+export type AdminWithdrawalFilter =
+  | 'PENDING'
+  | 'CANCELLATION'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'ALL';
+
+export type AdminWithdrawalRoleFilter = 'ALL' | 'CREATOR' | 'BRAND';
+
+export type AdminWithdrawalReviewAction = 'APPROVE' | 'REJECT';
+
+export interface AdminWithdrawalCounts {
+  pending: number;
+  cancellation: number;
+  approved: number;
+  rejected: number;
+  all: number;
+}
+
+export interface AdminWithdrawalTabItem {
+  key: AdminWithdrawalFilter;
+  label: string;
+  countKey: keyof AdminWithdrawalCounts;
+}
+
+export interface AdminWithdrawalUser {
+  id: string;
+  email: string;
+  role: 'CREATOR' | 'BRAND' | 'ADMIN';
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface AdminWithdrawalPayoutAccount {
+  id: string;
+  accountType: string;
+  provider: string;
+  accountNumber: string;
+  accountHolderName: string;
+  proofUrl: string;
+  verificationStatus: string;
+}
+
+export interface AdminWithdrawalItem {
+  id: string;
+  referenceCode: string;
+  walletId: string;
+  amount: number;
+  accountProvider: string;
+  accountNumber: string;
+  accountHolderName: string;
+  payoutStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+  rejectionReason: string | null;
+  transferProofUrl: string | null;
+  adminNote: string | null;
+  cancellationRequestedAt: string | null;
+  cancellationReason: string | null;
+  processedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: AdminWithdrawalUser;
+  payoutAccount: AdminWithdrawalPayoutAccount | null;
+}
+
+export interface AdminWithdrawalsPaginated {
+  items: AdminWithdrawalItem[];
+  counts: AdminWithdrawalCounts;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface GetAdminWithdrawalsParams {
+  filter?: AdminWithdrawalFilter;
+  role?: AdminWithdrawalRoleFilter;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface ReviewAdminWithdrawalPayload {
+  id: string;
+  decision: AdminWithdrawalReviewAction;
+  rejectionReason?: string;
+  adminNote?: string;
+  transferProofUrl?: string;
+}
+
+export interface AdminWithdrawalStatusTabsProps {
+  counts?: AdminWithdrawalCounts;
+  className?: string;
+}
+
+export interface AdminWithdrawalItemRowProps {
+  withdrawal: AdminWithdrawalItem;
+  onOpenKyc: (withdrawal: AdminWithdrawalItem) => void;
+  onReview: (withdrawal: AdminWithdrawalItem, decision: AdminWithdrawalReviewAction) => void;
+  className?: string;
+}
+
+export interface AdminWithdrawalKycDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  withdrawal: AdminWithdrawalItem | null;
+}
+
+export interface AdminWithdrawalReviewDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  withdrawal: AdminWithdrawalItem | null;
+  decision: AdminWithdrawalReviewAction | null;
+  isPending: boolean;
+  onConfirm: (payload: {
+    rejectionReason?: string;
+    adminNote?: string;
+    transferProofUrl?: string;
+  }) => void;
+}
+
+export interface AdminWithdrawalReviewDialogContentProps {
+  withdrawal: AdminWithdrawalItem;
+  decision: AdminWithdrawalReviewAction;
+  isPending: boolean;
+  onConfirm: (payload: {
+    rejectionReason?: string;
+    adminNote?: string;
+    transferProofUrl?: string;
+  }) => void;
+  onClose: () => void;
+}
+
+
+export interface AdminWithdrawalEmptyStateProps {
+  filter: AdminWithdrawalFilter;
+  searchQuery: string;
+  roleFilter: AdminWithdrawalRoleFilter;
+  onResetFilters: () => void;
+}
+
+export interface AdminWithdrawalErrorStateProps {
+  message: string;
+  onRetry: () => void;
+}
+
+export interface AdminWithdrawalSkeletonProps {
+  count?: number;
+}
+
+// KYC Verification & Payout Account Compliance Types (Phase 5)
+export type AdminKycFilter = 'PENDING' | 'VERIFIED' | 'REJECTED' | 'ALL';
+
+export type AdminKycRoleFilter = 'ALL' | 'CREATOR' | 'BRAND';
+
+export type AdminKycReviewAction = 'APPROVE' | 'REJECT';
+
+export type AdminKycAccountType = 'BANK_TRANSFER' | 'E_WALLET';
+
+export type AdminKycVerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
+
+export interface AdminKycCounts {
+  pending: number;
+  verified: number;
+  rejected: number;
+  all: number;
+}
+
+export interface AdminKycTabItem {
+  key: AdminKycFilter;
+  label: string;
+  countKey: keyof AdminKycCounts;
+}
+
+export interface AdminKycRoleOption {
+  key: AdminKycRoleFilter;
+  label: string;
+}
+
+export interface AdminKycUser {
+  id: string;
+  email: string;
+  role: 'CREATOR' | 'BRAND' | 'ADMIN';
+  displayName: string;
+  phoneNumber: string | null;
+  avatarUrl: string | null;
+}
+
+export interface AdminKycItem {
+  id: string;
+  walletId: string;
+  accountType: AdminKycAccountType;
+  provider: string;
+  accountNumber: string;
+  accountHolderName: string;
+  proofUrl: string;
+  isPrimary: boolean;
+  verificationStatus: AdminKycVerificationStatus;
+  rejectionReason: string | null;
+  verifiedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: AdminKycUser;
+}
+
+export interface AdminKycPaginatedResponse {
+  items: AdminKycItem[];
+  counts: AdminKycCounts;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface GetAdminKycParams {
+  filter?: AdminKycFilter;
+  role?: AdminKycRoleFilter;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface ReviewKycPayload {
+  id: string;
+  decision: AdminKycReviewAction;
+  rejectionReason?: string;
+}
+
+export interface AdminKycStatusTabsProps {
+  counts?: AdminKycCounts;
+  className?: string;
+}
+
+export interface AdminKycItemRowProps {
+  item: AdminKycItem;
+  onOpenProof: (item: AdminKycItem) => void;
+  onReview: (item: AdminKycItem, decision: AdminKycReviewAction) => void;
+  className?: string;
+}
+
+export interface AdminKycProofDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  item: AdminKycItem | null;
+}
+
+export interface AdminKycReviewDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  item: AdminKycItem | null;
+  decision: AdminKycReviewAction | null;
+  isPending: boolean;
+  sessionKey?: number;
+  onConfirm: (rejectionReason?: string) => void;
+}
+
+export interface AdminKycReviewDialogContentProps {
+  item: AdminKycItem;
+  decision: AdminKycReviewAction;
+  isPending: boolean;
+  onConfirm: (rejectionReason?: string) => void;
+  onClose: () => void;
+}
+
+export interface AdminKycEmptyStateProps {
+  filter: AdminKycFilter;
+  searchQuery: string;
+  roleFilter: AdminKycRoleFilter;
+  page?: number;
+  onResetFilters: () => void;
+}
+
+export interface AdminKycErrorStateProps {
+  message: string;
+  onRetry: () => void;
+}
+
+export interface AdminKycSkeletonProps {
+  count?: number;
+}
+
 
 

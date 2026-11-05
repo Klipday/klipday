@@ -3,6 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import { adminRouter } from './features/admin/admin.routes.js';
+import { cronRouter } from './features/cron/cron.routes.js';
 import { authRouter } from './features/authentication/auth.routes.js';
 import { campaignRouter } from './features/campaign/campaign.routes.js';
 import { healthRouter } from './features/health/health.routes.js';
@@ -23,10 +24,15 @@ import { ErrorHandler } from './middleware/error.middleware.js';
 export function CreateApp() {
   const app = express();
 
+  const configuredOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
+  const allowedOrigins = configuredOrigin.includes(',')
+    ? configuredOrigin.split(',').map((origin) => origin.trim())
+    : configuredOrigin;
+
   app.use(helmet());
   app.use(
     cors({
-      origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+      origin: allowedOrigins,
       credentials: true,
     })
   );
@@ -37,6 +43,7 @@ export function CreateApp() {
   app.use('/health', healthRouter);
 
   app.use('/auth', authRouter);
+  app.use('/admin/cron', cronRouter);
   app.use('/admin', adminRouter);
   app.use('/social-accounts', socialAccountRouter);
 
