@@ -11,6 +11,7 @@ export { AdminSettlementTabs } from './AdminSettlementTabs';
 // Moderation Components (Phase 2)
 export { AdminApproveDialog } from './AdminApproveDialog';
 export { AdminCampaignModerationPanel } from './AdminCampaignModerationPanel';
+export { AdminFeaturedCampaignDialog } from './AdminFeaturedCampaignDialog';
 export { AdminModerationCampaignCard } from './AdminModerationCampaignCard';
 export { AdminModerationEmptyState } from './AdminModerationEmptyState';
 export { AdminModerationSkeleton } from './AdminModerationSkeleton';

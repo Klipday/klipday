@@ -9,10 +9,12 @@ import {
   KYC_REVIEW_ACTION_OPTIONS,
   KYC_ROLE_FILTER,
   KYC_ROLE_FILTER_OPTIONS,
+  MAX_FEATURED_ORDER,
   MAX_LIMIT,
   MAX_REJECTION_REASON_LENGTH,
   MAX_REVIEW_NOTE_LENGTH,
   MAX_SEARCH_LENGTH,
+  MIN_FEATURED_ORDER,
   MIN_REJECTION_REASON_LENGTH,
   MODERATION_ACTION_OPTIONS,
   MODERATION_FILTER,
@@ -300,4 +302,39 @@ export const ReviewKycSchema = z
   });
 
 export type ReviewKycInput = z.infer<typeof ReviewKycSchema>;
+
+export const ToggleFeaturedCampaignSchema = z.object({
+  isFeatured: z.boolean({ error: ADMIN_MESSAGES.FEATURED_STATUS_BOOLEAN }),
+  featuredOrder: z
+    .number({ error: ADMIN_MESSAGES.FEATURED_ORDER_NUMBER })
+    .int(ADMIN_MESSAGES.FEATURED_ORDER_INTEGER)
+    .min(MIN_FEATURED_ORDER, ADMIN_MESSAGES.FEATURED_ORDER_MIN)
+    .max(MAX_FEATURED_ORDER, ADMIN_MESSAGES.FEATURED_ORDER_MAX)
+    .nullable()
+    .optional(),
+  featuredUntil: z
+    .union([
+      z.string().datetime({ offset: true, error: ADMIN_MESSAGES.FEATURED_UNTIL_INVALID }),
+      z.date(),
+      z.literal(''),
+    ])
+    .nullable()
+    .optional()
+    .transform((val) => {
+      if (val === undefined) return undefined;
+      if (!val) return null;
+      if (val instanceof Date) return val;
+      return new Date(val);
+    }),
+  featuredBannerUrl: z
+    .union([z.string().url(ADMIN_MESSAGES.FEATURED_BANNER_URL_INVALID), z.literal('')])
+    .nullable()
+    .optional()
+    .transform((val) => {
+      if (val === undefined) return undefined;
+      return val && val.trim().length > 0 ? val.trim() : null;
+    }),
+});
+
+export type ToggleFeaturedCampaignInput = z.infer<typeof ToggleFeaturedCampaignSchema>;
 

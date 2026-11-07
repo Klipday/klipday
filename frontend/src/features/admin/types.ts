@@ -287,6 +287,8 @@ export interface AdminModerationCampaignCardDto {
   adminNote: string | null;
   materialsCount: number;
   isBriefComplete: boolean;
+  isFeatured?: boolean;
+  featuredOrder?: number | null;
   brand: {
     id: string;
     companyName: string;
@@ -311,6 +313,36 @@ export interface AdminModerateCampaignPayload {
   action: ModerationActionType;
   adminNote?: string;
   refundConfirmedManualPayment?: boolean;
+}
+
+export interface ToggleCampaignFeaturedPayload {
+  isFeatured: boolean;
+  featuredOrder?: number | null;
+  featuredUntil?: string | null;
+  featuredBannerUrl?: string | null;
+}
+
+export interface AdminFeaturedCampaignDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  campaignId: string;
+  campaignTitle: string;
+  isFeatured?: boolean;
+  featuredOrder?: number | null;
+  featuredUntil?: string | null;
+  featuredBannerUrl?: string | null;
+  onSuccess?: () => void;
+}
+
+export interface AdminFeaturedCampaignDialogContentProps {
+  campaignId: string;
+  campaignTitle: string;
+  isFeatured?: boolean;
+  featuredOrder?: number | null;
+  featuredUntil?: string | null;
+  featuredBannerUrl?: string | null;
+  onSuccess?: () => void;
+  onClose: () => void;
 }
 
 export interface AdminModerationTabsProps {

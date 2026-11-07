@@ -15,6 +15,7 @@ import {
   ReviewBrandTopUpRequest,
   ReviewKycRequest,
   ReviewWithdrawalRequest,
+  ToggleCampaignFeaturedStatus,
   UpdateSettlementSubmissionViews,
 } from './admin.handlers.js';
 
@@ -40,6 +41,7 @@ adminRouter.post('/top-ups/:id/review', ReviewBrandTopUpRequest);
 // Campaign Moderation (Phase 2)
 adminRouter.get('/campaigns', GetAdminModerationCampaigns);
 adminRouter.post('/campaigns/:id/moderate', ModerateCampaign);
+adminRouter.patch('/campaigns/:id/featured', ToggleCampaignFeaturedStatus);
 
 // Verification & Settlement (Phase 1)
 adminRouter.get('/settlements', GetAdminSettlementCampaigns);

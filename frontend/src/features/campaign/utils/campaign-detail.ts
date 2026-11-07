@@ -35,7 +35,9 @@ export function CalculateDaysRemaining(endDate?: string | null): {
   const dayMs = 1000 * 60 * 60 * 24;
 
   if (diffMs <= 0) {
-    daysResult.label = 'Periode berakir';
+    daysResult.days = 0;
+    daysResult.isExpired = true;
+    daysResult.label = 'Periode berakhir';
     return daysResult;
   }
 

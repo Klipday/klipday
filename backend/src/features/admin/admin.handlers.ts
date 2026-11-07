@@ -39,6 +39,7 @@ import {
   ADMIN_TOPUP_SELECT,
   ADMIN_WITHDRAWAL_SELECT,
   DASHBOARD_PREVIEW_LIMIT,
+  DEFAULT_FEATURED_ORDER,
   FIFO_SUBMISSION_ORDER_BY,
   FREEZE_REASON,
   KYC_FILTER,
@@ -75,6 +76,7 @@ import {
   ReviewBrandTopUpSchema,
   ReviewKycSchema,
   ReviewWithdrawalSchema,
+  ToggleFeaturedCampaignSchema,
   UpdateSubmissionViewsSchema,
 } from './admin.schemas.js';
 import type {
@@ -1442,6 +1444,8 @@ export async function GetAdminModerationCampaigns(
             createdAt: true,
             updatedAt: true,
             adminNote: true,
+            isFeatured: true,
+            featuredOrder: true,
             brand: {
               select: {
                 id: true,
@@ -1564,6 +1568,8 @@ export async function GetAdminModerationCampaigns(
         adminNote: campaign.adminNote,
         materialsCount: campaign._count.materials,
         isBriefComplete,
+        isFeatured: campaign.isFeatured,
+        featuredOrder: campaign.featuredOrder,
         brand: {
           id: campaign.brand.id,
           companyName: campaign.brand.companyName,
@@ -1980,6 +1986,95 @@ export async function ModerateCampaign(
     }
 
     SendSuccess(res, updatedCampaign, ADMIN_MESSAGES.MODERATE_CAMPAIGN_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Toggles and updates the featured promotion status, display order, banner, and duration for a campaign.
+ * Restricted to administrators.
+ *
+ * @param req - Express request with campaign ID param and ToggleFeaturedCampaign payload.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function ToggleCampaignFeaturedStatus(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+
+    if (!account) {
+      SendError(res, ADMIN_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.ADMIN) {
+      SendError(res, ADMIN_MESSAGES.ADMIN_ONLY, 403);
+      return;
+    }
+
+    const campaignId = req.params.id as string;
+
+    const parseResult = ToggleFeaturedCampaignSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      const firstIssue = parseResult.error.issues[0];
+      SendError(res, firstIssue?.message || ADMIN_MESSAGES.INVALID_PAYLOAD, 400);
+      return;
+    }
+
+    const input = parseResult.data;
+
+    const findCampaignQuery = {
+      where: {
+        id: campaignId,
+        status: Status.ACTIVE,
+      },
+      select: {
+        id: true,
+        isFeatured: true,
+        featuredOrder: true,
+        featuredUntil: true,
+        featuredBannerUrl: true,
+      },
+    };
+
+    const campaign = await prisma.campaign.findFirst(findCampaignQuery);
+
+    if (!campaign) {
+      SendError(res, ADMIN_MESSAGES.CAMPAIGN_NOT_FOUND, 404);
+      return;
+    }
+
+    const updatePayload: Prisma.CampaignUpdateInput = {
+      isFeatured: input.isFeatured,
+      featuredOrder: input.isFeatured
+        ? (input.featuredOrder !== undefined
+            ? input.featuredOrder
+            : (campaign.featuredOrder ?? DEFAULT_FEATURED_ORDER))
+        : null,
+      featuredUntil: input.isFeatured
+        ? (input.featuredUntil !== undefined ? input.featuredUntil : campaign.featuredUntil)
+        : null,
+      featuredBannerUrl: input.isFeatured
+        ? (input.featuredBannerUrl !== undefined
+            ? input.featuredBannerUrl
+            : campaign.featuredBannerUrl)
+        : null,
+    };
+
+    const updateCampaignQuery = {
+      where: { id: campaignId },
+      data: updatePayload,
+      select: CAMPAIGN_DETAIL_SELECT,
+    };
+
+    const updatedCampaign = await prisma.campaign.update(updateCampaignQuery);
+
+    SendSuccess(res, updatedCampaign, ADMIN_MESSAGES.CAMPAIGN_FEATURED_UPDATED);
   } catch (err) {
     next(err);
   }
@@ -3325,7 +3420,7 @@ export async function GetAdminDashboardSummary(
     }
 
     // 1. Queue 1: Campaign Moderation counts
-    const campaignInReviewCountQuery = {
+    const campaignInReviewCountQuery: Prisma.CampaignCountArgs = {
       where: {
         campaignStatus: CampaignStatus.IN_REVIEW,
         status: Status.ACTIVE,
@@ -3334,17 +3429,22 @@ export async function GetAdminDashboardSummary(
     };
     const campaignInReviewCountPromise = prisma.campaign.count(campaignInReviewCountQuery);
 
-    const campaignManualPaymentCountQuery = {
+    const campaignManualPaymentCountQuery: Prisma.CampaignCountArgs = {
       where: {
         campaignStatus: CampaignStatus.IN_REVIEW,
-        paymentStatus: PaymentStatus.SUBMITTED,
         status: Status.ACTIVE,
         brand: { status: Status.ACTIVE },
+        payments: {
+          some: {
+            paymentStatus: PaymentStatus.SUBMITTED,
+            status: Status.ACTIVE,
+          },
+        },
       },
     };
     const campaignManualPaymentCountPromise = prisma.campaign.count(campaignManualPaymentCountQuery);
 
-    const campaignRevisionCountQuery = {
+    const campaignRevisionCountQuery: Prisma.CampaignCountArgs = {
       where: {
         campaignStatus: CampaignStatus.REVISION,
         status: Status.ACTIVE,
@@ -3376,7 +3476,14 @@ export async function GetAdminDashboardSummary(
         budget: true,
         endDate: true,
         createdAt: true,
-        paymentStatus: true,
+        payments: {
+          where: { status: Status.ACTIVE },
+          orderBy: { createdAt: 'desc' as const },
+          take: 1,
+          select: {
+            paymentStatus: true,
+          },
+        },
         brand: {
           select: {
             id: true,
@@ -3732,7 +3839,14 @@ export async function GetAdminDashboardSummary(
         title: true,
         budget: true,
         campaignStatus: true,
-        paymentStatus: true,
+        payments: {
+          where: { status: Status.ACTIVE },
+          orderBy: { createdAt: 'desc' as const },
+          take: 1,
+          select: {
+            paymentStatus: true,
+          },
+        },
         createdAt: true,
         brand: {
           select: {
@@ -3931,6 +4045,7 @@ export async function GetAdminDashboardSummary(
             ? 'Periode Berakhir · Siap Settlement'
             : 'Submisi Disetujui · Siap Audit';
 
+        const latestPayment = campaign.payments?.[0];
         actionableSettlementCampaigns.push({
           id: campaign.id,
           title: campaign.title ?? 'Kampanye Tanpa Judul',
@@ -3939,7 +4054,7 @@ export async function GetAdminDashboardSummary(
           budget,
           campaignStatus: campaign.campaignStatus,
           freezeReason,
-          paymentStatus: campaign.paymentStatus,
+          paymentStatus: latestPayment?.paymentStatus ?? PaymentStatus.APPROVED,
           actionType: 'SETTLEMENT',
           tagLabel,
           createdAt: campaign.createdAt,
@@ -3950,7 +4065,8 @@ export async function GetAdminDashboardSummary(
     // Moderation campaign preview items
     const moderationActionItems: AdminDashboardCampaignActionItemDto[] = rawModerationCampaigns.map(
       (c) => {
-        const isManualTransfer = c.paymentStatus === PaymentStatus.SUBMITTED;
+        const latestPayment = c.payments?.[0];
+        const isManualTransfer = latestPayment?.paymentStatus === PaymentStatus.SUBMITTED;
         const tagLabel = isManualTransfer
           ? 'Perlu Moderasi (Transfer Manual)'
           : 'Perlu Moderasi (Saldo Dompet)';
@@ -3963,7 +4079,7 @@ export async function GetAdminDashboardSummary(
           budget: Number(c.budget ?? 0),
           campaignStatus: c.campaignStatus,
           freezeReason: FREEZE_REASON.ACTIVE_RUNNING,
-          paymentStatus: c.paymentStatus,
+          paymentStatus: latestPayment?.paymentStatus ?? PaymentStatus.PENDING,
           actionType: 'MODERATION',
           tagLabel,
           createdAt: c.createdAt,

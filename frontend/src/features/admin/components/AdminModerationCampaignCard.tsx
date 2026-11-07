@@ -83,9 +83,16 @@ export function AdminModerationCampaignCard({ campaign }: AdminModerationCampaig
       <div className="space-y-4">
         {/* Header: Brand Name + Payment Status Badge */}
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-xs font-medium text-muted-foreground">
-            {campaign.brand.companyName}
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="truncate text-xs font-medium text-muted-foreground">
+              {campaign.brand.companyName}
+            </span>
+            {campaign.isFeatured && (
+              <span className="shrink-0 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-500">
+                Featured #{campaign.featuredOrder ?? 1}
+              </span>
+            )}
+          </div>
           <span
             className={`shrink-0 rounded-md border px-2 py-0.5 text-xs font-medium ${paymentBadgeClass}`}
           >

@@ -175,7 +175,13 @@ export function BuildCampaignsWhereClause(
     }
 
     case Role.CREATOR: {
+      const now = new Date();
       whereClause.campaignStatus = CampaignStatus.ACTIVE;
+      whereClause.AND = [
+        {
+          OR: [{ endDate: null }, { endDate: { gt: now } }],
+        },
+      ];
       break;
     }
 

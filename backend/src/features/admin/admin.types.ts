@@ -202,6 +202,8 @@ export interface AdminModerationCampaignCardDto {
   adminNote: string | null;
   materialsCount: number;
   isBriefComplete: boolean;
+  isFeatured?: boolean;
+  featuredOrder?: number | null;
   brand: {
     id: string;
     companyName: string;

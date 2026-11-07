@@ -21,6 +21,7 @@ import type {
   ReviewAdminWithdrawalPayload,
   ReviewBrandTopUpPayload,
   ReviewKycPayload,
+  ToggleCampaignFeaturedPayload,
   UpdateSettlementSubmissionViewsPayload,
 } from './types';
 
@@ -224,6 +225,33 @@ export async function ModerateCampaign(
     const apiError = ExtractApiError(
       error,
       'Gagal memproses keputusan moderasi kampanye.',
+    );
+    throw apiError;
+  }
+}
+
+/**
+ * Toggles and updates the featured promotion status of a campaign (`PATCH /admin/campaigns/:id/featured`).
+ *
+ * @param campaignId - Target campaign UUID.
+ * @param payload - Toggle payload containing isFeatured, featuredOrder, featuredUntil, featuredBannerUrl.
+ * @returns Updated campaign detail data.
+ */
+export async function ToggleCampaignFeatured(
+  campaignId: string,
+  payload: ToggleCampaignFeaturedPayload,
+): Promise<Campaign> {
+  try {
+    const response = await apiClient.patch<ApiResponse<Campaign>>(
+      `/admin/campaigns/${campaignId}/featured`,
+      payload,
+    );
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(
+      error,
+      'Gagal memperbarui status featured kampanye. Silakan coba lagi.',
     );
     throw apiError;
   }

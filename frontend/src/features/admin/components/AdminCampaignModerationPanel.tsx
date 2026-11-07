@@ -6,6 +6,7 @@ import { UseModerateCampaignMutation } from '../hooks';
 import type { AdminCampaignModerationPanelProps } from '../types';
 import { FormatCompactViews, FormatRupiah } from '../utils/formatters';
 import { AdminApproveDialog } from './AdminApproveDialog';
+import { AdminFeaturedCampaignDialog } from './AdminFeaturedCampaignDialog';
 import { AdminRejectDialog } from './AdminRejectDialog';
 import { AdminRevisionDialog } from './AdminRevisionDialog';
 import { AdminTransferProofDialog } from './AdminTransferProofDialog';
@@ -62,6 +63,7 @@ export function AdminCampaignModerationPanel({
   const [isApproveOpen, setIsApproveOpen] = useState(false);
   const [isRevisionOpen, setIsRevisionOpen] = useState(false);
   const [isRejectOpen, setIsRejectOpen] = useState(false);
+  const [isFeaturedOpen, setIsFeaturedOpen] = useState(false);
 
   const moderateMutation = UseModerateCampaignMutation(campaign.id, {
     onSuccess: onModerationSuccess,
@@ -215,37 +217,100 @@ export function AdminCampaignModerationPanel({
 
         {/* Column 4: Keputusan Moderasi Admin */}
         <div className="flex flex-col justify-center gap-2 bg-muted/20 p-4">
-          <Button
-            type="button"
-            onClick={() => setIsApproveOpen(true)}
-            disabled={moderateMutation.isPending}
-            className="h-9 w-full text-xs font-semibold cursor-pointer"
-          >
-            Setujui &amp; Tayangkan
-          </Button>
+          {campaign.campaignStatus === 'IN_REVIEW' ? (
+            <>
+              <Button
+                type="button"
+                onClick={() => setIsApproveOpen(true)}
+                disabled={moderateMutation.isPending}
+                className="h-9 w-full text-xs font-semibold cursor-pointer"
+              >
+                Setujui &amp; Tayangkan
+              </Button>
 
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsRevisionOpen(true)}
-              disabled={moderateMutation.isPending}
-              className="h-8 text-xs font-medium cursor-pointer"
-            >
-              Minta Revisi
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsRejectOpen(true)}
-              disabled={moderateMutation.isPending}
-              className="h-8 text-xs font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer"
-            >
-              Tolak
-            </Button>
-          </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsRevisionOpen(true)}
+                  disabled={moderateMutation.isPending}
+                  className="h-8 text-xs font-medium cursor-pointer"
+                >
+                  Minta Revisi
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsRejectOpen(true)}
+                  disabled={moderateMutation.isPending}
+                  className="h-8 text-xs font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer"
+                >
+                  Tolak
+                </Button>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFeaturedOpen(true)}
+                className="h-8 w-full text-xs font-medium cursor-pointer flex items-center justify-between gap-1.5"
+              >
+                <span>Kelola Featured</span>
+                {campaign.isFeatured ? (
+                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500 border border-amber-500/30">
+                    Featured #{campaign.featuredOrder ?? 1}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">Nonaktif</span>
+                )}
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground font-medium">Status Kampanye</span>
+                <span
+                  className={cn(
+                    'font-semibold',
+                    campaign.campaignStatus === 'ACTIVE' && 'text-emerald-500',
+                    campaign.campaignStatus === 'REVISION' && 'text-amber-500',
+                    campaign.campaignStatus === 'REJECTED' && 'text-rose-500',
+                    campaign.campaignStatus === 'FINISHED' && 'text-muted-foreground',
+                  )}
+                >
+                  {campaign.campaignStatus === 'ACTIVE'
+                    ? 'Aktif Tayang'
+                    : campaign.campaignStatus === 'REVISION'
+                      ? 'Perlu Revisi'
+                      : campaign.campaignStatus === 'REJECTED'
+                        ? 'Ditolak'
+                        : campaign.campaignStatus === 'FINISHED'
+                          ? 'Selesai'
+                          : campaign.campaignStatus}
+                </span>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFeaturedOpen(true)}
+                className="h-9 w-full text-xs font-medium cursor-pointer flex items-center justify-between gap-1.5"
+              >
+                <span>Kelola Featured</span>
+                {campaign.isFeatured ? (
+                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500 border border-amber-500/30">
+                    Featured #{campaign.featuredOrder ?? 1}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">Nonaktif</span>
+                )}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -285,6 +350,18 @@ export function AdminCampaignModerationPanel({
         budget={isManualPending ? totalPayableNum : budgetNum}
         isManualPaymentPending={isManualPending}
         onConfirm={HandleConfirmReject}
+      />
+
+      <AdminFeaturedCampaignDialog
+        open={isFeaturedOpen}
+        onOpenChange={setIsFeaturedOpen}
+        campaignId={campaign.id}
+        campaignTitle={campaign.title ?? 'Kampanye'}
+        isFeatured={campaign.isFeatured}
+        featuredOrder={campaign.featuredOrder}
+        featuredUntil={campaign.featuredUntil}
+        featuredBannerUrl={campaign.featuredBannerUrl}
+        onSuccess={onModerationSuccess}
       />
     </>
   );

@@ -18,6 +18,7 @@ import {
   SubmitCampaign,
   VerifyCampaignPayment,
 } from '../src/features/campaign/campaign.handlers.js';
+import { EnrichCampaignEscrowMetrics } from '../src/features/campaign/campaign.helper.js';
 import {
   ValidateCampaignDateLogic,
   ValidateCampaignEditBody,
@@ -579,6 +580,30 @@ describe('Campaign Feature Module', () => {
           message: CAMPAIGN_MESSAGES.RETRIEVED_SUCCESS,
         });
       });
+
+      it('filters out expired campaigns when browsed by creator (200)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: 'creator-account-id', role: Role.CREATOR },
+          query: { page: '1', limit: '10' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        const transactionSpy = jest
+          .spyOn(prisma, '$transaction')
+          .mockResolvedValue([[sampleCompleteCampaign], 1] as never);
+
+        await GetCampaigns(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(transactionSpy).toHaveBeenCalled();
+        expect(jsonMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            status: 'success',
+            message: CAMPAIGN_MESSAGES.RETRIEVED_SUCCESS,
+          }),
+        );
+      });
     });
 
     describe('GetFeaturedCampaigns', () => {
@@ -1099,6 +1124,54 @@ describe('Campaign Feature Module', () => {
           message: CAMPAIGN_MESSAGES.PAYMENT_VERIFIED_SUCCESS,
         });
       });
+    });
+  });
+
+  describe('EnrichCampaignEscrowMetrics Helper', () => {
+    it('returns campaign untouched if submissions relation is not present', () => {
+      const campaign = { id: 'c-1', budget: 1000000 };
+      const enriched = EnrichCampaignEscrowMetrics(campaign);
+      expect(enriched).toEqual(campaign);
+      expect(enriched.allocatedBudget).toBeUndefined();
+    });
+
+    it('calculates allocatedBudget and remainingBudget from approved/verified submission earnings', () => {
+      const campaign = {
+        id: 'c-1',
+        budget: 1000000,
+        submissions: [
+          { earnings: 250000 },
+          { earnings: 150000 },
+        ],
+      };
+      const enriched = EnrichCampaignEscrowMetrics(campaign);
+      expect(enriched.allocatedBudget).toBe(400000);
+      expect(enriched.remainingBudget).toBe(600000);
+      expect('submissions' in enriched).toBe(false);
+    });
+
+    it('caps remainingBudget at 0 when allocatedBudget exceeds budget', () => {
+      const campaign = {
+        id: 'c-1',
+        budget: 500000,
+        submissions: [
+          { earnings: 600000 },
+        ],
+      };
+      const enriched = EnrichCampaignEscrowMetrics(campaign);
+      expect(enriched.allocatedBudget).toBe(600000);
+      expect(enriched.remainingBudget).toBe(0);
+    });
+
+    it('handles empty submissions array correctly', () => {
+      const campaign = {
+        id: 'c-1',
+        budget: 500000,
+        submissions: [],
+      };
+      const enriched = EnrichCampaignEscrowMetrics(campaign);
+      expect(enriched.allocatedBudget).toBe(0);
+      expect(enriched.remainingBudget).toBe(500000);
     });
   });
 });

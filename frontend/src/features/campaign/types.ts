@@ -90,6 +90,8 @@ export interface Campaign {
   minViews?: number | null;
   maxViews?: number | null;
   budget?: number | string | null;
+  allocatedBudget?: number | null;
+  remainingBudget?: number | null;
   startDate?: string | null;
   endDate?: string | null;
   status?: string;
@@ -333,6 +335,8 @@ export interface CampaignCardItem {
   minViews?: number | null;
   maxViews?: number | null;
   budget: number | string | null;
+  allocatedBudget?: number | null;
+  remainingBudget?: number | null;
   startDate?: string | null;
   endDate?: string | null;
   status: string;

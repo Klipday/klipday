@@ -10,6 +10,9 @@ export const SEN_PER_RUPIAH = 100;
 export const CPM_SEN_DIVISOR = 100_000n;
 export const BUDGET_DECIMAL_PLACES = 2;
 export const DASHBOARD_PREVIEW_LIMIT = 5;
+export const MIN_FEATURED_ORDER = 1;
+export const MAX_FEATURED_ORDER = 99;
+export const DEFAULT_FEATURED_ORDER = 1;
 
 export const FIFO_SUBMISSION_ORDER_BY = [
   { submittedAt: { sort: 'asc' as const, nulls: 'last' as const } },
@@ -347,6 +350,7 @@ export const ADMIN_MESSAGES = {
     'Hanya pembayaran transfer manual berstatus menunggu konfirmasi (SUBMITTED) yang dapat ditolak pembayarannya.',
   MODERATE_CAMPAIGN_SUCCESS: 'Keputusan moderasi kampanye berhasil disimpan.',
   GET_MODERATION_CAMPAIGNS_SUCCESS: 'Daftar antrean moderasi kampanye berhasil dimuat.',
+  CAMPAIGN_FEATURED_UPDATED: 'Status featured kampanye berhasil diperbarui.',
 
   // Lookups & State Validation
   CAMPAIGN_NOT_FOUND: 'Kampanye tidak ditemukan.',
@@ -373,6 +377,13 @@ export const ADMIN_MESSAGES = {
   REVIEW_NOTE_MAX_EXCEEDED: 'Catatan alasan diskualifikasi maksimal 1000 karakter.',
   VERIFIED_VIEWS_INVALID: 'Jumlah tayangan terverifikasi harus berupa bilangan bulat non-negatif.',
   INVALID_PAYLOAD: 'Data permintaan tidak valid.',
+  FEATURED_STATUS_BOOLEAN: 'Status featured harus berupa boolean.',
+  FEATURED_ORDER_NUMBER: 'Urutan featured harus berupa angka.',
+  FEATURED_ORDER_INTEGER: 'Urutan featured harus berupa bilangan bulat.',
+  FEATURED_ORDER_MIN: 'Urutan featured minimal 1.',
+  FEATURED_ORDER_MAX: 'Urutan featured maksimal 99.',
+  FEATURED_UNTIL_INVALID: 'Format tanggal kedaluwarsa featured tidak valid.',
+  FEATURED_BANNER_URL_INVALID: 'URL banner featured tidak valid.',
 
   // Top-Up Review & Queue
   GET_TOP_UPS_SUCCESS: 'Daftar antrean top-up saldo brand berhasil dimuat.',

@@ -40,24 +40,41 @@ export function FormatJoinedCount(count?: number | null): string {
 
 /**
  * Calculates remaining budget percentage for the campaign card progress bar.
- * Currently defaults to 100% for active funded campaigns or 0% when empty.
+ * Computes exact remaining percentage based on total budget and allocated/burned budget.
  *
  * @param budget - Total allocated campaign budget.
+ * @param allocatedBudget - Currently consumed / allocated budget for creator payouts.
  * @returns An integer percentage between 0 and 100.
  */
-export function CalculateBudgetPercentage(budget?: number | string | null): number {
+export function CalculateBudgetPercentage(
+  budget?: number | string | null,
+  allocatedBudget?: number | string | null,
+): number {
   if (budget == null) {
     return 0;
   }
 
-  const numericBudget = typeof budget === 'string' ? parseFloat(budget) : budget;
+  const numericBudget = typeof budget === 'string' ? parseFloat(budget) : Number(budget);
 
   if (isNaN(numericBudget) || numericBudget <= 0) {
     return 0;
   }
 
-  // TODO: Until dynamic payout tracking is integrated, funded campaigns start at 100%
-  return 100;
+  if (allocatedBudget == null || allocatedBudget === 0) {
+    return 100;
+  }
+
+  const numericAllocated =
+    typeof allocatedBudget === 'string' ? parseFloat(allocatedBudget) : Number(allocatedBudget);
+
+  if (isNaN(numericAllocated) || numericAllocated <= 0) {
+    return 100;
+  }
+
+  const remaining = Math.max(0, numericBudget - numericAllocated);
+  const percentage = Math.max(0, Math.min(100, Math.round((remaining / numericBudget) * 100)));
+
+  return percentage;
 }
 
 /**

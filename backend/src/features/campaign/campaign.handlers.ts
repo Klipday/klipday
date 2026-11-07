@@ -312,7 +312,14 @@ export async function GetFeaturedCampaigns(req: Request, res: Response, next: Ne
       campaignStatus: CampaignStatus.ACTIVE,
       isFeatured: true,
       brand: { status: Status.ACTIVE },
-      OR: [{ featuredUntil: null }, { featuredUntil: { gt: now } }],
+      AND: [
+        {
+          OR: [{ featuredUntil: null }, { featuredUntil: { gt: now } }],
+        },
+        {
+          OR: [{ endDate: null }, { endDate: { gt: now } }],
+        },
+      ],
     };
 
     const featuredOrderByClause: Prisma.CampaignOrderByWithRelationInput[] = [
@@ -339,6 +346,11 @@ export async function GetFeaturedCampaigns(req: Request, res: Response, next: Ne
           campaignStatus: CampaignStatus.ACTIVE,
           brand: { status: Status.ACTIVE },
           id: { notIn: existingIds },
+          AND: [
+            {
+              OR: [{ endDate: null }, { endDate: { gt: now } }],
+            },
+          ],
         },
         orderBy: [
           { cpm: { sort: 'desc' as const, nulls: 'last' as const } },

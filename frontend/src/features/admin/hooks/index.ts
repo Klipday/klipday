@@ -14,6 +14,7 @@ import {
   ReviewAdminKyc,
   ReviewAdminWithdrawal,
   ReviewBrandTopUp,
+  ToggleCampaignFeatured,
   TriggerCampaignMetricsSync,
   UpdateSettlementSubmissionViews,
 } from '../api';
@@ -28,6 +29,7 @@ import type {
   ReviewAdminWithdrawalPayload,
   ReviewBrandTopUpPayload,
   ReviewKycPayload,
+  ToggleCampaignFeaturedPayload,
   UpdateSettlementSubmissionViewsPayload,
 } from '../types';
 
@@ -266,6 +268,56 @@ export function UseModerateCampaignMutation(
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Gagal memproses keputusan moderasi kampanye.');
+    },
+  });
+
+  return mutation;
+}
+
+/**
+ * Mutation hook to toggle and configure featured promotion status on a campaign.
+ * Invalidates ['admin-moderation-campaigns'] and ['featured-campaigns'] query keys.
+ *
+ * @param campaignId - Target campaign UUID.
+ * @param options - Optional callbacks including onSuccess.
+ * @returns TanStack Mutation object.
+ */
+export function UseToggleCampaignFeaturedMutation(
+  campaignId?: string,
+  options?: { onSuccess?: () => void },
+) {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (payload: ToggleCampaignFeaturedPayload) => {
+      const targetId = campaignId;
+      if (!targetId) {
+        throw new Error('ID Kampanye diperlukan');
+      }
+      return ToggleCampaignFeatured(targetId, payload);
+    },
+    onSuccess: (data) => {
+      if (data.isFeatured) {
+        toast.success(
+          `Kampanye berhasil disematkan ke Carousel Featured (#${data.featuredOrder ?? 1}).`,
+        );
+      } else {
+        toast.success('Kampanye berhasil dihapus dari Carousel Featured.');
+      }
+
+      if (campaignId) {
+        queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] });
+      }
+      queryClient.invalidateQueries({ queryKey: ADMIN_MODERATION_CAMPAIGNS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['campaigns', 'featured'] });
+      queryClient.invalidateQueries({ queryKey: ['featured-campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-campaigns'] });
+
+      options?.onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal memperbarui status featured kampanye.');
     },
   });
 

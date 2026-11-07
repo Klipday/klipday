@@ -36,6 +36,7 @@ import {
   ReviewBrandTopUpRequest,
   ReviewKycRequest,
   ReviewWithdrawalRequest,
+  ToggleCampaignFeaturedStatus,
 } from '../src/features/admin/admin.handlers.js';
 import {
   BuildKycPhoneSearchVariants,
@@ -50,6 +51,7 @@ import {
   ReviewBrandTopUpSchema,
   ReviewKycSchema,
   ReviewWithdrawalSchema,
+  ToggleFeaturedCampaignSchema,
 } from '../src/features/admin/admin.schemas.js';
 import { prisma } from '../src/utils/prisma.js';
 import {
@@ -215,6 +217,90 @@ describe('Admin Campaign Moderation Module', () => {
         expect(parsed.action).toBe(MODERATION_ACTION.REJECT_CAMPAIGN);
         expect(parsed.adminNote).toBe('Materi melanggar panduan komunitas.');
         expect(parsed.refundConfirmedManualPayment).toBe(false);
+      });
+    });
+
+    describe('ToggleFeaturedCampaignSchema', () => {
+      it('parses valid payload when isFeatured is true with all fields', () => {
+        const parsed = ToggleFeaturedCampaignSchema.parse({
+          isFeatured: true,
+          featuredOrder: 3,
+          featuredUntil: '2026-12-31T23:59:59.000Z',
+          featuredBannerUrl: 'https://example.com/banner.png',
+        });
+        expect(parsed.isFeatured).toBe(true);
+        expect(parsed.featuredOrder).toBe(3);
+        expect(parsed.featuredUntil).toBeInstanceOf(Date);
+        expect(parsed.featuredBannerUrl).toBe('https://example.com/banner.png');
+      });
+
+      it('parses valid payload when isFeatured is false and clears fields', () => {
+        const parsed = ToggleFeaturedCampaignSchema.parse({
+          isFeatured: false,
+          featuredOrder: null,
+          featuredUntil: null,
+          featuredBannerUrl: '',
+        });
+        expect(parsed.isFeatured).toBe(false);
+        expect(parsed.featuredOrder).toBeNull();
+        expect(parsed.featuredUntil).toBeNull();
+        expect(parsed.featuredBannerUrl).toBeNull();
+      });
+
+      it('rejects invalid featuredOrder out of range (<1 or >99)', () => {
+        const tooLow = ToggleFeaturedCampaignSchema.safeParse({
+          isFeatured: true,
+          featuredOrder: 0,
+        });
+        expect(tooLow.success).toBe(false);
+
+        const tooHigh = ToggleFeaturedCampaignSchema.safeParse({
+          isFeatured: true,
+          featuredOrder: 100,
+        });
+        expect(tooHigh.success).toBe(false);
+      });
+
+      it('rejects invalid featuredBannerUrl', () => {
+        const invalidUrl = ToggleFeaturedCampaignSchema.safeParse({
+          isFeatured: true,
+          featuredBannerUrl: 'not-a-valid-url',
+        });
+        expect(invalidUrl.success).toBe(false);
+      });
+
+      it('rejects non-boolean isFeatured', () => {
+        const invalidBool = ToggleFeaturedCampaignSchema.safeParse({
+          isFeatured: 'true',
+        });
+        expect(invalidBool.success).toBe(false);
+      });
+
+      it('rejects invalid datetime for featuredUntil', () => {
+        const invalidDate = ToggleFeaturedCampaignSchema.safeParse({
+          isFeatured: true,
+          featuredUntil: 'invalid-date-format',
+        });
+        expect(invalidDate.success).toBe(false);
+      });
+
+      it('accepts ISO datetime with timezone offset (+07:00)', () => {
+        const parsed = ToggleFeaturedCampaignSchema.parse({
+          isFeatured: true,
+          featuredUntil: '2026-12-31T23:59:59+07:00',
+        });
+        expect(parsed.isFeatured).toBe(true);
+        expect(parsed.featuredUntil).toBeInstanceOf(Date);
+      });
+
+      it('allows partial payload where optional fields are omitted', () => {
+        const parsed = ToggleFeaturedCampaignSchema.parse({
+          isFeatured: true,
+        });
+        expect(parsed.isFeatured).toBe(true);
+        expect(parsed.featuredOrder).toBeUndefined();
+        expect(parsed.featuredUntil).toBeUndefined();
+        expect(parsed.featuredBannerUrl).toBeUndefined();
       });
     });
   });
@@ -675,6 +761,239 @@ describe('Admin Campaign Moderation Module', () => {
       // No wallet refund
       expect(mockTx.wallet.update).not.toHaveBeenCalled();
       expect(mockTx.walletTransaction.create).not.toHaveBeenCalled();
+    });
+  });
+
+  // ===========================================================================
+  // 3b. ToggleCampaignFeaturedStatus Handler Tests
+  // ===========================================================================
+  describe('ToggleCampaignFeaturedStatus Handler', () => {
+    it('returns 401 when account is unauthenticated', async () => {
+      const req = CreateMockRequest({
+        account: undefined,
+        params: { id: 'camp-123' },
+        body: { isFeatured: true },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      await ToggleCampaignFeaturedStatus(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        data: null,
+        message: ADMIN_MESSAGES.AUTH_REQUIRED,
+      });
+    });
+
+    it('returns 403 when user is not ADMIN', async () => {
+      const req = CreateMockRequest({
+        account: { sub: 'creator-acc', role: Role.CREATOR },
+        params: { id: 'camp-123' },
+        body: { isFeatured: true },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      await ToggleCampaignFeaturedStatus(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        data: null,
+        message: ADMIN_MESSAGES.ADMIN_ONLY,
+      });
+    });
+
+    it('returns 400 when payload is invalid', async () => {
+      const req = CreateMockRequest({
+        account: mockAdminAccount,
+        params: { id: 'camp-123' },
+        body: { isFeatured: true, featuredOrder: 999 },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      await ToggleCampaignFeaturedStatus(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'error',
+        }),
+      );
+    });
+
+    it('returns 404 when campaign is not found or inactive', async () => {
+      jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(null);
+
+      const req = CreateMockRequest({
+        account: mockAdminAccount,
+        params: { id: 'non-existent-campaign' },
+        body: { isFeatured: true, featuredOrder: 1 },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      await ToggleCampaignFeaturedStatus(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(404);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        data: null,
+        message: ADMIN_MESSAGES.CAMPAIGN_NOT_FOUND,
+      });
+    });
+
+    it('successfully enables featured status and returns updated campaign', async () => {
+      jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue({
+        id: 'camp-123',
+      } as never);
+
+      const mockUpdated = {
+        id: 'camp-123',
+        title: 'Featured Campaign',
+        isFeatured: true,
+        featuredOrder: 2,
+        featuredUntil: new Date('2026-12-31T23:59:59.000Z'),
+        featuredBannerUrl: 'https://example.com/hero.jpg',
+      };
+      jest.spyOn(prisma.campaign, 'update').mockResolvedValue(mockUpdated as never);
+
+      const req = CreateMockRequest({
+        account: mockAdminAccount,
+        params: { id: 'camp-123' },
+        body: {
+          isFeatured: true,
+          featuredOrder: 2,
+          featuredUntil: '2026-12-31T23:59:59.000Z',
+          featuredBannerUrl: 'https://example.com/hero.jpg',
+        },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      await ToggleCampaignFeaturedStatus(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'success',
+        message: ADMIN_MESSAGES.CAMPAIGN_FEATURED_UPDATED,
+        data: mockUpdated,
+      });
+
+      expect(prisma.campaign.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'camp-123' },
+          data: expect.objectContaining({
+            isFeatured: true,
+            featuredOrder: 2,
+            featuredBannerUrl: 'https://example.com/hero.jpg',
+          }),
+        }),
+      );
+    });
+
+    it('successfully disables featured status and clears featured fields', async () => {
+      jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue({
+        id: 'camp-123',
+      } as never);
+
+      const mockUpdated = {
+        id: 'camp-123',
+        title: 'Unfeatured Campaign',
+        isFeatured: false,
+        featuredOrder: null,
+        featuredUntil: null,
+        featuredBannerUrl: null,
+      };
+      jest.spyOn(prisma.campaign, 'update').mockResolvedValue(mockUpdated as never);
+
+      const req = CreateMockRequest({
+        account: mockAdminAccount,
+        params: { id: 'camp-123' },
+        body: {
+          isFeatured: false,
+        },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      await ToggleCampaignFeaturedStatus(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(200);
+      expect(prisma.campaign.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'camp-123' },
+          data: {
+            isFeatured: false,
+            featuredOrder: null,
+            featuredUntil: null,
+            featuredBannerUrl: null,
+          },
+        }),
+      );
+    });
+
+    it('preserves existing featured fields when partial payload is provided', async () => {
+      const existingCampaign = {
+        id: 'camp-123',
+        isFeatured: true,
+        featuredOrder: 5,
+        featuredUntil: new Date('2026-12-31T23:59:59.000Z'),
+        featuredBannerUrl: 'https://example.com/existing-banner.jpg',
+      };
+      jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(existingCampaign as never);
+
+      const mockUpdated = {
+        ...existingCampaign,
+        featuredOrder: 2,
+      };
+      jest.spyOn(prisma.campaign, 'update').mockResolvedValue(mockUpdated as never);
+
+      const req = CreateMockRequest({
+        account: mockAdminAccount,
+        params: { id: 'camp-123' },
+        body: {
+          isFeatured: true,
+          featuredOrder: 2,
+        },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      await ToggleCampaignFeaturedStatus(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(200);
+      expect(prisma.campaign.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'camp-123' },
+          data: {
+            isFeatured: true,
+            featuredOrder: 2,
+            featuredUntil: existingCampaign.featuredUntil,
+            featuredBannerUrl: existingCampaign.featuredBannerUrl,
+          },
+        }),
+      );
+    });
+
+    it('forwards database errors to next middleware', async () => {
+      const dbError = new Error('Database connection failed');
+      jest.spyOn(prisma.campaign, 'findFirst').mockRejectedValue(dbError as never);
+
+      const req = CreateMockRequest({
+        account: mockAdminAccount,
+        params: { id: 'camp-123' },
+        body: { isFeatured: true },
+      });
+      const { res } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      await ToggleCampaignFeaturedStatus(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(dbError);
     });
   });
 
@@ -2818,7 +3137,7 @@ describe('Admin Campaign Moderation Module', () => {
           budget: new Prisma.Decimal(1000000),
           endDate: new Date(Date.now() - 3600000), // Expired
           createdAt: new Date('2026-10-10T10:00:00Z'),
-          paymentStatus: PaymentStatus.APPROVED,
+          payments: [{ paymentStatus: PaymentStatus.APPROVED }],
           brand: {
             id: 'brand-1',
             companyName: 'PT Brand Glow',
@@ -2843,7 +3162,7 @@ describe('Admin Campaign Moderation Module', () => {
               title: 'Hoodie Oversize Launch',
               budget: new Prisma.Decimal(5000000),
               campaignStatus: CampaignStatus.IN_REVIEW,
-              paymentStatus: PaymentStatus.SUBMITTED,
+              payments: [{ paymentStatus: PaymentStatus.SUBMITTED }],
               createdAt: new Date('2026-10-29T10:00:00Z'),
               brand: {
                 companyName: 'Erigo Apparel',

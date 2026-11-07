@@ -92,14 +92,12 @@ function CampaignDetailPage({ className }: CampaignDetailPageProps) {
       {/* Main Campaign Content Container spanning full available space */}
       <div className="w-full space-y-6 pt-2 sm:pt-4">
         {/* Admin Campaign Moderation Panel */}
-        {userProfile?.role === 'ADMIN' &&
-          (campaign.campaignStatus === 'IN_REVIEW' ||
-            campaign.payments?.[0]?.paymentStatus === 'SUBMITTED') && (
-            <AdminCampaignModerationPanel
-              campaign={campaign}
-              onModerationSuccess={() => void refetch()}
-            />
-          )}
+        {userProfile?.role === 'ADMIN' && (
+          <AdminCampaignModerationPanel
+            campaign={campaign}
+            onModerationSuccess={() => void refetch()}
+          />
+        )}
 
         {/* Dynamic Role-Aware Tabs */}
         <CampaignDetailTabs activeTab={activeTab} onTabChange={HandleTabChange} userRole={userProfile?.role} />

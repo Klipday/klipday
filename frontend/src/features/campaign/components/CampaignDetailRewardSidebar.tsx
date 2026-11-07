@@ -21,7 +21,7 @@ import {
  * @returns The rendered reward summary sidebar element.
  */
 export function CampaignDetailRewardSidebar({ campaign, className }: CampaignDetailRewardSidebarProps) {
-  const budgetPercent = CalculateBudgetPercentage(campaign.budget);
+  const budgetPercent = CalculateBudgetPercentage(campaign.budget, campaign.allocatedBudget);
   const totalBudgetDisplay = FormatRupiah(Number(campaign.budget) || 0);
   const cpmDisplay = FormatCpmDisplay(campaign.cpm);
   const minViewsDisplay = FormatNumber(campaign.minViews);
@@ -52,8 +52,10 @@ export function CampaignDetailRewardSidebar({ campaign, className }: CampaignDet
             </div>
 
             <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5">
-              <span>Total Alokasi</span>
-              <span className="font-medium text-foreground">{totalBudgetDisplay}</span>
+              <span>Anggaran Terpakai</span>
+              <span className="font-medium text-foreground">
+                {FormatRupiah(Number(campaign.allocatedBudget) || 0)} dari {totalBudgetDisplay}
+              </span>
             </div>
           </div>
 

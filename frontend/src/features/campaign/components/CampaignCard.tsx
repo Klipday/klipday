@@ -28,7 +28,7 @@ export function CampaignCard({ campaign, onClick, className }: CampaignCardProps
   const title = campaign.title?.trim() || 'Kampanye Tanpa Judul';
   const cpmDisplay = FormatCpmDisplay(campaign.cpm);
   const joinedCountDisplay = FormatJoinedCount(campaign._count?.submissions ?? 0);
-  const budgetPercent = CalculateBudgetPercentage(campaign.budget);
+  const budgetPercent = CalculateBudgetPercentage(campaign.budget, campaign.allocatedBudget);
   const categoryBadge = GetCampaignCategoryBadgeLabel(campaign.campaignCategory);
   const typeBadge = GetCampaignTypeBadgeLabel(campaign.campaignType);
 
