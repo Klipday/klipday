@@ -16,6 +16,10 @@ import { walletRouter } from './features/wallet/wallet.routes.js';
 import { notificationRouter } from './features/notification/notification.routes.js';
 import { ErrorHandler } from './middleware/error.middleware.js';
 
+type HelmetMiddlewareFactory = (
+  options?: Readonly<Record<string, unknown>>
+) => express.RequestHandler;
+
 /**
  * Builds the Express application with security middleware (Helmet, CORS),
  * JSON parsing, routes, and the centralized error handler.
@@ -33,11 +37,12 @@ export function CreateApp() {
     ? configuredOrigin.split(',').map((origin) => origin.trim())
     : configuredOrigin;
 
-  const helmetMiddleware =
+  const helmetFn = (
     typeof helmet === 'function'
       ? helmet
-      : (helmet as unknown as { default: typeof helmet }).default;
-  app.use(helmetMiddleware());
+      : (helmet as unknown as { default: HelmetMiddlewareFactory }).default
+  ) as HelmetMiddlewareFactory;
+  app.use(helmetFn());
   app.use(
     cors({
       origin: allowedOrigins,
