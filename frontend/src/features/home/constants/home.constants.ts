@@ -288,4 +288,6 @@ export const HOME_FOOTER_LINKS: readonly NavLinkItem[] = [
   { label: 'Benefit', href: '#benefit' },
   { label: 'FAQ', href: '/faq' },
   { label: 'Aturan Main', href: '/peraturan' },
+  { label: 'Syarat & Ketentuan', href: '/syarat-ketentuan' },
+  { label: 'Kebijakan Privasi', href: '/kebijakan-privasi' },
 ] as const;

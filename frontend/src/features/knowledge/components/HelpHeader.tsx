@@ -38,7 +38,7 @@ export function HelpHeader({ activeTab, onTabChange, className = '' }: HelpHeade
 
       {/* Centered Title & Subtitle without badge */}
       <div className="space-y-2 text-center max-w-2xl mx-auto">
-        <h1 className="font-heading text-2xl font-bold tracking-tight text-white sm:text-3xl">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
           FAQ & Peraturan Klipday
         </h1>
         <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xl mx-auto">

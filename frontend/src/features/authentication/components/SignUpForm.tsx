@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -252,6 +252,18 @@ export function SignUpForm() {
             'Daftar'
           )}
         </Button>
+
+        <p className="text-center text-[11px] text-muted-foreground leading-relaxed">
+          Dengan mendaftar, Anda menyetujui{' '}
+          <Link to="/syarat-ketentuan" className="underline underline-offset-2 hover:text-foreground">
+            Syarat & Ketentuan
+          </Link>{' '}
+          dan{' '}
+          <Link to="/kebijakan-privasi" className="underline underline-offset-2 hover:text-foreground">
+            Kebijakan Privasi
+          </Link>{' '}
+          Klipday.
+        </p>
       </FieldGroup>
     </form>
   );

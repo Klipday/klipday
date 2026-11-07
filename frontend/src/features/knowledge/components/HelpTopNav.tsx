@@ -30,8 +30,17 @@ export function HelpTopNav({ className = '' }: HelpTopNavProps) {
           Klipday<span className="text-rose-500">.</span>
         </Link>
 
-        {/* Right CTA Area for public guests */}
-        {!userProfile && (
+        {/* Right CTA Area: Dashboard for authenticated users, Sign In / Sign Up for guests */}
+        {userProfile ? (
+          <div className="flex items-center gap-4">
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center justify-center rounded-full border border-white/10 bg-zinc-900/80 px-4 py-1.5 font-medium text-xs text-zinc-300 transition-colors hover:border-white/20 hover:bg-zinc-800 hover:text-white"
+            >
+              Ke Dashboard
+            </Link>
+          </div>
+        ) : (
           <div className="flex items-center gap-4">
             <Link
               to="/signin"

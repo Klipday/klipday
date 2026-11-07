@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import {
   HelpHeader,
   HelpTopNav,
+  KnowledgeFooter,
   SectionAccordionGroup,
 } from '../components';
 import { PLATFORM_FAQ_SECTIONS, PLATFORM_RULES_SECTIONS } from '../constants';
@@ -22,6 +24,11 @@ export default function HelpPage({ defaultTab = 'faq' }: HelpPageProps) {
   // Derive active tab cleanly from URL search parameters, falling back to defaultTab
   const activeTab: HelpTabType =
     urlTab === 'faq' || urlTab === 'rules' ? urlTab : defaultTab;
+
+  // Ensure fresh navigation from home footer resets scroll position to top
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
 
   /**
    * Handles user switching between Rules and FAQ tabs,
@@ -56,10 +63,8 @@ export default function HelpPage({ defaultTab = 'faq' }: HelpPageProps) {
         </div>
       </main>
 
-      {/* Minimal Footer */}
-      <footer className="w-full border-t border-white/5 py-8 px-6 text-center text-xs text-zinc-500">
-        &copy; {new Date().getFullYear()} Klipday. All rights reserved.
-      </footer>
+      {/* Knowledge & Legal Footer */}
+      <KnowledgeFooter />
     </div>
   );
 }

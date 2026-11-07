@@ -42,6 +42,8 @@ const CampaignDetail = lazy(() => import('@/features/campaign/pages/CampaignDeta
 const BrandProfilePage = lazy(() => import('@/features/brand/pages/BrandProfilePage'));
 const CreatorProfilePage = lazy(() => import('@/features/creator/pages/CreatorProfilePage'));
 const HelpPage = lazy(() => import('@/features/knowledge/pages/HelpPage'));
+const TermsPage = lazy(() => import('@/features/knowledge/pages/TermsPage'));
+const PrivacyPage = lazy(() => import('@/features/knowledge/pages/PrivacyPage'));
 const NotificationsPage = lazy(() => import('@/features/notification/pages/NotificationsPage'));
 
 
@@ -88,6 +90,26 @@ const router = createBrowserRouter(
       />
       <Route path="rules" element={<Navigate to="/peraturan" replace />} />
       <Route path="help" element={<Navigate to="/faq" replace />} />
+      <Route
+        path="syarat-ketentuan"
+        element={
+          <Suspense fallback={<PageLoadingFallback />}>
+            <TermsPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="kebijakan-privasi"
+        element={
+          <Suspense fallback={<PageLoadingFallback />}>
+            <PrivacyPage />
+          </Suspense>
+        }
+      />
+      <Route path="terms" element={<Navigate to="/syarat-ketentuan" replace />} />
+      <Route path="terms-of-service" element={<Navigate to="/syarat-ketentuan" replace />} />
+      <Route path="privacy" element={<Navigate to="/kebijakan-privasi" replace />} />
+      <Route path="privacy-policy" element={<Navigate to="/kebijakan-privasi" replace />} />
       <Route element={<AuthLayout />}>
         <Route path="signin" element={<SignIn />} />
         <Route path="login" element={<Navigate to="/signin" replace />} />
