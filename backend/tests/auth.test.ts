@@ -10,6 +10,10 @@ import {
   AUTH_MESSAGES,
   AUTH_SALT_ROUNDS,
   AUTH_TOKEN_EXPIRES_IN,
+  GetAuthClearCookieOptions,
+  GetAuthCookieOptions,
+  IsCookieSecure,
+  ResolveCookieSameSite,
 } from '../src/features/authentication/auth.constants.js';
 import {
   GetCurrentAccount,
@@ -963,6 +967,94 @@ describe('Authentication Feature Module', () => {
           message: AUTH_MESSAGES.REGISTER_SUCCESS,
         });
         expect(next).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('Secure HTTPS Cookie Configuration & Vercel Compatibility', () => {
+      const originalEnv = { ...process.env };
+
+      beforeEach(() => {
+        process.env = { ...originalEnv };
+      });
+
+      afterAll(() => {
+        process.env = { ...originalEnv };
+      });
+
+      it('evaluates secure flag based on COOKIE_SECURE, NODE_ENV, and VERCEL flags', () => {
+        delete process.env.COOKIE_SECURE;
+        process.env.NODE_ENV = 'test';
+        delete process.env.VERCEL;
+        expect(IsCookieSecure()).toBe(false);
+
+        process.env.COOKIE_SECURE = 'true';
+        expect(IsCookieSecure()).toBe(true);
+
+        process.env.COOKIE_SECURE = 'false';
+        process.env.NODE_ENV = 'production';
+        expect(IsCookieSecure()).toBe(false);
+
+        delete process.env.COOKIE_SECURE;
+        process.env.NODE_ENV = 'production';
+        expect(IsCookieSecure()).toBe(true);
+
+        process.env.NODE_ENV = 'development';
+        process.env.VERCEL = '1';
+        expect(IsCookieSecure()).toBe(true);
+      });
+
+      it('resolves SameSite=none for secure HTTPS and SameSite=lax for insecure HTTP', () => {
+        delete process.env.COOKIE_SAME_SITE;
+        delete process.env.COOKIE_SECURE;
+        process.env.NODE_ENV = 'test';
+        delete process.env.VERCEL;
+        expect(ResolveCookieSameSite()).toBe('lax');
+
+        process.env.COOKIE_SECURE = 'true';
+        expect(ResolveCookieSameSite()).toBe('none');
+
+        process.env.COOKIE_SAME_SITE = 'strict';
+        expect(ResolveCookieSameSite()).toBe('strict');
+
+        process.env.COOKIE_SAME_SITE = 'lax';
+        expect(ResolveCookieSameSite()).toBe('lax');
+      });
+
+      it('constructs complete secure cookie options with path and optional domain', () => {
+        process.env.COOKIE_SECURE = 'true';
+        process.env.COOKIE_DOMAIN = ' .klipday.com ';
+        delete process.env.COOKIE_SAME_SITE;
+
+        const options = GetAuthCookieOptions();
+        expect(options).toEqual({
+          httpOnly: true,
+          secure: true,
+          sameSite: 'none',
+          path: '/',
+          maxAge: 24 * 60 * 60 * 1000,
+          domain: '.klipday.com',
+        });
+
+        const clearOptions = GetAuthClearCookieOptions();
+        expect(clearOptions).toEqual({
+          httpOnly: true,
+          secure: true,
+          sameSite: 'none',
+          path: '/',
+          domain: '.klipday.com',
+        });
+      });
+
+      it('omits domain attribute when COOKIE_DOMAIN is empty or not set', () => {
+        delete process.env.COOKIE_DOMAIN;
+        delete process.env.COOKIE_SECURE;
+        process.env.NODE_ENV = 'test';
+
+        const options = GetAuthCookieOptions();
+        expect(options.domain).toBeUndefined();
+        expect(options.path).toBe('/');
+        expect(options.secure).toBe(false);
+        expect(options.sameSite).toBe('lax');
       });
     });
   });

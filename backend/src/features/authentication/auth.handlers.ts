@@ -12,6 +12,8 @@ import {
   AUTH_MESSAGES,
   AUTH_SALT_ROUNDS,
   AUTH_TOKEN_EXPIRES_IN,
+  GetAuthClearCookieOptions,
+  GetAuthCookieOptions,
   RESEND_COOLDOWN_MS,
 } from './auth.constants.js';
 import {
@@ -204,7 +206,8 @@ export async function LoginAccount(
       expiresIn: AUTH_TOKEN_EXPIRES_IN,
     });
 
-    res.cookie(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
+    const cookieOptions = GetAuthCookieOptions();
+    res.cookie(AUTH_COOKIE_NAME, token, cookieOptions);
 
     const loginResponseData = {
       id: account.id,
@@ -290,7 +293,8 @@ export async function VerifyEmail(
       const token = jwt.sign(tokenPayload, jwtSecret, {
         expiresIn: AUTH_TOKEN_EXPIRES_IN,
       });
-      res.cookie(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
+      const cookieOptions = GetAuthCookieOptions();
+      res.cookie(AUTH_COOKIE_NAME, token, cookieOptions);
     }
 
     const verifiedResponseData = {
@@ -486,7 +490,8 @@ export async function LogoutAccount(
   next: NextFunction,
 ): Promise<void> {
   try {
-    res.clearCookie(AUTH_COOKIE_NAME, AUTH_CLEAR_COOKIE_OPTIONS);
+    const clearOptions = GetAuthClearCookieOptions();
+    res.clearCookie(AUTH_COOKIE_NAME, clearOptions);
     SendSuccess(res, null, AUTH_MESSAGES.LOGOUT_SUCCESS);
   } catch (err) {
     next(err);

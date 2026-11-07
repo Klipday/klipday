@@ -22,18 +22,96 @@ export const INDONESIAN_PHONE_REGEX = /^628[1-9][0-9]{7,11}$/;
  */
 export const SIX_DIGIT_OTP_REGEX = /^[0-9]{6}$/;
 
-export const AUTH_COOKIE_OPTIONS: CookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
-  maxAge: AUTH_COOKIE_MAX_AGE_MS,
-};
+/**
+ * Determines whether cookies require secure HTTPS transmission.
+ * Returns true if running in production, deployed on Vercel, or explicitly forced via COOKIE_SECURE=true.
+ * Returns false if explicitly disabled via COOKIE_SECURE=false or in local/test environments.
+ *
+ * @returns Boolean flag indicating if secure HTTPS cookies should be enforced.
+ */
+export function IsCookieSecure(): boolean {
+  if (process.env.COOKIE_SECURE !== undefined) {
+    return process.env.COOKIE_SECURE === 'true';
+  }
 
-export const AUTH_CLEAR_COOKIE_OPTIONS: CookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
-};
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isVercel = Boolean(process.env.VERCEL);
+  const secure = isProduction || isVercel;
+
+  return secure;
+}
+
+/**
+ * Resolves the SameSite attribute for authentication cookies.
+ * In HTTPS environments (production or cross-origin Vercel deployment), defaults to 'none' to allow
+ * cross-origin credentialed requests between frontend and backend.
+ * In local HTTP development, defaults to 'lax' because browsers reject SameSite=None without Secure.
+ * Can be overridden via the COOKIE_SAME_SITE environment variable ('lax' | 'strict' | 'none').
+ *
+ * @returns The resolved SameSite policy for the cookie.
+ */
+export function ResolveCookieSameSite(): 'lax' | 'strict' | 'none' {
+  if (process.env.COOKIE_SAME_SITE) {
+    const configured = process.env.COOKIE_SAME_SITE.toLowerCase();
+    if (configured === 'lax' || configured === 'strict' || configured === 'none') {
+      return configured;
+    }
+  }
+
+  const secure = IsCookieSecure();
+  const sameSite = secure ? 'none' : 'lax';
+
+  return sameSite;
+}
+
+/**
+ * Generates options for setting the authentication JWT session cookie.
+ * Configures httpOnly, secure HTTPS, SameSite policy, path, and optional domain.
+ *
+ * @returns Express CookieOptions for issuing the session token cookie.
+ */
+export function GetAuthCookieOptions(): CookieOptions {
+  const secure = IsCookieSecure();
+  const sameSite = ResolveCookieSameSite();
+  const configuredDomain = process.env.COOKIE_DOMAIN?.trim();
+
+  const options: CookieOptions = {
+    httpOnly: true,
+    secure,
+    sameSite,
+    path: '/',
+    maxAge: AUTH_COOKIE_MAX_AGE_MS,
+    ...(configuredDomain ? { domain: configuredDomain } : {}),
+  };
+
+  return options;
+}
+
+/**
+ * Generates options for clearing the authentication JWT session cookie.
+ * Matches the secure, sameSite, path, and domain attributes of the issued cookie so browsers clear it reliably.
+ *
+ * @returns Express CookieOptions for clearing the session token cookie.
+ */
+export function GetAuthClearCookieOptions(): CookieOptions {
+  const secure = IsCookieSecure();
+  const sameSite = ResolveCookieSameSite();
+  const configuredDomain = process.env.COOKIE_DOMAIN?.trim();
+
+  const options: CookieOptions = {
+    httpOnly: true,
+    secure,
+    sameSite,
+    path: '/',
+    ...(configuredDomain ? { domain: configuredDomain } : {}),
+  };
+
+  return options;
+}
+
+export const AUTH_COOKIE_OPTIONS: CookieOptions = GetAuthCookieOptions();
+
+export const AUTH_CLEAR_COOKIE_OPTIONS: CookieOptions = GetAuthClearCookieOptions();
 
 export const AUTH_MESSAGES = {
   // Success messages

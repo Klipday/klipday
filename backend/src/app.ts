@@ -25,6 +25,9 @@ import { ErrorHandler } from './middleware/error.middleware.js';
 export function CreateApp() {
   const app = express();
 
+  // Trust reverse proxy hops (e.g. Vercel Edge, AWS ALB, Nginx) so req.secure, req.protocol, and client IPs are resolved correctly
+  app.set('trust proxy', 1);
+
   const configuredOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
   const allowedOrigins = configuredOrigin.includes(',')
     ? configuredOrigin.split(',').map((origin) => origin.trim())
