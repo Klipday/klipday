@@ -1,5 +1,6 @@
+import type { Request, Response } from 'express';
 import { Router } from 'express';
-import rateLimit from 'express-rate-limit';
+import { rateLimit } from 'express-rate-limit';
 import { RequireAuth } from '../../middleware/auth.middleware.js';
 import { SendError } from '../../utils/api-response.js';
 import { CRON_MESSAGES } from './cron.constants.js';
@@ -13,7 +14,7 @@ const manualSyncLimiter = rateLimit({
   standardHeaders: 'draft-8',
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'test',
-  handler: (_req, res) => {
+  handler: (_req: Request, res: Response) => {
     SendError(res, CRON_MESSAGES.SYNC_ALREADY_RUNNING, 429);
   },
 });
