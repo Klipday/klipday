@@ -33,7 +33,11 @@ export function CreateApp() {
     ? configuredOrigin.split(',').map((origin) => origin.trim())
     : configuredOrigin;
 
-  app.use(helmet());
+  const helmetMiddleware =
+    typeof helmet === 'function'
+      ? helmet
+      : (helmet as unknown as { default: typeof helmet }).default;
+  app.use(helmetMiddleware());
   app.use(
     cors({
       origin: allowedOrigins,
