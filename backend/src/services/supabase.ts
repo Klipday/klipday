@@ -45,7 +45,7 @@ export function IsSupabaseStorageUrl(url: string | null | undefined): boolean {
  * @param contentType - MIME type of the file.
  * @returns Public URL string or null on failure.
  */
-export async function UploadToSupabaseStorage(path: string, buffer: ArrayBuffer | Buffer, contentType: string): Promise<string | null> {
+async function UploadToSupabaseStorage(path: string, buffer: ArrayBuffer | Buffer, contentType: string): Promise<string | null> {
   const config = GetSupabaseStorageConfig();
   if (!config) {
     return null;

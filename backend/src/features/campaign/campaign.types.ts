@@ -130,12 +130,6 @@ export interface CampaignPaymentDetailsResponse {
   canPayWithWallet: boolean;
 }
 
-export interface CampaignDetailItem extends CampaignCardItem {
-  materials: CampaignCardMaterialItem[];
-  brief: CampaignCardBriefItem | null;
-  payments?: CampaignPaymentItem[];
-}
-
 export interface CampaignsPaginatedData {
   items: CampaignCardItem[];
   pagination: CampaignPaginationMeta;
@@ -151,8 +145,6 @@ export interface CampaignExistingFields {
   startDate?: Date | string | null;
   endDate?: Date | string | null;
 }
-
-export type CampaignExistingRewardFields = CampaignExistingFields;
 
 export interface CampaignSubmitCheckRecord {
   title?: string | null;

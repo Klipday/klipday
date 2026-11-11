@@ -39,7 +39,6 @@ export const WALLET_MESSAGES = {
   TOP_UP_SUBMIT_SUCCESS: 'Bukti pembayaran top-up berhasil dikirim. Menunggu verifikasi admin.',
   TOP_UP_CANCEL_SUCCESS: 'Permintaan top-up berhasil dibatalkan.',
   TOP_UP_CANNOT_BE_CANCELLED: 'Permintaan top-up yang sudah disetujui tidak dapat dibatalkan.',
-  TOP_UP_SIMULATION_SUCCESS: 'Simulasi top-up berhasil. Saldo aktif Anda telah ditambahkan.',
   PROOF_UPLOAD_SUCCESS: 'Bukti transfer top-up berhasil diunggah.',
   WALLET_NOT_FOUND: 'Dompet brand tidak ditemukan.',
   TOP_UP_NOT_FOUND: 'Permintaan top-up tidak ditemukan.',
@@ -58,7 +57,6 @@ export const WALLET_MESSAGES = {
   WITHDRAWAL_CANCEL_SUCCESS: 'Permintaan penarikan saldo berhasil dibatalkan. Saldo telah dikembalikan.',
   WITHDRAWAL_CANCELLATION_REQUESTED_SUCCESS: 'Pengajuan pembatalan penarikan berhasil dikirim. Menunggu persetujuan Admin.',
   WITHDRAWAL_CANCELLATION_ALREADY_REQUESTED: 'Pengajuan pembatalan penarikan ini sudah diajukan dan sedang ditinjau oleh Admin.',
-  WITHDRAWAL_CANCELLATION_APPROVED_SUCCESS: 'Pengajuan pembatalan disetujui. Saldo berhasil dikembalikan ke akun Brand.',
   WITHDRAWAL_CANCELLATION_REJECTED_SUCCESS: 'Pengajuan pembatalan ditolak. Penarikan tetap diproses.',
   WITHDRAWAL_CANCELLATION_NOT_REQUESTED: 'Permintaan penarikan ini belum mengajukan pembatalan.',
   WITHDRAWAL_CANNOT_CANCEL_DIRECTLY: 'Penarikan saldo tidak dapat langsung dibatalkan sepihak. Silakan ajukan pembatalan untuk diverifikasi Admin.',
@@ -70,7 +68,6 @@ export const WALLET_MESSAGES = {
   ACCOUNT_PROVIDER_REQUIRED: 'Nama bank atau e-wallet tujuan penarikan wajib diisi.',
   ACCOUNT_NUMBER_REQUIRED: 'Nomor rekening atau nomor HP tujuan penarikan wajib diisi.',
   ACCOUNT_HOLDER_REQUIRED: 'Nama pemilik rekening tujuan penarikan wajib diisi.',
-  WITHDRAWAL_SIMULATION_SUCCESS: 'Simulasi penarikan saldo berhasil disetujui.',
   PAYOUT_ACCOUNT_NOT_FOUND: 'Akun penarikan tujuan tidak ditemukan.',
   PAYOUT_ACCOUNT_NOT_VERIFIED: 'Akun penarikan tujuan belum diverifikasi oleh admin Klipday.',
 } as const;
@@ -117,8 +114,5 @@ export const CREATOR_WALLET_MESSAGES = {
   WITHDRAWAL_ALREADY_PROCESSED: 'Permintaan penarikan saldo sudah disetujui atau diproses sebelumnya.',
   WITHDRAWAL_CANCELLATION_REQUESTED_SUCCESS: 'Pengajuan pembatalan penarikan berhasil dikirim. Menunggu persetujuan Admin.',
   WITHDRAWAL_CANCELLATION_ALREADY_REQUESTED: 'Pengajuan pembatalan penarikan ini sudah diajukan dan sedang ditinjau oleh Admin.',
-  WITHDRAWAL_APPROVAL_SUCCESS: 'Pencairan saldo penarikan berhasil disetujui.',
-  SIMULATE_EARNING_SUCCESS: 'Simulasi perolehan saldo kampanye berhasil ditambahkan ke dompet kreator.',
-  PAYOUT_ACCOUNT_VERIFIED_SUCCESS: 'Akun penarikan berhasil diverifikasi.',
 } as const;
 

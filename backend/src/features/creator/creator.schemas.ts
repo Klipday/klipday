@@ -7,46 +7,6 @@ import {
 } from './creator.constants.js';
 
 /**
- * Validates that a date string corresponds to an age of at least 18 years
- * and is not in the future using timezone-safe UTC timestamps.
- *
- * @param dateStr - The ISO or YYYY-MM-DD date string.
- * @returns True if valid and >= 18 years old.
- */
-export function ValidateAgeAtLeast18(dateStr: string): boolean {
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
-  if (!match) {
-    return false;
-  }
-  const birthYear = Number(match[1]);
-  const birthMonth = Number(match[2]) - 1;
-  const birthDay = Number(match[3]);
-  const birthTimestamp = Date.UTC(birthYear, birthMonth, birthDay);
-
-  if (Number.isNaN(birthTimestamp)) {
-    return false;
-  }
-
-  const now = new Date();
-  const currentYear = now.getUTCFullYear();
-  const currentMonth = now.getUTCMonth();
-  const currentDay = now.getUTCDate();
-  const currentTimestamp = Date.UTC(currentYear, currentMonth, currentDay);
-
-  if (birthTimestamp > currentTimestamp) {
-    return false;
-  }
-
-  const minAgeTimestamp = Date.UTC(
-    currentYear - CREATOR_LIMITS.MIN_AGE,
-    currentMonth,
-    currentDay,
-  );
-
-  return birthTimestamp <= minAgeTimestamp;
-}
-
-/**
  * Validates Indonesian phone number formats starting with 62 (e.g. 628998732627).
  *
  * @param phoneStr - The raw phone number string.

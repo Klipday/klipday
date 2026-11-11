@@ -22,33 +22,6 @@ export const ALLOWED_IMAGE_MIME_TYPES: Record<string, string> = {
   'image/webp': 'webp',
 };
 
-export const SUPPORTED_PAYOUT_PROVIDERS = [
-  'BCA',
-  'MANDIRI',
-  'BNI',
-  'BRI',
-  'BSI',
-  'CIMB',
-  'PERMATA',
-  'DANAMON',
-  'BTN',
-  'PANIN',
-  'OCBC',
-  'JAGO',
-  'SEABANK',
-  'BLU',
-  'JENIUS',
-  'ALLOBANK',
-  'SUPERBANK',
-  'BNC',
-  'RAYA',
-  'GOPAY',
-  'OVO',
-  'DANA',
-  'SHOPEEPAY',
-  'LINKAJA',
-] as const;
-
 export const PROVIDER_ACCOUNT_RULES: Record<
   string,
   { regex: RegExp; description: string; example: string }

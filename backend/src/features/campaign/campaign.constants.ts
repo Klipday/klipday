@@ -41,10 +41,10 @@ export const MAX_LIMIT = 100;
 export const CAMPAIGN_SORT_OPTIONS = ['latest', 'highest_cpm', 'lowest_cpm', 'highest_total_budget', 'highest_maximum_views'] as const;
 
 /**
- * Truly lean select projection for campaign card feeds (GET /campaigns, GET /campaigns/featured).
+ * Truly lean base select projection for campaign card feeds (GET /campaigns, GET /campaigns/featured).
  * Fetches only basic campaign info, brand summary, and submissions count without pulling heavy brief or materials relations.
  */
-export const CAMPAIGN_CARD_SELECT = {
+const CAMPAIGN_CARD_SELECT = {
   id: true,
   title: true,
   description: true,

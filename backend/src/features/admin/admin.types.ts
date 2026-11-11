@@ -25,13 +25,6 @@ import type {
   WithdrawalRoleFilterOption,
 } from './admin.constants.js';
 
-export interface AdminSettlementQueryInput {
-  filter: SettlementFilterOption;
-  search?: string | undefined;
-  page: number;
-  limit: number;
-}
-
 export interface AdminSettlementCountsDto {
   needSettlement: number;
   budgetFull: number;
@@ -154,13 +147,6 @@ export interface FifoCampaignAllocationSummary {
   remainingRefund: number;
 }
 
-export interface AdminModerationQueryInput {
-  filter: ModerationFilterOption;
-  search?: string | undefined;
-  page: number;
-  limit: number;
-}
-
 export interface AdminModerationCountsDto {
   inReview: number;
   revision: number;
@@ -224,12 +210,6 @@ export interface AdminModerationCampaignsPaginatedDto {
   };
 }
 
-export interface AdminModerateCampaignPayload {
-  action: ModerationActionType;
-  adminNote?: string | undefined;
-  refundConfirmedManualPayment?: boolean | undefined;
-}
-
 export interface AdminTopUpCountsDto {
   submitted: number;
   pending: number;
@@ -275,11 +255,6 @@ export interface AdminTopUpsPaginatedDto {
     total: number;
     totalPages: number;
   };
-}
-
-export interface ReviewBrandTopUpPayload {
-  decision: TopUpReviewAction;
-  rejectionReason?: string | undefined;
 }
 
 export interface AdminWithdrawalUserDto {
@@ -340,21 +315,6 @@ export interface AdminWithdrawalsPaginatedDto {
   };
 }
 
-export interface ReviewWithdrawalPayload {
-  decision: WithdrawalReviewAction;
-  rejectionReason?: string | undefined;
-  adminNote?: string | undefined;
-  transferProofUrl?: string | undefined;
-}
-
-export interface AdminKycQueryInput {
-  filter: KycFilterOption;
-  role: KycRoleFilterOption;
-  search?: string | undefined;
-  page: number;
-  limit: number;
-}
-
 export interface AdminKycUserDto {
   id: string;
   email: string;
@@ -397,11 +357,6 @@ export interface AdminKycPaginatedDto {
     total: number;
     totalPages: number;
   };
-}
-
-export interface ReviewKycPayload {
-  decision: KycReviewAction;
-  rejectionReason?: string | undefined;
 }
 
 export interface AdminDashboardCampaignsQueueDto {

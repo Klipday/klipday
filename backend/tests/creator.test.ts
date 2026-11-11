@@ -30,9 +30,6 @@ import {
   GetCreatorWalletSummary,
   RequestCreatorWithdrawalCancellation,
   SetPrimaryCreatorPayoutAccount,
-  SimulateCreatorEarning,
-  SimulateCreatorPayoutAccountVerification,
-  SimulateCreatorWithdrawalApproval,
   UploadCreatorPayoutProof,
 } from '../src/features/wallet/creator-wallet.handlers.js';
 import { CREATOR_WALLET_MESSAGES, WALLET_MESSAGES } from '../src/features/wallet/wallet.constants.js';
@@ -1575,88 +1572,6 @@ describe('Creator Profile and Payout Accounts Feature Module', () => {
               id: 'payout-req-1',
               amount: 100000,
               payoutStatus: PayoutStatus.PENDING,
-            }),
-          }),
-        );
-      });
-    });
-
-    describe('SimulateCreatorEarning', () => {
-      it('successfully credits wallet balance and logs CAMPAIGN_EARNING transaction', async () => {
-        const req = CreateMockRequest({
-          account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
-          body: { amount: 300000, campaignTitle: 'Simulated Campaign Earning' },
-        });
-        const { res } = CreateMockResponse();
-        const next = CreateMockNext();
-
-        jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as any);
-
-        jest.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => {
-          const tx = {
-            wallet: {
-              findUniqueOrThrow: jest.fn<any>().mockResolvedValue(mockWallet),
-              update: jest.fn<any>().mockResolvedValue({ ...mockWallet, balance: new Prisma.Decimal(800000) }),
-            },
-            walletTransaction: {
-              create: jest.fn<any>().mockResolvedValue({ id: 'txn-earn' }),
-            },
-          };
-          return callback(tx);
-        });
-
-        await SimulateCreatorEarning(req, res, next);
-
-        expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith(
-          expect.objectContaining({
-            status: 'success',
-            data: { balance: 800000 },
-          }),
-        );
-      });
-    });
-
-    describe('SimulateCreatorPayoutAccountVerification', () => {
-      it('updates payout account to VERIFIED', async () => {
-        const req = CreateMockRequest({
-          account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
-          params: { id: 'payout-acc-pending' },
-        });
-        const { res } = CreateMockResponse();
-        const next = CreateMockNext();
-
-        const pendingAccount = {
-          id: 'payout-acc-pending',
-          walletId: mockWallet.id,
-          accountType: PayoutAccountType.BANK_TRANSFER,
-          provider: 'MANDIRI',
-          accountNumber: '987654321',
-          accountHolderName: 'Rina Clipper',
-          proofUrl: 'https://storage.supabase.co/proof.jpg',
-          isPrimary: true,
-          verificationStatus: VerificationStatus.PENDING,
-          rejectionReason: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          status: Status.ACTIVE,
-        };
-
-        jest.spyOn(prisma.brandPayoutAccount, 'findFirst').mockResolvedValue(pendingAccount as any);
-        jest.spyOn(prisma.brandPayoutAccount, 'update').mockResolvedValue({
-          ...pendingAccount,
-          verificationStatus: VerificationStatus.VERIFIED,
-          verifiedAt: new Date(),
-        } as any);
-
-        await SimulateCreatorPayoutAccountVerification(req, res, next);
-
-        expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith(
-          expect.objectContaining({
-            status: 'success',
-            data: expect.objectContaining({
-              verificationStatus: VerificationStatus.VERIFIED,
             }),
           }),
         );

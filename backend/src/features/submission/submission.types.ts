@@ -2,28 +2,6 @@ import type { SubmissionStatus } from '../../generated/prisma/enums.js';
 import type { ALL_STATUS_FILTER } from './submission.constants.js';
 import type { SocialAccountDto } from '../social-account/social-account.types.js';
 
-export interface SaveDraftSubmissionBody {
-  liveVideoUrl: string;
-  thumbnailUrl?: string;
-  videoCaption?: string;
-  socialAccountId: string;
-}
-
-export interface FinalSubmitVideoBody {
-  liveVideoUrl: string;
-  thumbnailUrl?: string;
-  videoCaption?: string;
-  socialAccountId: string;
-}
-
-export interface RejectSubmissionBody {
-  reviewNote?: string;
-}
-
-export interface RequestRevisionBody {
-  reviewNote: string;
-}
-
 export interface SubmissionDetailDto {
   id: string;
   campaignId: string;

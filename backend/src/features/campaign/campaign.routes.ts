@@ -30,7 +30,6 @@ campaignRouter.get('/:id', GetCampaignById);
 
 campaignRouter.post('/', InitializeCampaign);
 campaignRouter.post('/:id/submit', SubmitCampaign);
-campaignRouter.post('/:id/checkout', SubmitCampaign);
 campaignRouter.post('/:id/thumbnail', UploadCampaignThumbnail);
 campaignRouter.post('/:id/payment/wallet', PayCampaignWithWallet);
 campaignRouter.post('/:id/payment/proof', UploadPaymentProof);

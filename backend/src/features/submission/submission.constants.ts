@@ -37,11 +37,6 @@ export const REVIEWABLE_SUBMISSION_STATUSES = [
   SubmissionStatus.REJECTED,
 ] as const;
 
-export const SUBMISSION_FILTER_STATUS_OPTIONS = [
-  ...REVIEWABLE_SUBMISSION_STATUSES,
-  ALL_STATUS_FILTER,
-] as const;
-
 export const SUBMISSION_MESSAGES = {
   // Authentication & Role Boundaries
   AUTH_REQUIRED: 'Authentication required.',

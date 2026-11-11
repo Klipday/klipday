@@ -90,7 +90,7 @@ export function HashTokenOrCode(raw: string): string {
  *
  * @returns Resolved origin URL string without trailing slash.
  */
-export function ResolveClientBaseUrl(): string {
+function ResolveClientBaseUrl(): string {
   const configuredOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
   const primaryOrigin = configuredOrigin.split(',')[0]?.trim() || 'http://localhost:5173';
   const sanitized = primaryOrigin.replace(/\/+$/, '');

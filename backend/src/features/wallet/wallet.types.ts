@@ -78,34 +78,6 @@ export interface PaginatedTransactionsResponse {
   };
 }
 
-export interface SimulateApprovalResult {
-  topUp: TopUpRequestRecord;
-  wallet: {
-    id: string;
-    balance: number;
-  };
-  transaction: {
-    id: string;
-    referenceCode: string | null;
-    amount: number;
-    balanceAfter: number;
-  };
-}
-
-export interface SimulateWithdrawalResult {
-  payout: PayoutRequestRecord;
-  wallet: {
-    id: string;
-    balance: number;
-  };
-  transaction: {
-    id: string;
-    referenceCode: string | null;
-    amount: number;
-    balanceAfter: number;
-  };
-}
-
 export interface CreatorWalletMetrics {
   activeBalance: number;
   totalEarnings: number;

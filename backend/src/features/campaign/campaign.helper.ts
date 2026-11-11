@@ -36,7 +36,7 @@ function SetField<Target, Key extends keyof Target>(
  * @param brief - The validated campaign brief input.
  * @returns The Prisma nested upsert input for the campaign brief relation.
  */
-export function BuildCampaignBriefUpsert(
+function BuildCampaignBriefUpsert(
   brief: CampaignBriefInput,
 ): Prisma.CampaignBriefUpsertWithoutCampaignInput {
   const createData: Prisma.CampaignBriefCreateWithoutCampaignInput = {
@@ -82,7 +82,7 @@ export function BuildCampaignBriefUpsert(
  * @param materials - The list of campaign materials to set.
  * @returns The Prisma nested update input for the campaign materials relation.
  */
-export function BuildCampaignMaterialsUpdate(
+function BuildCampaignMaterialsUpdate(
   materials: CampaignMaterialsInput,
 ): Prisma.CampaignMaterialUpdateManyWithoutCampaignNestedInput {
   const materialsQuery: Prisma.CampaignMaterialUpdateManyWithoutCampaignNestedInput =

@@ -1,23 +1,11 @@
 import type { Platform } from '../../generated/prisma/enums.js';
 
-export interface RequestCodeBody {
-  username: string;
-}
-
 export interface RequestCodeResponseData {
   code?: string;
   expiresAt?: string;
   username: string;
   alreadyVerified?: boolean;
   account?: SocialAccountDto;
-}
-
-export interface VerifyBioBody {
-  username: string;
-}
-
-export interface ValidateVideoUrlBody {
-  videoUrl: string;
 }
 
 export interface SocialAccountDto {

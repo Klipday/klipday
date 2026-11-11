@@ -5,7 +5,7 @@ import {
   MAX_NOTIFICATION_LIMIT,
 } from './notification.constants.js';
 
-export const NotificationCategoryEnum = z.enum([
+const NotificationCategoryEnum = z.enum([
   'CAMPAIGN',
   'SUBMISSION',
   'FINANCE',

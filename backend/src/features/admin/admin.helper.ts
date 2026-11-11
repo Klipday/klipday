@@ -1,15 +1,19 @@
-import type { Prisma } from '../../generated/prisma/client.js';
-import { CampaignStatus, Role } from '../../generated/prisma/enums.js';
+import type { Prisma, PrismaClient } from '../../generated/prisma/client.js';
+import { CampaignStatus, Role, Status, SubmissionStatus } from '../../generated/prisma/enums.js';
+import { prisma } from '../../utils/prisma.js';
 import {
   ADMIN_KYC_SELECT,
   ADMIN_TOPUP_SELECT,
   ADMIN_WITHDRAWAL_SELECT,
   CPM_SEN_DIVISOR,
+  FIFO_SUBMISSION_ORDER_BY,
   FREEZE_REASON,
   SEN_PER_RUPIAH,
   type FreezeReasonType,
 } from './admin.constants.js';
 import type {
+  AdminCampaignSettlementSummaryDto,
+  AdminFifoSubmissionItemDto,
   AdminKycItemDto,
   AdminTopUpItemDto,
   AdminWithdrawalItemDto,
@@ -403,4 +407,244 @@ export function CheckHolderNameMismatch(holderName: string, profileName: string)
 
   return true;
 }
+
+/**
+ * Builds the complete FIFO settlement summary and ledger breakdown for a specific campaign.
+ *
+ * @param campaignId - Target campaign UUID.
+ * @param db - Prisma client or active transaction client.
+ * @returns Populated AdminCampaignSettlementSummaryDto, or null if campaign does not exist.
+ */
+export async function BuildCampaignSettlementSummaryById(
+  campaignId: string,
+  db: PrismaClient | Prisma.TransactionClient = prisma,
+): Promise<AdminCampaignSettlementSummaryDto | null> {
+  const campaignLookupQuery = {
+    where: {
+      id: campaignId,
+      status: Status.ACTIVE,
+      brand: { status: Status.ACTIVE },
+    },
+    select: {
+      id: true,
+      title: true,
+      campaignStatus: true,
+      cpm: true,
+      minViews: true,
+      maxViews: true,
+      budget: true,
+      endDate: true,
+      lastMetricsSyncedAt: true,
+      finalSnapshotSyncedAt: true,
+      brand: {
+        select: {
+          id: true,
+          companyName: true,
+          logoUrl: true,
+        },
+      },
+      submissions: {
+        where: {
+          status: Status.ACTIVE,
+          submissionStatus: { not: SubmissionStatus.JOINED },
+        },
+        orderBy: FIFO_SUBMISSION_ORDER_BY,
+        select: {
+          id: true,
+          creatorId: true,
+          liveVideoUrl: true,
+          thumbnailUrl: true,
+          videoCaption: true,
+          submissionStatus: true,
+          reviewNote: true,
+          verifiedViews: true,
+          earnings: true,
+          lastMetricsSyncedAt: true,
+          syncFailureStreak: true,
+          lastSyncError: true,
+          submittedAt: true,
+          createdAt: true,
+          creator: {
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+            },
+          },
+          socialAccount: {
+            select: {
+              username: true,
+            },
+          },
+        },
+      },
+    },
+  };
+
+  const campaign = await db.campaign.findFirst(campaignLookupQuery);
+
+  if (!campaign) {
+    return null;
+  }
+
+  const budget = Number(campaign.budget ?? 0);
+  const cpm = Number(campaign.cpm ?? 0);
+  const minViews = campaign.minViews ?? 0;
+  const maxViews = campaign.maxViews ?? 0;
+
+  // Separate active approved/verified submissions for FIFO allocation from rejected/pending ones
+  const approvedSubmissions = campaign.submissions.filter(
+    (sub) => sub.submissionStatus === SubmissionStatus.APPROVED,
+  );
+  const verifiedSubmissions = campaign.submissions.filter(
+    (sub) => sub.submissionStatus === SubmissionStatus.VERIFIED,
+  );
+  const pendingSubmissions = campaign.submissions.filter(
+    (sub) =>
+      sub.submissionStatus === SubmissionStatus.PENDING_REVIEW ||
+      sub.submissionStatus === SubmissionStatus.REVISION_REQUESTED,
+  );
+  const disqualifiedSubmissions = campaign.submissions.filter(
+    (sub) => sub.submissionStatus === SubmissionStatus.REJECTED,
+  );
+
+  const fifoInputs: FifoSubmissionAllocationInput[] = approvedSubmissions.map((sub) => ({
+    id: sub.id,
+    verifiedViews: sub.verifiedViews,
+    currentEarnings: Number(sub.earnings ?? 0),
+  }));
+
+  const fifoSummary = ComputeCampaignFifoAllocations(
+    budget,
+    minViews,
+    maxViews,
+    cpm,
+    fifoInputs,
+  );
+
+  const allocationById = new Map(
+    fifoSummary.allocations.map((alloc) => [alloc.id, alloc]),
+  );
+
+  const verifiedCreatorRewards = verifiedSubmissions.reduce(
+    (sum, sub) => sum + Math.floor(Number(sub.earnings ?? 0)),
+    0,
+  );
+
+  const isFinished = campaign.campaignStatus === CampaignStatus.FINISHED;
+  const allocatedCreatorRewards = isFinished
+    ? verifiedCreatorRewards
+    : fifoSummary.totalAllocated;
+  const brandRefundAmount = Math.max(0, Math.floor(budget) - allocatedCreatorRewards);
+
+  const now = new Date();
+  const freezeReason = DetermineCampaignFreezeReason(
+    campaign.campaignStatus,
+    budget,
+    allocatedCreatorRewards,
+    campaign.endDate,
+    now,
+  );
+
+  let activeFifoSequence = 0;
+  let flaggedSubmissionsCount = 0;
+
+  const submissionItems: AdminFifoSubmissionItemDto[] = campaign.submissions.map((sub) => {
+    const isEligibleFifoQueueMember =
+      sub.submissionStatus === SubmissionStatus.APPROVED ||
+      sub.submissionStatus === SubmissionStatus.VERIFIED;
+
+    if (isEligibleFifoQueueMember) {
+      activeFifoSequence += 1;
+    }
+
+    const fifoOrder = isEligibleFifoQueueMember ? activeFifoSequence : null;
+    const rawTarget = CalculateTargetReward(sub.verifiedViews, minViews, maxViews, cpm);
+    const allocation = allocationById.get(sub.id);
+
+    const subAllocated =
+      sub.submissionStatus === SubmissionStatus.VERIFIED
+        ? Math.floor(Number(sub.earnings ?? 0))
+        : allocation
+          ? allocation.allocatedEarnings
+          : 0;
+
+    const unpaidShortfall = isEligibleFifoQueueMember
+      ? Math.max(0, rawTarget - subAllocated)
+      : 0;
+    const isCappedByBudget = isEligibleFifoQueueMember && unpaidShortfall > 0;
+
+    const syncFailureStreak = sub.syncFailureStreak ?? 0;
+    const lastSyncError = sub.lastSyncError ?? null;
+    const isFlaggedUnavailable =
+      sub.submissionStatus === SubmissionStatus.APPROVED &&
+      syncFailureStreak > 0 &&
+      Boolean(lastSyncError);
+
+    if (isFlaggedUnavailable) {
+      flaggedSubmissionsCount += 1;
+    }
+
+    const item: AdminFifoSubmissionItemDto = {
+      id: sub.id,
+      fifoOrder,
+      creatorId: sub.creatorId,
+      creatorName: sub.creator.fullName,
+      creatorAvatarUrl: sub.creator.avatarUrl,
+      socialUsername: sub.socialAccount?.username ?? null,
+      liveVideoUrl: sub.liveVideoUrl,
+      thumbnailUrl: sub.thumbnailUrl,
+      videoCaption: sub.videoCaption,
+      submissionStatus: sub.submissionStatus,
+      reviewNote: sub.reviewNote,
+      verifiedViews: sub.verifiedViews,
+      allocatedEarnings: subAllocated,
+      targetEarnings: rawTarget,
+      unpaidShortfall,
+      isCappedByBudget,
+      lastMetricsSyncedAt: sub.lastMetricsSyncedAt ?? null,
+      syncFailureStreak,
+      lastSyncError,
+      isFlaggedUnavailable,
+      submittedAt: sub.submittedAt,
+      createdAt: sub.createdAt,
+    };
+
+    return item;
+  });
+
+  const canFinalize = campaign.campaignStatus === CampaignStatus.ACTIVE;
+
+  const summaryDto: AdminCampaignSettlementSummaryDto = {
+    campaignId: campaign.id,
+    title: campaign.title ?? 'Kampanye Tanpa Judul',
+    campaignStatus: campaign.campaignStatus,
+    freezeReason,
+    cpm,
+    minViews,
+    maxViews,
+    budget,
+    allocatedCreatorRewards,
+    verifiedCreatorRewards,
+    brandRefundAmount,
+    canFinalize,
+    pendingReviewCount: pendingSubmissions.length,
+    approvedCount: approvedSubmissions.length,
+    verifiedCount: verifiedSubmissions.length,
+    disqualifiedCount: disqualifiedSubmissions.length,
+    flaggedSubmissionsCount,
+    lastMetricsSyncedAt: campaign.lastMetricsSyncedAt ?? null,
+    finalSnapshotSyncedAt: campaign.finalSnapshotSyncedAt ?? null,
+    endDate: campaign.endDate,
+    brand: {
+      id: campaign.brand.id,
+      companyName: campaign.brand.companyName,
+      logoUrl: campaign.brand.logoUrl,
+    },
+    submissions: submissionItems,
+  };
+
+  return summaryDto;
+}
+
 

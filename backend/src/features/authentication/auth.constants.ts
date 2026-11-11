@@ -3,7 +3,7 @@ import type { CookieOptions } from 'express';
 export const AUTH_SALT_ROUNDS = 10;
 export const AUTH_TOKEN_EXPIRES_IN = '1d';
 export const AUTH_COOKIE_NAME = 'token';
-export const AUTH_COOKIE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const AUTH_COOKIE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 export const MIN_PASSWORD_LENGTH = 8;
 
 export const EMAIL_VERIFICATION_CODE_LENGTH = 6;

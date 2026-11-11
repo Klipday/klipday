@@ -106,7 +106,7 @@ export async function RunBoundedPool<TItem, TResult>(
  * @param handle - Raw social username string.
  * @returns Normalized lowercase handle, or empty string if absent.
  */
-export function NormalizeTikTokHandle(handle: string | null | undefined): string {
+function NormalizeTikTokHandle(handle: string | null | undefined): string {
   if (!handle || typeof handle !== 'string') {
     return '';
   }

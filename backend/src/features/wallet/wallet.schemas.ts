@@ -119,14 +119,5 @@ export const CreatorTransactionQuerySchema = z.object({
 
 export type CreatorTransactionQueryInput = z.infer<typeof CreatorTransactionQuerySchema>;
 
-export const SimulateCreatorEarningSchema = z.object({
-  amount: z.number().int().positive('Nominal perolehan saldo harus lebih dari 0'),
-  campaignTitle: z.string().trim().optional(),
-  verifiedViews: z.number().int().nonnegative().optional(),
-  cpmRate: z.number().positive().optional(),
-});
-
-export type SimulateCreatorEarningInput = z.infer<typeof SimulateCreatorEarningSchema>;
-
 
 

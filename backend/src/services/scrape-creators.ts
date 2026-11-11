@@ -1,5 +1,5 @@
-export const SCRAPECREATORS_BASE_URL = 'https://api.scrapecreators.com';
-export const DEFAULT_SCRAPE_TIMEOUT_MS = 15_000;
+const SCRAPECREATORS_BASE_URL = 'https://api.scrapecreators.com';
+const DEFAULT_SCRAPE_TIMEOUT_MS = 15_000;
 
 export interface ScrapeCreatorsRequestOptions extends RequestInit {
   apiKey?: string;
@@ -162,7 +162,7 @@ export function ValidateTikTokVideoUrl(url: string): string {
  * @throws Error if no API key is found.
  * @returns Clean API key string.
  */
-export function GetScrapeCreatorsApiKey(customKey?: string): string {
+function GetScrapeCreatorsApiKey(customKey?: string): string {
   const apiKey = customKey ?? process.env.SCRAPECREATORS_API_KEY;
 
   if (!apiKey || apiKey.trim() === '') {
@@ -180,7 +180,7 @@ export function GetScrapeCreatorsApiKey(customKey?: string): string {
  * @param options - Optional fetch configuration, timeout, and credentials.
  * @returns Parsed JSON response payload.
  */
-export async function ScrapeCreatorsRequest<T>(endpoint: string, options?: ScrapeCreatorsRequestOptions): Promise<T> {
+async function ScrapeCreatorsRequest<T>(endpoint: string, options?: ScrapeCreatorsRequestOptions): Promise<T> {
   const apiKey = GetScrapeCreatorsApiKey(options?.apiKey);
   const baseUrl = options?.baseUrl ?? SCRAPECREATORS_BASE_URL;
   const timeoutMs = options?.timeoutMs ?? DEFAULT_SCRAPE_TIMEOUT_MS;

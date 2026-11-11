@@ -17,17 +17,6 @@ export type {
   VerifyEmailInput,
 };
 
-export interface AuthSessionPayload {
-  sub: string;
-  role: Role;
-}
-
-export interface AuthResponseData {
-  id: string;
-  email: string;
-  role: Role;
-}
-
 export interface BrandProfileDto {
   id: string;
   companyName: string;

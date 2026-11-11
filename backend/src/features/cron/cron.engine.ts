@@ -160,7 +160,7 @@ async function RecordCronErrorLog(
  * @param leaseDurationMs - Lease TTL in milliseconds before crash recovery is permitted.
  * @returns True if the caller now owns the active lease lock, false if another run is currently active.
  */
-export async function AcquireCronJobLock(
+async function AcquireCronJobLock(
   lockKey: string,
   lockedBy: string,
   now: Date,
@@ -219,7 +219,7 @@ export async function AcquireCronJobLock(
  * @param leaseDurationMs - Lease extension duration in milliseconds.
  * @returns Promise resolving when the lease has been refreshed.
  */
-export async function RefreshCronJobLock(
+async function RefreshCronJobLock(
   lockKey: string,
   lockedBy: string,
   now: Date,
@@ -247,7 +247,7 @@ export async function RefreshCronJobLock(
  * @param lockedBy - Worker instance token that acquired the lock.
  * @returns Promise resolving once the lock release attempt completes.
  */
-export async function ReleaseCronJobLock(lockKey: string, lockedBy: string): Promise<void> {
+async function ReleaseCronJobLock(lockKey: string, lockedBy: string): Promise<void> {
   const expiredEpoch = new Date(0);
   const releaseQuery = {
     where: {
@@ -275,7 +275,7 @@ export async function ReleaseCronJobLock(lockKey: string, lockedBy: string): Pro
  * @param config - Timeout, retry, and inter-request pacing configuration.
  * @returns Structured outcome indicating either `SUCCESS` with clamped views or freeze-and-flag diagnostics.
  */
-export async function ScrapeSubmissionMetricsWithRetry(
+async function ScrapeSubmissionMetricsWithRetry(
   target: SubmissionScrapeTarget,
   config: ScrapeRetryConfig,
 ): Promise<ScrapedSubmissionOutcome> {
@@ -384,7 +384,7 @@ export async function ScrapeSubmissionMetricsWithRetry(
  * @param syncedAt - Timestamp to record on synced records.
  * @returns Per-campaign commit telemetry counters.
  */
-export async function CommitCampaignMetricsTransaction(
+async function CommitCampaignMetricsTransaction(
   campaignId: string,
   shouldStampFinalSnapshot: boolean,
   outcomesBySubmissionId: ReadonlyMap<string, ScrapedSubmissionOutcome>,

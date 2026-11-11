@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { CampaignStatus, CampaignType, Category, MaterialType, Platform } from '../../generated/prisma/enums.js';
 import { ADMIN_PAYMENT_VERIFY_ACTIONS, CAMPAIGN_MESSAGES, CAMPAIGN_SORT_OPTIONS } from './campaign.constants.js';
 
-export { CAMPAIGN_SORT_OPTIONS };
 export type CampaignSortOption = (typeof CAMPAIGN_SORT_OPTIONS)[number];
 
 const titleField = z
@@ -67,7 +66,7 @@ const endDateField = z.union(
   { error: CAMPAIGN_MESSAGES.END_DATE_REQUIRED }
 );
 
-export const campaignMaterialItemSchema = z.object({
+const campaignMaterialItemSchema = z.object({
   type: z.enum(MaterialType, { error: CAMPAIGN_MESSAGES.MATERIAL_TYPE_INVALID }),
   name: z.string({ error: CAMPAIGN_MESSAGES.MATERIAL_NAME_REQUIRED }).trim().min(1, CAMPAIGN_MESSAGES.MATERIAL_NAME_REQUIRED),
   url: z
@@ -76,11 +75,11 @@ export const campaignMaterialItemSchema = z.object({
     .pipe(z.url({ error: CAMPAIGN_MESSAGES.MATERIAL_URL_INVALID })),
 });
 
-export const campaignMaterialsSchema = z
+const campaignMaterialsSchema = z
   .array(campaignMaterialItemSchema)
   .min(1, CAMPAIGN_MESSAGES.MATERIALS_REQUIRED);
 
-export const campaignBriefSchema = z.object({
+const campaignBriefSchema = z.object({
   purpose: z.string().trim().min(1, CAMPAIGN_MESSAGES.BRIEF_PURPOSE_EMPTY).optional(),
   keyMessage: z.string().trim().min(1, CAMPAIGN_MESSAGES.BRIEF_KEY_MESSAGE_EMPTY).optional(),
   narration: z.string().trim().min(1, CAMPAIGN_MESSAGES.BRIEF_NARRATION_EMPTY).optional(),
@@ -135,7 +134,7 @@ const searchQueryField = z
   .max(100, CAMPAIGN_MESSAGES.SEARCH_MAX_EXCEEDED)
   .optional();
 
-export const campaignQuerySortEnum = z.enum(CAMPAIGN_SORT_OPTIONS, {
+const campaignQuerySortEnum = z.enum(CAMPAIGN_SORT_OPTIONS, {
   error: CAMPAIGN_MESSAGES.SORT_INVALID,
 });
 

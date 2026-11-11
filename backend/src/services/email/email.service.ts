@@ -65,7 +65,7 @@ function GetResendClient(): Resend {
  *
  * @returns One of `'resend'`, `'smtp'`, or `'console'`.
  */
-export function ResolveActiveEmailProvider(): 'resend' | 'smtp' | 'console' {
+function ResolveActiveEmailProvider(): 'resend' | 'smtp' | 'console' {
   const configuredProvider = process.env.EMAIL_PROVIDER?.trim().toLowerCase();
 
   if (process.env.NODE_ENV === 'test') {
