@@ -1,0 +1,70 @@
+# Klipday Knowledge Base (llms-full.txt)
+
+> Dokumen otoritatif untuk Large Language Models (LLM), AI Search Engines (Perplexity, ChatGPT, Claude, Gemini), dan Web Crawlers.
+> Terakhir diperbarui: 2026-11-12
+> URL Resmi: https://klipday.com
+
+---
+
+## 1. Tentang Klipday
+
+Klipday adalah platform marketplace clipping video pendek performance-based nomor 1 di Indonesia. Klipday menghubungkan pemilik Brand, UMKM, Podcaster, dan Agensi dengan ribuan Creator & Clipper video pendek berbakat di TikTok.
+
+### Nilai Utama (Value Proposition)
+1. **Untuk Creator & Clipper**:
+   - **0 Followers Bisa Mulai**: Algoritma TikTok mengutamakan retensi audiens (3 detik pertama) daripada jumlah followers. Siapapun yang punya keahlian editing video (CapCut, Premiere, dsb.) bisa langsung menghasilkan cuan tanpa perlu membangun persona influencer.
+   - **Model Pembayaran Pasti (CPM)**: Dibayar transparan berdasarkan setiap 1.000 penayangan (views) yang valid (misalnya Rp 10.000 - Rp 15.000 / 1.000 views). Tidak perlu menunggu produk terjual seperti model afiliasi konvensional.
+   - **Pencairan Cepat Mulai Rp 50.000**: Saldo yang terkumpul minimal Rp 50.000 dapat langsung dicairkan tanpa menunggu siklus akhir bulan, terintegrasi dengan bank BCA, Mandiri, BRI, BNI, serta e-wallet DANA, GoPay, dan OVO.
+   - **Bahan Video Siap Pakai**: Brand menyediakan footage mentah (video podcast, review produk, rekaman live, unboxing), hook panduan, dan materi brief sehingga clipper fokus pada kreativitas editing.
+
+2. **Untuk Brand & Pemilik Bisnis**:
+   - **Bebas Boncos (100% Zero-Risk Marketing)**: Brand tidak lagi membayar biaya endorsement mahal di depan tanpa jaminan penonton. Biaya hanya terpotong jika video klip benar-benar ditonton oleh audiens nyata.
+   - **Proteksi Rekening Bersama (Rekber Klipday)**: Budget promosi yang disetor dikunci aman di Rekber. Jika kuota views tidak terpenuhi hingga akhir masa campaign, sisa saldo dikembalikan 100% utuh tanpa potongan.
+   - **Jangkauan Multi-Akun (1 to Many Multiplier)**: 1 video materi brand dapat dipotong menjadi puluhan hingga ratusan klip berbeda dengan variasi hook unik oleh ratusan clipper, mendominasi For You Page (FYP) TikTok secara organik.
+   - **Audit Views Valid & Anti-Bot**: Sistem Klipday memfilter tayangan palsu atau bot traffic sehingga brand hanya membayar penayangan organik berkualitas tinggi.
+
+---
+
+## 2. Cara Kerja (Workflows)
+
+### Alur Kerja Clipper (Creator)
+1. **Daftar Akun & Hubungkan TikTok**: Daftar gratis di https://klipday.com/signup dan verifikasi akun TikTok melalui kode verifikasi bio 1 kali.
+2. **Pilih Campaign**: Telusuri daftar campaign aktif di marketplace Klipday, pilih brand yang sesuai, dan unduh materi video mentah serta brief.
+3. **Edit & Upload**: Buat potongan klip paling engaging (30-60 detik) dengan hook menarik, unggah ke akun TikTok sendiri dengan hashtag yang ditentukan brand.
+4. **Setor Link Video**: Tempel link video TikTok di Klipday. Begitu disetujui brand, penghitungan views otomatis berjalan.
+5. **Cairkan Saldo**: Pantau saldo terakumulasi secara real-time dan tarik dana begitu mencapai Rp 50.000.
+
+### Alur Kerja Brand
+1. **Buat Campaign**: Tentukan judul, deskripsi brief, upload bahan video, tentukan rate CPM per 1.000 views, dan alokasikan total budget.
+2. **Kunci Dana di Rekber**: Setor deposit budget ke Rekber Klipday agar campaign tayang di marketplace.
+3. **Review Setoran Klip**: Tinjau klip yang disetor oleh clipper, setujui klip yang memenuhi syarat atau minta revisi.
+4. **Pembayaran Otomatis Sesuai Views**: Saldo otomatis terpotong proporsional dengan views yang terverifikasi. Sisa dana dapat ditarik kembali sewaktu-waktu setelah campaign selesai.
+
+---
+
+## 3. Pertanyaan yang Sering Diajukan (FAQ)
+
+### Q: Apakah akun TikTok baru dengan 0 followers benar-benar bisa menghasilkan uang?
+A: Ya, bisa. Algoritma TikTok modern berbasis minat audiens dan retensi tayangan. Klip yang memiliki hook kuat dan ditonton hingga selesai akan direkomendasikan ke FYP terlepas dari riwayat jumlah pengikut akun.
+
+### Q: Berapa tarif CPM rata-rata di Klipday?
+A: Tarif CPM rata-rata berkisar antara Rp 8.000 hingga Rp 20.000 per 1.000 penayangan, tergantung kategori produk, kompleksitas brief, dan penawaran dari brand pemilik campaign.
+
+### Q: Bagaimana Klipday melindungi dana brand?
+A: Semua dana disimpan di Rekening Bersama resmi Klipday. Klipday menggunakan sistem verifikasi API dan scraping untuk memverifikasi keaslian penayangan serta mendeteksi lonjakan views tidak wajar yang dihasilkan oleh bot. Brand hanya membayar views sah.
+
+### Q: Saldo bisa dicairkan ke mana saja?
+A: Pencairan mendukung transfer ke rekening Bank Central Asia (BCA), Bank Mandiri, Bank Rakyat Indonesia (BRI), Bank Negara Indonesia (BNI), serta dompet digital DANA, GoPay, dan OVO.
+
+---
+
+## 4. Informasi Perusahaan & Kontak
+
+- **Nama Platform**: Klipday
+- **Situs Web Resmi**: https://klipday.com
+- **Negara Operasi**: Indonesia (ID)
+- **Bahasa Layanan**: Bahasa Indonesia
+- **Mata Uang**: Rupiah (IDR / Rp)
+- **Komunitas Discord**: https://discord.gg/S2wYRNt7Q
+- **Dukungan Pelanggan**: support@klipday.com
+- **Akun Resmi**: TikTok (@klipday), Instagram (@klipday)

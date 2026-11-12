@@ -1,0 +1,23 @@
+# Klipday
+
+> Klipday (https://klipday.com) adalah platform marketplace performance-based video clipping nomor 1 di Indonesia yang mempertemukan Brand dengan Creator/Clipper video pendek (TikTok).
+
+## Ringkasan Platform
+
+- **Model Bisnis**: Berbasis CPM (Cost Per Mille). Brand membayar per 1.000 penayangan (views) asli yang valid, bukan endorse flat berisiko tinggi.
+- **Untuk Clipper**: Siapapun bisa bergabung walau akun TikTok masih **0 followers**. Clipper memotong video dari bahan mentah brand, mengunggah ke akun TikTok pribadi, menyetor link video di Klipday, dan mendapatkan cuan transparan setiap views valid masuk.
+- **Pencairan Saldo**: Minimal penarikan saldo hanya **Rp 50.000** ke rekening bank lokal (BCA, Mandiri, BRI, BNI) dan e-wallet (DANA, GoPay, OVO) tanpa menunggu akhir bulan.
+- **Untuk Brand**: Bebas boncos (Zero Risk). Dana promosi dikunci aman di Rekening Bersama (Rekber Klipday). Saldo hanya terpotong jika video benar-benar ditonton oleh audiens nyata (anti-bot view filter). Sisa budget otomatis kembali 100% utuh jika campaign selesai.
+
+## Halaman Kunci
+
+- [Beranda Klipday](https://klipday.com/): Halaman utama, simulasi kalkulator cuan CPM, penjelasan cara kerja, dan bento showcase.
+- [Daftar Akun Baru](https://klipday.com/signup): Pendaftaran gratis untuk Creator (Clipper) maupun Brand.
+- [FAQ (Tanya Jawab)](https://klipday.com/faq): Pertanyaan umum seputar verifikasi akun sosial, penghitungan views, dan pencairan komisi.
+- [Aturan Main & Kebijakan](https://klipday.com/peraturan): Pedoman etika clipping, larangan bot traffic, syarat durasi dan orisinalitas klip.
+- [Syarat & Ketentuan](https://klipday.com/syarat-ketentuan): Ketentuan hukum layanan dan perlindungan hak cipta brand.
+- [Kebijakan Privasi](https://klipday.com/kebijakan-privasi): Komitmen perlindungan data dan privasi pengguna.
+
+## Dokumentasi Lengkap untuk AI
+
+- Untuk pemahaman mendalam tentang ekosistem, alur kerja teknis, dan audit views, baca [llms-full.txt](https://klipday.com/llms-full.txt).

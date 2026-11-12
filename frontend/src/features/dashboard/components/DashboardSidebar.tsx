@@ -7,6 +7,7 @@ import {
   X,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
+import { KlipdayLogo } from '@/components';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -94,9 +95,7 @@ function SidebarHeader({ collapsed, isDrawer = false }: SidebarHeaderProps) {
   return (
     <div className="flex h-16 shrink-0 items-center justify-between border-b px-4 sm:px-5">
       <Link to="/dashboard" onClick={CloseMobileMenu} className="flex items-center gap-2 transition-opacity hover:opacity-90">
-        <span className="font-heading text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-          Klipday<span className="text-rose-500">.</span>
-        </span>
+        <KlipdayLogo size="md" />
       </Link>
 
       {isDrawer ? (

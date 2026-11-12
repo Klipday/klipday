@@ -46,12 +46,12 @@ export function UseMagneticHover<T extends HTMLElement = HTMLElement>(
     };
 
     /**
-     * Smoothly restores element to resting position with elastic overshoot on mouse leave.
+     * Smoothly restores element to resting position with natural exponential deceleration on mouse leave.
      *
      * @returns void
      */
     const HandleMouseLeave = () => {
-      gsap.to(el, { x: 0, y: 0, duration: 0.7, ease: 'elastic.out(1, 0.4)' });
+      gsap.to(el, { x: 0, y: 0, duration: 0.4, ease: 'power3.out' });
     };
 
     el.addEventListener('mousemove', HandleMouseMove);

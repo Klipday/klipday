@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router';
+import { UpdatePageSeo } from '@/lib/seo';
 import {
   HelpHeader,
   HelpTopNav,
@@ -29,6 +30,24 @@ export default function HelpPage({ defaultTab = 'faq' }: HelpPageProps) {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'rules') {
+      UpdatePageSeo({
+        title: 'Aturan Main & Etika Clipper TikTok - Klipday',
+        description:
+          'Panduan lengkap aturan main clipping video di Klipday: pedoman orisinalitas klip, syarat durasi, larangan bot traffic, dan etika brand.',
+        canonicalPath: '/peraturan',
+      });
+    } else {
+      UpdatePageSeo({
+        title: 'FAQ - Pertanyaan Umum Clipper & Brand - Klipday',
+        description:
+          'Pertanyaan umum seputar cara mulai ngeklip di TikTok, sistem bayaran CPM, minimal saldo Rp50.000, verifikasi akun, dan keamanan budget Rekber.',
+        canonicalPath: '/faq',
+      });
+    }
+  }, [activeTab]);
 
   /**
    * Handles user switching between Rules and FAQ tabs,

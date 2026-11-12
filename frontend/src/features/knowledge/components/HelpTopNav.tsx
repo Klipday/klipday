@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { KlipdayLogo } from '@/components';
 import { cn } from '@/lib/utils';
 import { UseCurrentAccountQuery } from '@/features/authentication/hooks';
 import type { HelpTopNavProps } from '../types';
@@ -25,9 +26,9 @@ export function HelpTopNav({ className = '' }: HelpTopNavProps) {
         {/* Brand Logo */}
         <Link
           to="/"
-          className="flex items-center font-heading text-lg font-bold tracking-tight text-white transition-opacity hover:opacity-90"
+          className="flex items-center transition-opacity hover:opacity-90"
         >
-          Klipday<span className="text-rose-500">.</span>
+          <KlipdayLogo size="md" />
         </Link>
 
         {/* Right CTA Area: Dashboard for authenticated users, Sign In / Sign Up for guests */}

@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Link, Outlet } from 'react-router';
+import { KlipdayLogo } from '@/components';
 
 /**
  * Layout for the authentication pages (sign in / sign up).
@@ -13,10 +14,8 @@ function AuthLayout() {
   return (
     <main className="flex min-h-svh flex-col bg-muted/40">
       <header className="p-6">
-        <Link to="/" className="inline-block transition-opacity hover:opacity-80">
-          <span className="font-heading text-2xl font-bold tracking-tight text-foreground">
-            Klipday<span className="text-rose-500">.</span>
-          </span>
+        <Link to="/" className="inline-block transition-opacity hover:opacity-90">
+          <KlipdayLogo size="lg" />
         </Link>
       </header>
       <div className="flex flex-1 items-center justify-center p-6">

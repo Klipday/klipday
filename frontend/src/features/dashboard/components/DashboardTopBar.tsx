@@ -1,5 +1,6 @@
 import { Menu } from 'lucide-react';
 import { Link } from 'react-router';
+import { KlipdayLogo } from '@/components';
 import { Button } from '@/components/ui/button';
 import { UseNavbar } from '../hooks';
 import type { DashboardTopBarProps } from '../types';
@@ -31,9 +32,7 @@ export function DashboardTopBar({ userName, userEmail, userRole, avatarUrl }: Da
         </Button>
 
         <Link to="/dashboard" className="flex items-center gap-2 transition-opacity hover:opacity-90 md:hidden">
-          <span className="font-heading text-xl font-bold tracking-tight text-foreground">
-            Klipday<span className="text-rose-500">.</span>
-          </span>
+          <KlipdayLogo size="sm" />
         </Link>
       </div>
 

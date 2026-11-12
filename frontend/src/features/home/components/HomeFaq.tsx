@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/accordion';
 import { HOME_FAQS, HOME_FAQ_HEADER } from '../constants/home.constants';
 import type { HomeFaqProps } from '../types';
+import { SectionBadge } from './SectionBadge';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -71,23 +72,23 @@ export function HomeFaq({ className = '' }: HomeFaqProps) {
     { scope: containerRef }
   );
 
-  const sectionClasses = `w-full max-w-5xl px-6 py-20 border-t border-white/5 scroll-mt-20 ${className}`.trim();
+  const sectionClasses = `w-full max-w-5xl px-4 sm:px-6 py-16 sm:py-20 scroll-mt-20 ${className}`.trim();
 
   return (
     <section ref={containerRef} id="faq" className={sectionClasses}>
-      <div className="grid grid-cols-1 gap-12 text-left md:grid-cols-12">
+      <div className="grid grid-cols-1 gap-8 sm:gap-12 text-left md:grid-cols-12">
         {/* Left Side: Header & Info */}
         <div ref={leftColRef} className="md:col-span-5 will-change-transform">
-          <span className="mb-3 inline-block rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1 font-medium text-xs text-rose-400 uppercase tracking-wider">
+          <SectionBadge className="mb-4">
             {HOME_FAQ_HEADER.sectionPill}
-          </span>
-          <h2 className="mb-3 font-heading font-bold text-3xl tracking-tight text-white">
+          </SectionBadge>
+          <h2 className="mb-2 sm:mb-3 font-heading font-bold text-2xl sm:text-3xl tracking-tight text-white">
             {HOME_FAQ_HEADER.title}
           </h2>
-          <p className="font-normal text-sm leading-relaxed text-zinc-400">
+          <p className="font-normal text-xs sm:text-sm leading-relaxed text-zinc-400">
             {HOME_FAQ_HEADER.subtitle}
           </p>
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             <Link
               to="/faq"
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors"
@@ -106,11 +107,11 @@ export function HomeFaq({ className = '' }: HomeFaqProps) {
                 value={`faq-${faq.id}`}
                 className="faq-item overflow-hidden rounded-xl border border-white/10 bg-zinc-900/40 transition-colors hover:border-white/20 data-[state=open]:border-rose-500/30 border-b-0"
               >
-                <AccordionTrigger className="px-5 py-4 text-left font-semibold text-sm text-white transition-colors hover:text-rose-400 [&[data-state=open]]:text-rose-400 [&[data-state=open]>svg]:text-rose-400">
+                <AccordionTrigger className="px-4 sm:px-5 py-3.5 sm:py-4 text-left font-semibold text-xs sm:text-sm text-white transition-colors hover:text-rose-400 [&[data-state=open]]:text-rose-400 [&[data-state=open]>svg]:text-rose-400">
                   <span className="pr-4">{faq.question}</span>
                 </AccordionTrigger>
 
-                <AccordionContent className="px-5 pb-4 font-normal text-xs leading-relaxed text-zinc-400 sm:text-sm">
+                <AccordionContent className="px-4 sm:px-5 pb-3.5 sm:pb-4 font-normal text-xs sm:text-sm leading-relaxed text-zinc-400">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>

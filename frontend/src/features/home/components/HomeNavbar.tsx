@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Link } from 'react-router';
+import { KlipdayLogo } from '@/components';
 import { HOME_NAV_LINKS } from '../constants/home.constants';
 import type { HomeNavbarProps } from '../types';
 
@@ -57,9 +58,9 @@ export function HomeNavbar({ activeAudience, onAudienceChange, className = '' }:
               e.preventDefault();
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className="flex items-center font-heading text-lg font-bold tracking-tight text-white transition-opacity hover:opacity-90"
+            className="flex items-center transition-opacity hover:opacity-90"
           >
-            Klipday<span className="text-rose-500">.</span>
+            <KlipdayLogo size="md" />
           </Link>
           <nav className="hidden items-center gap-6 font-medium text-xs text-zinc-400 md:flex">
             {HOME_NAV_LINKS.map((link) => (
@@ -92,7 +93,7 @@ export function HomeNavbar({ activeAudience, onAudienceChange, className = '' }:
           </Link>
           <Link
             to="/signup"
-            className="inline-flex items-center justify-center rounded-full bg-rose-600 px-4 py-1.5 font-medium text-xs text-white shadow-[0_0_16px_rgba(225,29,72,0.35)] transition-all hover:bg-rose-500 hover:scale-[1.02]"
+            className="inline-flex items-center justify-center rounded-lg bg-rose-600 px-4 py-2 font-medium text-xs text-white shadow-sm transition-colors hover:bg-rose-500 active:scale-[0.98]"
           >
             {activeAudience === 'creator' ? 'Mulai Ngeklip' : 'Buat Campaign'}
           </Link>
@@ -102,7 +103,7 @@ export function HomeNavbar({ activeAudience, onAudienceChange, className = '' }:
         <div className="flex items-center gap-2 md:hidden">
           <Link
             to="/signup"
-            className="inline-flex items-center justify-center rounded-full bg-rose-600 px-3 py-1 font-medium text-xs text-white shadow-[0_0_12px_rgba(225,29,72,0.3)]"
+            className="inline-flex items-center justify-center rounded-lg bg-rose-600 px-3.5 py-1.5 font-medium text-xs text-white shadow-sm transition-colors hover:bg-rose-500 active:scale-[0.98]"
           >
             {activeAudience === 'creator' ? 'Ngeklip' : 'Campaign'}
           </Link>
@@ -110,7 +111,7 @@ export function HomeNavbar({ activeAudience, onAudienceChange, className = '' }:
             type="button"
             onClick={() => setIsMobileMenuOpen((prev) => !prev)}
             aria-label="Toggle navigation menu"
-            className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/5 hover:text-white"
+            className="flex size-11 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/5 hover:text-white"
           >
             {isMobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>

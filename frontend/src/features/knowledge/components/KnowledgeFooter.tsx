@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { KlipdayLogo } from '@/components';
 import { cn } from '@/lib/utils';
 import { KNOWLEDGE_FOOTER_LINKS } from '../constants';
 import type { KnowledgeFooterProps } from '../types';
@@ -25,11 +26,11 @@ export function KnowledgeFooter({ className = '' }: KnowledgeFooterProps) {
         <div>
           <Link
             to="/"
-            className="font-heading font-bold text-sm tracking-tight text-white hover:opacity-90"
+            className="inline-block transition-opacity hover:opacity-90"
           >
-            Klipday<span className="text-rose-500">.</span>
+            <KlipdayLogo size="sm" />
           </Link>
-          <p className="mt-1 text-[11px] text-zinc-500">Marketplace Video Clipping Organik Indonesia</p>
+          <p className="mt-1.5 text-[11px] text-zinc-500">Marketplace Video Clipping Organik Indonesia</p>
         </div>
 
         {/* Clean Text Links */}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { UpdatePageSeo } from '@/lib/seo';
 import {
   HelpTopNav,
   KnowledgeFooter,
@@ -60,6 +61,13 @@ export default function PrivacyPage({ className = '' }: PrivacyPageProps) {
    * Synchronizes viewport scroll position or direct URL hash anchors on initial mount.
    */
   useEffect(() => {
+    UpdatePageSeo({
+      title: 'Kebijakan Privasi - Klipday',
+      description:
+        'Kebijakan privasi resmi Klipday sesuai UU PDP: perlindungan data pribadi kreator dan brand, data sosial TikTok, enkripsi transaksi finansial, dan hak pengguna.',
+      canonicalPath: '/kebijakan-privasi',
+    });
+
     /**
      * Resolves hash from URL, scrolls to target element, and highlights active section.
      *

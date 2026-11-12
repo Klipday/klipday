@@ -1,20 +1,25 @@
-import { useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useGSAP } from '@gsap/react';
+import { motion } from 'framer-motion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { HOME_BENEFITS_CONTENT } from '../constants/home.constants';
+import { Video } from 'lucide-react';
+import {
+  FLOATING_PAYOUT_CHANNELS,
+  HOME_BENEFITS_CONTENT,
+} from '../constants/home.constants';
 import type { HomeBenefitsProps } from '../types';
-import { BlendedIllustration } from './BlendedIllustration';
+import { SectionBadge } from './SectionBadge';
 
 gsap.registerPlugin(ScrollTrigger);
 
 /**
- * Modern minimalist Bento grid showcasing key clipper or brand benefits.
- * Features Linear-style top-right radial mesh gradients, 1px specular top highlights,
- * interactive 60fps cursor spotlights via gsap.quickTo, 3D illustration tilt,
- * and reactive audience crossfades without visual clutter.
+ * Modern interactive Bento grid showcasing key clipper and brand benefits.
+ * Each card follows the clean Micro-UI visual stage anatomy matching the "Cara Kerja" section:
+ * top visual stages for the two 1-column cards, and a 2-column split with right visual stage
+ * for the full-width bottom card.
  *
- * @param props - Component properties including activeAudience.
+ * @param props - Component properties including activeAudience and optional className.
  * @returns The rendered Benefits section.
  */
 export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsProps) {
@@ -23,31 +28,34 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
   const headerTitleRef = useRef<HTMLHeadingElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  // Card 1 refs
-  const card1Ref = useRef<HTMLDivElement>(null);
-  const spotlight1Ref = useRef<HTMLDivElement>(null);
-  const illu1Ref = useRef<HTMLDivElement>(null);
-
-  // Card 2 refs
-  const card2Ref = useRef<HTMLDivElement>(null);
-  const spotlight2Ref = useRef<HTMLDivElement>(null);
-  const illu2Ref = useRef<HTMLDivElement>(null);
-
-  // Card 3 refs
-  const card3Ref = useRef<HTMLDivElement>(null);
-  const spotlight3Ref = useRef<HTMLDivElement>(null);
-  const illu3Ref = useRef<HTMLDivElement>(null);
-
   const isFirstAudienceRender = useRef(true);
+  const isCreator = activeAudience === 'creator';
   const benefits = HOME_BENEFITS_CONTENT[activeAudience];
 
-  // GSAP ScrollTrigger Entrance & Cursor Spotlight Tracking
+  // Interactive Calculator State
+  const [sliderViews, setSliderViews] = useState<number>(50000);
+  const [brandBudget, setBrandBudget] = useState<number>(2000000);
+
+  // Live Calculated Values
+  const creatorEstimatedCuan = Math.round((sliderViews / 1000) * 12000);
+  const brandEstimatedViews = Math.round((brandBudget / 12000) * 1000);
+
+  // Formatted display values
+  const formattedCreatorCuan = creatorEstimatedCuan.toLocaleString('id-ID');
+  const formattedSliderViews = sliderViews.toLocaleString('id-ID');
+  const formattedBrandViews = brandEstimatedViews.toLocaleString('id-ID');
+  const formattedBrandBudget = brandBudget.toLocaleString('id-ID');
+
+  // Range track fill percentages for rose-500 track progress
+  const creatorSliderPercent = ((sliderViews - 10000) / (500000 - 10000)) * 100;
+  const brandSliderPercent = ((brandBudget - 500000) / (10000000 - 500000)) * 100;
+
+  // GSAP ScrollTrigger Entrance
   useGSAP(
     () => {
       const matchMediaInstance = gsap.matchMedia();
 
       matchMediaInstance.add('(prefers-reduced-motion: no-preference)', () => {
-        // 1. Header Reveal Timeline
         if (headerRef.current) {
           gsap.from(headerRef.current, {
             scrollTrigger: {
@@ -62,7 +70,6 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
           });
         }
 
-        // 2. Bento Cards Staggered Batch Entrance
         if (gridRef.current) {
           const cards = gridRef.current.querySelectorAll('.bento-card');
           gsap.from(cards, {
@@ -71,7 +78,7 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
               start: 'top 80%',
               toggleActions: 'play none none none',
             },
-            y: 40,
+            y: 35,
             autoAlpha: 0,
             scale: 0.97,
             duration: 0.75,
@@ -79,85 +86,6 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
             ease: 'expo.out',
           });
         }
-
-        /**
-         * Sets up 60fps cursor-following radial spotlight and gentle 3D tilt.
-         *
-         * @param cardEl - Bento card container element.
-         * @param spotlightEl - Radial gradient spotlight element.
-         * @param illuEl - Inner 3D illustration element for parallax tilt.
-         * @returns Cleanup callback removing event listeners.
-         */
-        const SetupCardInteractivity = (
-          cardEl: HTMLElement | null,
-          spotlightEl: HTMLElement | null,
-          illuEl: HTMLElement | null
-        ) => {
-          if (!cardEl || !spotlightEl) return;
-
-          const quickX = gsap.quickTo(spotlightEl, 'x', { duration: 0.2, ease: 'power2.out' });
-          const quickY = gsap.quickTo(spotlightEl, 'y', { duration: 0.2, ease: 'power2.out' });
-          const quickTiltX = illuEl ? gsap.quickTo(illuEl, 'x', { duration: 0.35, ease: 'power2.out' }) : null;
-          const quickTiltY = illuEl ? gsap.quickTo(illuEl, 'y', { duration: 0.35, ease: 'power2.out' }) : null;
-
-          /**
-           * Moves radial spotlight and tilts/scales inner visual stage on mouse move.
-           *
-           * @param event - Mouse move event.
-           * @returns void
-           */
-          const HandleMouseMove = (event: MouseEvent) => {
-            const rect = cardEl.getBoundingClientRect();
-            const relX = event.clientX - rect.left;
-            const relY = event.clientY - rect.top;
-
-            // Center of 500px diameter spotlight (250px radius) directly under cursor
-            quickX(relX - 250);
-            quickY(relY - 250);
-            gsap.to(spotlightEl, { autoAlpha: 1, duration: 0.2 });
-
-            if (quickTiltX && quickTiltY) {
-              const centerX = rect.width / 2;
-              const centerY = rect.height / 2;
-              quickTiltX((relX - centerX) * 0.03);
-              quickTiltY((relY - centerY) * 0.03);
-            }
-
-            if (illuEl) {
-              gsap.to(illuEl, { scale: 1.03, duration: 0.3, ease: 'power2.out' });
-            }
-          };
-
-          /**
-           * Resets spotlight opacity and centers/scales visual stage on mouse leave.
-           *
-           * @returns void
-           */
-          const HandleMouseLeave = () => {
-            gsap.to(spotlightEl, { autoAlpha: 0, duration: 0.35 });
-            if (illuEl) {
-              gsap.to(illuEl, { x: 0, y: 0, scale: 1, duration: 0.6, ease: 'power2.out' });
-            }
-          };
-
-          cardEl.addEventListener('mousemove', HandleMouseMove);
-          cardEl.addEventListener('mouseleave', HandleMouseLeave);
-
-          return () => {
-            cardEl.removeEventListener('mousemove', HandleMouseMove);
-            cardEl.removeEventListener('mouseleave', HandleMouseLeave);
-          };
-        };
-
-        const cleanup1 = SetupCardInteractivity(card1Ref.current, spotlight1Ref.current, illu1Ref.current);
-        const cleanup2 = SetupCardInteractivity(card2Ref.current, spotlight2Ref.current, illu2Ref.current);
-        const cleanup3 = SetupCardInteractivity(card3Ref.current, spotlight3Ref.current, illu3Ref.current);
-
-        return () => {
-          cleanup1?.();
-          cleanup2?.();
-          cleanup3?.();
-        };
       });
 
       return () => {
@@ -167,7 +95,7 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
     { scope: containerRef }
   );
 
-  // Audience Change (Creator <-> Brand) Transition
+  // Audience Change Transition
   useGSAP(
     () => {
       if (isFirstAudienceRender.current) {
@@ -197,133 +125,470 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
     { scope: containerRef, dependencies: [activeAudience] }
   );
 
-  const sectionClasses = `w-full max-w-5xl px-6 py-20 border-t border-white/5 scroll-mt-20 ${className}`.trim();
-  const cardGradientStyle =
-    'bg-[radial-gradient(120%_100%_at_100%_0%,rgba(225,29,72,0.13)_0%,rgba(18,18,18,0.95)_55%,#0D0D0D_100%)]';
-  const cardBorderStyle =
-    'border border-white/[0.06] border-t-white/15 hover:border-rose-500/35';
+  const sectionClasses = `w-full max-w-5xl px-4 sm:px-6 py-16 sm:py-24 scroll-mt-20 ${className}`.trim();
+  const cardSurfaceStyle =
+    'rounded-3xl bg-zinc-900/50 border border-white/[0.06] overflow-hidden group transition-all duration-300 hover:border-white/15 hover:bg-zinc-900/70';
 
   return (
     <section ref={containerRef} id="benefit" className={sectionClasses}>
       {/* Section Header */}
-      <div ref={headerRef} className="mb-16 text-center">
-        <span className="mb-3 inline-block rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1 font-medium text-xs text-rose-400 uppercase tracking-wider">
+      <div ref={headerRef} className="mb-12 sm:mb-16 text-center">
+        <SectionBadge className="mb-4">
           {benefits.sectionPill}
-        </span>
+        </SectionBadge>
         <h2
           ref={headerTitleRef}
-          className="font-heading text-3xl font-bold tracking-tight text-white sm:text-4xl"
+          className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white"
         >
           {benefits.title}
         </h2>
       </div>
 
-      {/* Clean Minimalist Bento Grid */}
+      {/* Modern Bento Grid */}
       <div ref={gridRef} className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* B1 (Top Left): Rate CPM Jelas di Depan / Gak Ada Views, Gak Bayar */}
+        {/* Card 1 (Top-Left): Interactive CPM / Budget Calculator */}
         <div
-          ref={card1Ref}
-          className={`bento-card group relative flex flex-col justify-between overflow-hidden rounded-2xl p-7 md:p-8 text-left transition-colors duration-300 shadow-xl ${cardGradientStyle} ${cardBorderStyle}`}
+          className={`bento-card md:col-span-1 flex flex-col justify-between text-left ${cardSurfaceStyle}`}
         >
-          {/* Mouse-Tracking Spotlight (250px radius) */}
-          <div
-            ref={spotlight1Ref}
-            className="pointer-events-none absolute size-[500px] rounded-full bg-rose-500/12 blur-3xl opacity-0 will-change-transform"
-            aria-hidden="true"
-          />
+          {/* Top Visual Stage */}
+          <div className="h-60 m-2 rounded-2xl bg-zinc-950/70 border border-white/[0.04] relative overflow-hidden flex items-center justify-center p-3 sm:p-4">
+            {isCreator ? (
+              <div className="w-full max-w-[300px] p-3.5 sm:p-4 rounded-2xl bg-zinc-900/90 border border-white/10 space-y-4 shadow-2xl">
+                {/* Top Row */}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-zinc-400 whitespace-nowrap">
+                    Estimasi Komisi
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-medium text-emerald-400 whitespace-nowrap tabular-nums">
+                    CPM Rp 12.000
+                  </span>
+                </div>
 
-          <div className="relative z-10">
-            <span className="mb-2 block font-mono text-xs uppercase tracking-wider text-rose-400/90">
-              {benefits.cpmCard.overline}
-            </span>
-            <h3 className="mb-2 font-heading font-bold text-2xl text-white transition-colors group-hover:text-rose-100">
+                {/* Center Display */}
+                <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight tabular-nums whitespace-nowrap">
+                  Rp {formattedCreatorCuan}
+                </div>
+
+                {/* Bottom Slider Control */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-zinc-400 whitespace-nowrap">
+                      Target Views
+                    </span>
+                    <span className="text-xs font-semibold text-zinc-200 tabular-nums whitespace-nowrap">
+                      {formattedSliderViews} Views
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={10000}
+                    max={500000}
+                    step={10000}
+                    value={sliderViews}
+                    onChange={(event) => {
+                      const nextValue = Number(event.target.value);
+                      setSliderViews(nextValue);
+                    }}
+                    style={{
+                      background: `linear-gradient(to right, #f43f5e ${creatorSliderPercent}%, #27272a ${creatorSliderPercent}%)`,
+                    }}
+                    className="w-full h-1.5 rounded-lg appearance-none bg-zinc-800 accent-rose-500 cursor-pointer"
+                    aria-label="Target Views"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="w-full max-w-[300px] p-3.5 sm:p-4 rounded-2xl bg-zinc-900/90 border border-white/10 space-y-4 shadow-2xl">
+                {/* Top Row */}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-zinc-400 whitespace-nowrap">
+                    Potensi Views Asli
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-medium text-emerald-400 whitespace-nowrap tabular-nums">
+                    0 Views = Rp 0
+                  </span>
+                </div>
+
+                {/* Center Display */}
+                <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight tabular-nums whitespace-nowrap">
+                  ~{formattedBrandViews} Views
+                </div>
+
+                {/* Bottom Slider Control */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-zinc-400 whitespace-nowrap">
+                      Alokasi Budget
+                    </span>
+                    <span className="text-xs font-semibold text-zinc-200 tabular-nums whitespace-nowrap">
+                      Rp {formattedBrandBudget}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={500000}
+                    max={10000000}
+                    step={500000}
+                    value={brandBudget}
+                    onChange={(event) => {
+                      const nextValue = Number(event.target.value);
+                      setBrandBudget(nextValue);
+                    }}
+                    style={{
+                      background: `linear-gradient(to right, #f43f5e ${brandSliderPercent}%, #27272a ${brandSliderPercent}%)`,
+                    }}
+                    className="w-full h-1.5 rounded-lg appearance-none bg-zinc-800 accent-rose-500 cursor-pointer"
+                    aria-label="Alokasi Budget"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Text */}
+          <div className="p-6 pt-3">
+            <h3 className="mb-2 font-heading text-lg font-bold text-white transition-colors group-hover:text-rose-100">
               {benefits.cpmCard.title}
             </h3>
-            <p className="font-normal text-sm leading-relaxed text-zinc-400">
+            <p className="font-normal text-xs sm:text-sm leading-relaxed text-zinc-400">
               {benefits.cpmCard.description}
             </p>
           </div>
-
-          {/* 3D Dark-Glass Illustration Stage */}
-          <div ref={illu1Ref} className="relative my-4 flex h-52 w-full items-center justify-center will-change-transform">
-            <BlendedIllustration
-              src={benefits.cpmCard.imageSrc}
-              alt={benefits.cpmCard.title}
-              className="h-full w-full py-1"
-            />
-          </div>
         </div>
 
-        {/* B2 (Top Right): Modal Skill Edit, Bukan Nama Besar / Satu Produk, Ratusan Gaya Hook */}
+        {/* Card 2 (Top-Right): FYP Retention Curve (Creator) / 1-to-Many Multiplier (Brand) */}
         <div
-          ref={card2Ref}
-          className={`bento-card group relative flex flex-col justify-between overflow-hidden rounded-2xl p-7 md:p-8 text-left transition-colors duration-300 shadow-xl ${cardGradientStyle} ${cardBorderStyle}`}
+          className={`bento-card md:col-span-1 flex flex-col justify-between text-left ${cardSurfaceStyle}`}
         >
-          {/* Mouse-Tracking Spotlight (250px radius) */}
-          <div
-            ref={spotlight2Ref}
-            className="pointer-events-none absolute size-[500px] rounded-full bg-rose-500/12 blur-3xl opacity-0 will-change-transform"
-            aria-hidden="true"
-          />
+          {/* Top Visual Stage */}
+          <div className="h-60 m-2 rounded-2xl bg-zinc-950/70 border border-white/[0.04] relative overflow-hidden flex items-center justify-center p-3 sm:p-4">
+            {isCreator ? (
+              <div className="w-full max-w-[300px] p-3 sm:p-3.5 rounded-2xl bg-zinc-900/90 border border-white/10 space-y-2.5 shadow-2xl select-none">
+                {/* Top Row: New Account Profile Header */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                      CB
+                    </div>
+                    <div className="flex flex-col text-left leading-tight min-w-0">
+                      <span className="text-xs font-semibold text-white whitespace-nowrap">
+                        @clipper_baru
+                      </span>
+                      <span className="text-[10px] text-zinc-400 whitespace-nowrap tabular-nums">
+                        0 Followers
+                      </span>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/25 text-[10px] font-medium text-rose-400 whitespace-nowrap shrink-0">
+                    🔥 Tembus FYP
+                  </span>
+                </div>
 
-          <div className="relative z-10">
-            <span className="mb-2 block font-mono text-xs uppercase tracking-wider text-rose-400/90">
-              {benefits.followersCard.overline}
-            </span>
-            <h3 className="mb-2 font-heading font-bold text-2xl text-white transition-colors group-hover:text-rose-100">
+                {/* Middle Visual: Animated SVG FYP Retention & View Curve */}
+                <div className="h-20 w-full rounded-xl bg-zinc-950/80 border border-white/[0.05] p-2.5 relative overflow-hidden flex flex-col justify-between">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[9px] text-zinc-400 whitespace-nowrap">
+                      Hook 3 Detik Pertama
+                    </span>
+                    <span className="text-[9px] font-mono text-emerald-400 tabular-nums whitespace-nowrap">
+                      Watch Time 84%
+                    </span>
+                  </div>
+
+                  <svg
+                    viewBox="0 0 240 44"
+                    className="w-full h-11 overflow-visible"
+                    aria-hidden="true"
+                  >
+                    <defs>
+                      <linearGradient id="fypRetentionAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#F43F5E" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="#F43F5E" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+
+                    {/* Area Gradient Fill */}
+                    <path
+                      d="M 2 38 Q 55 36, 95 28 T 170 13 T 234 5 L 234 44 L 2 44 Z"
+                      fill="url(#fypRetentionAreaGradient)"
+                    />
+
+                    {/* Animated Bezier Curve */}
+                    <motion.path
+                      d="M 2 38 Q 55 36, 95 28 T 170 13 T 234 5"
+                      fill="none"
+                      stroke="#F43F5E"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      initial={{ pathLength: 0 }}
+                      whileInView={{ pathLength: 1 }}
+                      viewport={{ once: false }}
+                      transition={{ duration: 1.4, ease: 'easeOut' }}
+                    />
+
+                    {/* Pulsing Glowing Dot at (234, 5) */}
+                    <motion.circle
+                      cx="234"
+                      cy="5"
+                      r="6"
+                      fill="#F43F5E"
+                      animate={{
+                        scale: [1, 1.5, 1],
+                        opacity: [0.45, 0.12, 0.45],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                    />
+                    <circle cx="234" cy="5" r="3" fill="#F43F5E" />
+                  </svg>
+                </div>
+
+                {/* Bottom Row: Instant Payout Conversion Bar */}
+                <div className="pt-0.5 flex items-center justify-between gap-2 text-xs whitespace-nowrap">
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <span className="text-[11px] text-zinc-400 whitespace-nowrap">
+                      Total Views
+                    </span>
+                    <span className="text-[11px] font-bold text-white tabular-nums whitespace-nowrap">
+                      120.000
+                    </span>
+                  </div>
+                  <span className="text-xs font-extrabold text-emerald-400 tabular-nums whitespace-nowrap">
+                    + Rp 1.440.000
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between w-full max-w-[290px] gap-1.5 sm:gap-2 select-none">
+                {/* Left Side: 1 Source Video */}
+                <div className="w-[82px] sm:w-24 p-2 sm:p-2.5 rounded-xl bg-zinc-900 border border-white/15 text-center space-y-1 shrink-0 z-10 shadow-xl">
+                  <div className="mx-auto size-6 sm:size-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+                    <Video className="size-3.5 text-rose-400" />
+                  </div>
+                  <span className="block text-[9px] sm:text-[10px] font-semibold text-white whitespace-nowrap">
+                    1 Video Brand
+                  </span>
+                  <span className="block text-[8px] text-zinc-400 whitespace-nowrap">
+                    Podcast / Produk
+                  </span>
+                </div>
+
+                {/* Middle: Branching Lines SVG */}
+                <svg
+                  className="w-6 sm:w-9 h-28 shrink-0 overflow-visible"
+                  viewBox="0 0 40 112"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  {/* Base static lines */}
+                  <path
+                    d="M 0 56 C 18 56, 22 18, 40 18"
+                    stroke="rgba(255,255,255,0.12)"
+                    strokeWidth="1.5"
+                  />
+                  <path
+                    d="M 0 56 L 40 56"
+                    stroke="rgba(255,255,255,0.12)"
+                    strokeWidth="1.5"
+                  />
+                  <path
+                    d="M 0 56 C 18 56, 22 94, 40 94"
+                    stroke="rgba(255,255,255,0.12)"
+                    strokeWidth="1.5"
+                  />
+
+                  {/* Animated pulsing strokes */}
+                  <motion.path
+                    d="M 0 56 C 18 56, 22 18, 40 18"
+                    stroke="#f43f5e"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    initial={{ pathLength: 0, opacity: 0.2 }}
+                    animate={{ pathLength: [0, 1, 1], opacity: [0.2, 1, 0] }}
+                    transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+                  <motion.path
+                    d="M 0 56 L 40 56"
+                    stroke="#f43f5e"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    initial={{ pathLength: 0, opacity: 0.2 }}
+                    animate={{ pathLength: [0, 1, 1], opacity: [0.2, 1, 0] }}
+                    transition={{
+                      duration: 2.4,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                      delay: 0.3,
+                    }}
+                  />
+                  <motion.path
+                    d="M 0 56 C 18 56, 22 94, 40 94"
+                    stroke="#f43f5e"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    initial={{ pathLength: 0, opacity: 0.2 }}
+                    animate={{ pathLength: [0, 1, 1], opacity: [0.2, 1, 0] }}
+                    transition={{
+                      duration: 2.4,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                      delay: 0.6,
+                    }}
+                  />
+                </svg>
+
+                {/* Right Side: 3 Clipper Outputs */}
+                <div className="space-y-1.5 flex-1 min-w-0 max-w-[132px]">
+                  <div className="px-2 py-1.5 rounded-lg bg-zinc-900 border border-white/10 flex items-center justify-between gap-1 text-[9px] sm:text-[10px] whitespace-nowrap">
+                    <span className="text-zinc-200 whitespace-nowrap">🎬 Hook A</span>
+                    <span className="text-emerald-400 font-mono tabular-nums whitespace-nowrap">
+                      84K Views
+                    </span>
+                  </div>
+                  <div className="px-2 py-1.5 rounded-lg bg-zinc-900 border border-rose-500/40 bg-rose-500/5 flex items-center justify-between gap-1 text-[9px] sm:text-[10px] whitespace-nowrap">
+                    <span className="text-white font-medium whitespace-nowrap">🎬 Hook B</span>
+                    <span className="text-emerald-400 font-mono tabular-nums whitespace-nowrap">
+                      142K Views
+                    </span>
+                  </div>
+                  <div className="px-2 py-1.5 rounded-lg bg-zinc-900 border border-white/10 flex items-center justify-between gap-1 text-[9px] sm:text-[10px] whitespace-nowrap">
+                    <span className="text-zinc-200 whitespace-nowrap">🎬 Hook C</span>
+                    <span className="text-emerald-400 font-mono tabular-nums whitespace-nowrap">
+                      61K Views
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Text */}
+          <div className="p-6 pt-3">
+            <h3 className="mb-2 font-heading text-lg font-bold text-white transition-colors group-hover:text-rose-100">
               {benefits.followersCard.title}
             </h3>
-            <p className="font-normal text-sm leading-relaxed text-zinc-400">
+            <p className="font-normal text-xs sm:text-sm leading-relaxed text-zinc-400">
               {benefits.followersCard.description}
             </p>
           </div>
-
-          {/* 3D Dark-Glass Illustration Stage */}
-          <div ref={illu2Ref} className="relative my-4 flex h-52 w-full items-center justify-center will-change-transform">
-            <BlendedIllustration
-              src={benefits.followersCard.imageSrc}
-              alt={benefits.followersCard.title}
-              className="h-full w-full py-1"
-            />
-          </div>
         </div>
 
-        {/* B3 (Bottom Wide Card): Cair Cepat, Tanpa Drama / Budget Dijamin Anti-Boncos */}
-        <div
-          ref={card3Ref}
-          className={`bento-card group relative overflow-hidden rounded-2xl p-7 md:p-8 text-left transition-colors duration-300 shadow-xl md:col-span-2 ${cardGradientStyle} ${cardBorderStyle}`}
-        >
-          {/* Mouse-Tracking Spotlight (250px radius) */}
-          <div
-            ref={spotlight3Ref}
-            className="pointer-events-none absolute size-[500px] rounded-full bg-rose-500/12 blur-3xl opacity-0 will-change-transform"
-            aria-hidden="true"
-          />
-
-          <div className="relative z-10 grid grid-cols-1 items-center gap-6 md:grid-cols-12">
-            {/* Left 7 Cols: Copywriting */}
-            <div className="md:col-span-7">
-              <span className="mb-2 block font-mono text-xs uppercase tracking-wider text-rose-400/90">
-                {benefits.payoutCard.overline}
-              </span>
-              <h3 className="mb-2 font-heading font-bold text-2xl text-white transition-colors group-hover:text-rose-100">
+        {/* Card 3 (Bottom Full-Width): Floating Payout & Bank Pills (Creator) / Escrow Checklist (Brand) */}
+        <div className={`bento-card md:col-span-2 text-left ${cardSurfaceStyle}`}>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-center p-3">
+            {/* Left Column: ONLY Title + Description */}
+            <div className="lg:col-span-5 p-3 sm:p-4">
+              <h3 className="mb-2 font-heading text-lg sm:text-xl font-bold text-white transition-colors group-hover:text-rose-100">
                 {benefits.payoutCard.title}
               </h3>
-              <p className="font-normal text-sm leading-relaxed text-zinc-400">
+              <p className="font-normal text-xs sm:text-sm leading-relaxed text-zinc-400">
                 {benefits.payoutCard.description}
               </p>
             </div>
 
-            {/* Right 5 Cols: Floating 3D Illustration Bridge */}
-            <div
-              ref={illu3Ref}
-              className="flex h-48 w-full items-center justify-center md:col-span-5 md:h-56 will-change-transform"
-            >
-              <BlendedIllustration
-                src={benefits.payoutCard.imageSrc}
-                alt={benefits.payoutCard.title}
-                className="h-full w-full py-1"
-              />
+            {/* Right Column: Micro-UI Visual Stage */}
+            <div className="lg:col-span-7 h-60 rounded-2xl bg-zinc-950/70 border border-white/[0.04] relative overflow-hidden flex items-center justify-center p-3 sm:p-4">
+              {isCreator ? (
+                <div className="relative w-full h-full flex items-center justify-center select-none">
+                  {/* Central Sleek Payout Card */}
+                  <div className="w-44 sm:w-52 p-3 rounded-2xl bg-zinc-900 border border-white/15 shadow-2xl z-10 text-center space-y-1">
+                    <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full inline-block whitespace-nowrap">
+                      ✓ Tanpa Tunggu Akhir Bulan
+                    </span>
+                    <div className="text-lg sm:text-xl font-extrabold text-white tracking-tight tabular-nums whitespace-nowrap">
+                      Min. Rp 50.000
+                    </div>
+                    <div className="text-[10px] text-zinc-400 whitespace-nowrap">
+                      Langsung cair otomatis
+                    </div>
+                  </div>
+
+                  {/* 6 Floating Bank & E-Wallet Pills */}
+                  {FLOATING_PAYOUT_CHANNELS.map((channel) => (
+                    <motion.div
+                      key={channel.id}
+                      animate={{ y: [0, -4, 0] }}
+                      transition={{
+                        duration: 3.2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                        delay: channel.delay,
+                      }}
+                      className={`absolute ${channel.positionClassName} flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-zinc-200 bg-zinc-900/95 border border-white/10 px-2.5 sm:px-3 py-1 rounded-full shadow-lg whitespace-nowrap`}
+                    >
+                      <span className={`size-1.5 rounded-full ${channel.dotClassName} shrink-0`} />
+                      <span>{channel.label}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="relative w-full h-full flex flex-col items-center justify-center gap-2.5 select-none">
+                  {/* Sleek Dark Checklist Card */}
+                  <div className="w-full max-w-[280px] p-3.5 sm:p-4 rounded-2xl bg-zinc-900/95 border border-white/10 space-y-2.5 shadow-2xl">
+                    <div className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5 whitespace-nowrap">
+                      🛡️ Proteksi Rekber Klipday
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <div className="flex items-center justify-between text-[11px] text-zinc-200 py-1 border-b border-white/[0.05] whitespace-nowrap">
+                        <span>Dana Terkunci Aman</span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-white shrink-0" />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-zinc-200 py-1 border-b border-white/[0.05] whitespace-nowrap">
+                        <span>Potong Cuma Views Valid</span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-white shrink-0" />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-zinc-200 py-1 border-b border-white/[0.05] whitespace-nowrap">
+                        <span>Auto-Refund 100% Sisa Saldo</span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Floating Pill Button + Animated SVG Mouse Cursor */}
+                  <div className="relative flex items-center justify-center">
+                    <motion.div
+                      animate={{
+                        scale: [1, 1, 0.94, 1.03, 1],
+                      }}
+                      transition={{
+                        duration: 4.2,
+                        repeat: Infinity,
+                        times: [0, 0.35, 0.48, 0.72, 1],
+                        ease: 'easeInOut',
+                      }}
+                      className="px-3.5 py-1 rounded-full bg-zinc-100 text-zinc-950 text-[10px] font-semibold shadow-md whitespace-nowrap"
+                    >
+                      ✓ 100% Bebas Risiko Boncos
+                    </motion.div>
+
+                    <motion.svg
+                      animate={{
+                        x: [65, 42, 42, 42, 65],
+                        y: [18, 6, 6, 6, 18],
+                        scale: [1, 1, 0.86, 1, 1],
+                        opacity: [0, 1, 1, 1, 0],
+                      }}
+                      transition={{
+                        duration: 4.2,
+                        repeat: Infinity,
+                        times: [0, 0.35, 0.48, 0.72, 1],
+                        ease: 'easeInOut',
+                      }}
+                      className="pointer-events-none absolute z-20 size-5 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      stroke="black"
+                      strokeWidth="1.5"
+                    >
+                      <path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.85a.5.5 0 0 0-.85.36z" />
+                    </motion.svg>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

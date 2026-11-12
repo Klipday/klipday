@@ -1,8 +1,16 @@
+import type { ReactNode } from 'react';
+
 export type AudienceType = 'creator' | 'brand';
 
 export interface NavLinkItem {
   readonly label: string;
   readonly href: string;
+  readonly isExternal?: boolean;
+}
+
+export interface FooterNavGroup {
+  readonly title: string;
+  readonly links: readonly NavLinkItem[];
 }
 
 export interface HowItWorksStepItem {
@@ -10,7 +18,6 @@ export interface HowItWorksStepItem {
   readonly badgeText: string;
   readonly title: string;
   readonly description: string;
-  readonly imageSrc: string;
 }
 
 export interface FaqItem {
@@ -32,6 +39,7 @@ export interface BottomBannerChannelItem {
 }
 
 export interface BottomBannerAudienceContent {
+  readonly sectionPill: string;
   readonly heading: string;
   readonly description: string;
   readonly ctaLabel: string;
@@ -57,11 +65,60 @@ export interface HowItWorksAudienceContent {
   readonly steps: readonly HowItWorksStepItem[];
 }
 
+export interface HeroVideoClipStageItem {
+  readonly id: string;
+  readonly handle: string;
+  readonly sizeClassName: string;
+  readonly imageSrc: string;
+  readonly captionLead: string;
+  readonly captionHighlight: string;
+  readonly timecode?: string;
+  readonly delay: number;
+}
+
+export interface HeroPayoutShareCardItem {
+  readonly id: string;
+  readonly handle: string;
+  readonly dateLabel: string;
+  readonly creatorAmount: string;
+  readonly brandMetric: string;
+  readonly period: string;
+  readonly sizeClassName: string;
+  readonly amountClassName: string;
+  readonly emblemSizeClassName: string;
+  readonly delay: number;
+  readonly isLive?: boolean;
+}
+
+export interface FloatingPayoutChannelItem {
+  readonly id: string;
+  readonly label: string;
+  readonly dotClassName: string;
+  readonly positionClassName: string;
+  readonly delay: number;
+}
+
+export interface AutomatedPayoutCampaignRow {
+  readonly id: string;
+  readonly title: string;
+  readonly progress: number;
+  readonly payout: string;
+  readonly gradient: string;
+  readonly delay: number;
+}
+
+export interface PayoutTickerItem {
+  readonly id: string;
+  readonly username: string;
+  readonly amount: string;
+  readonly channel: string;
+  readonly timeAgo: string;
+}
+
 export interface BenefitAudienceContent {
   readonly sectionPill: string;
   readonly title: string;
   readonly cpmCard: {
-    readonly overline: string;
     readonly title: string;
     readonly description: string;
     readonly metricLabel: string;
@@ -70,10 +127,8 @@ export interface BenefitAudienceContent {
     readonly metricPrefix?: string;
     readonly metricSuffix?: string;
     readonly badgeText: string;
-    readonly imageSrc: string;
   };
   readonly followersCard: {
-    readonly overline: string;
     readonly title: string;
     readonly description: string;
     readonly metricLabel: string;
@@ -81,10 +136,8 @@ export interface BenefitAudienceContent {
     readonly rawTargetValue: number;
     readonly metricPrefix?: string;
     readonly metricSuffix?: string;
-    readonly imageSrc: string;
   };
   readonly payoutCard: {
-    readonly overline: string;
     readonly title: string;
     readonly description: string;
     readonly statusLabel: string;
@@ -95,15 +148,11 @@ export interface BenefitAudienceContent {
     readonly metricSuffix?: string;
     readonly buttonLabel: string;
     readonly buttonHref: string;
-    readonly imageSrc: string;
   };
 }
 
-export interface BlendedIllustrationProps {
-  readonly src: string;
-  readonly alt: string;
+export interface HomeActivityTickerProps {
   readonly className?: string;
-  readonly imageClassName?: string;
 }
 
 export interface HomeNavbarProps {
@@ -138,6 +187,35 @@ export interface HomeDiscordBannerProps {
 }
 
 export interface HomeFooterProps {
+  readonly className?: string;
+}
+
+export interface SectionBadgeProps {
+  readonly children: ReactNode;
+  readonly className?: string;
+}
+
+export interface VerticalClipsCarouselMockupProps {
+  readonly className?: string;
+}
+
+export interface AutomatedPayoutMockupProps {
+  readonly className?: string;
+}
+
+export interface CreatorCampaignCardVisualProps {
+  readonly className?: string;
+}
+
+export interface BrandCreateCampaignVisualProps {
+  readonly className?: string;
+}
+
+export interface BrandClipReviewVisualProps {
+  readonly className?: string;
+}
+
+export interface BrandEscrowTrackerVisualProps {
   readonly className?: string;
 }
 

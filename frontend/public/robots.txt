@@ -1,0 +1,45 @@
+# Klipday Robots.txt - Search Engine & Generative AI Optimization
+# https://klipday.com
+
+User-agent: *
+Allow: /
+Allow: /faq
+Allow: /peraturan
+Allow: /syarat-ketentuan
+Allow: /kebijakan-privasi
+Allow: /signin
+Allow: /signup
+Disallow: /creator-dashboard/
+Disallow: /brand-dashboard/
+Disallow: /admin-dashboard/
+Disallow: /dashboard/
+Disallow: /notifications/
+Disallow: /api/
+
+# Explicit permissions for Generative Search & AI Agents
+User-agent: Google-Extended
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://klipday.com/sitemap.xml
+Host: https://klipday.com

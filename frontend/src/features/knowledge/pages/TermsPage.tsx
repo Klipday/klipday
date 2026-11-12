@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { UpdatePageSeo } from '@/lib/seo';
 import {
   HelpTopNav,
   KnowledgeFooter,
@@ -59,6 +60,13 @@ export default function TermsPage({ className = '' }: TermsPageProps) {
    * Synchronizes viewport scroll position or direct URL hash anchors on initial mount.
    */
   useEffect(() => {
+    UpdatePageSeo({
+      title: 'Syarat & Ketentuan Layanan - Klipday',
+      description:
+        'Syarat dan ketentuan layanan resmi Klipday: ketentuan hak cipta video brand, transparansi audit CPM views, proteksi Rekber, dan syarat penarikan dana.',
+      canonicalPath: '/syarat-ketentuan',
+    });
+
     /**
      * Resolves hash from URL, scrolls to target element, and highlights active section.
      *

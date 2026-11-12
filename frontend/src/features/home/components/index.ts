@@ -1,6 +1,13 @@
-export { BlendedIllustration } from './BlendedIllustration';
+export { SectionBadge } from './SectionBadge';
+export { VerticalClipsCarouselMockup } from './VerticalClipsCarouselMockup';
+export { AutomatedPayoutMockup } from './AutomatedPayoutMockup';
+export { CreatorCampaignCardVisual } from './CreatorCampaignCardVisual';
+export { BrandCreateCampaignVisual } from './BrandCreateCampaignVisual';
+export { BrandClipReviewVisual } from './BrandClipReviewVisual';
+export { BrandEscrowTrackerVisual } from './BrandEscrowTrackerVisual';
 export { HomeNavbar } from './HomeNavbar';
 export { HomeHero } from './HomeHero';
+export { HomeActivityTicker } from './HomeActivityTicker';
 export { HomeHowItWorks } from './HomeHowItWorks';
 export { HomeBenefits } from './HomeBenefits';
 export { HomeFaq } from './HomeFaq';
