@@ -12,6 +12,7 @@ import {
   HomeHero,
   HomeHowItWorks,
   HomeNavbar,
+  ScrollManifestoSection,
 } from '../components';
 import type { AudienceType } from '../types';
 
@@ -54,6 +55,7 @@ function HomePage() {
         <HomeActivityTicker />
         <HomeHowItWorks activeAudience={activeAudience} />
         <HomeBenefits activeAudience={activeAudience} />
+        <ScrollManifestoSection activeTab={activeAudience} />
         <HomeFaq />
         <HomeDiscordBanner activeAudience={activeAudience} />
       </main>

@@ -177,6 +177,18 @@ export interface HomeBenefitsProps {
   readonly className?: string;
 }
 
+export interface ManifestoAudienceContent {
+  readonly line1: string;
+  readonly line2: string;
+  readonly line3: string;
+  readonly subtitle: string;
+}
+
+export interface ScrollManifestoSectionProps {
+  readonly activeTab: AudienceType;
+  readonly className?: string;
+}
+
 export interface HomeFaqProps {
   readonly className?: string;
 }

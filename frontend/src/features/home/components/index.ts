@@ -10,6 +10,7 @@ export { HomeHero } from './HomeHero';
 export { HomeActivityTicker } from './HomeActivityTicker';
 export { HomeHowItWorks } from './HomeHowItWorks';
 export { HomeBenefits } from './HomeBenefits';
+export { ScrollManifestoSection } from './ScrollManifestoSection';
 export { HomeFaq } from './HomeFaq';
 export { HomeDiscordBanner } from './HomeDiscordBanner';
 export { HomeFooter } from './HomeFooter';

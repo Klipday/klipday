@@ -11,6 +11,7 @@ import type {
   HeroPayoutShareCardItem,
   HeroVideoClipStageItem,
   HowItWorksAudienceContent,
+  ManifestoAudienceContent,
   NavLinkItem,
   PayoutTickerItem,
 } from '../types';
@@ -295,6 +296,23 @@ export const HOME_BENEFITS_CONTENT: Record<AudienceType, BenefitAudienceContent>
       buttonLabel: 'Buat Campaign Sekarang',
       buttonHref: '/signup',
     },
+  },
+} as const;
+
+export const HOME_MANIFESTO_CONTENT: Record<AudienceType, ManifestoAudienceContent> = {
+  creator: {
+    line1: '“Berhenti Doom Scrolling.',
+    line2: 'Gabung Sekarang,',
+    line3: 'Raih Jutaan Dari Views.”',
+    subtitle:
+      'Gabung jadi bagian dari kami dan raih jutaan rupiah dari setiap views yang kamu dapet.',
+  },
+  brand: {
+    line1: '“Berhenti Bakar Budget.',
+    line2: 'Gerakkan Ratusan Clipper,',
+    line3: 'Dominasi FYP Tanpa Boncos.”',
+    subtitle:
+      'Ubah satu materi video brand kamu jadi ratusan klip viral dan bayar cuma buat views yang valid.',
   },
 } as const;
 
