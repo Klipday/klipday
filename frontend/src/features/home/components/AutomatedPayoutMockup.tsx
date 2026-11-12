@@ -5,7 +5,7 @@ import type { AutomatedPayoutMockupProps } from '../types';
 
 /**
  * Interactive Micro-UI simulating real-time campaign progress and automated payout calculations.
- * Features a floating card with 3 campaign rows, animated progress bars expanding on whileInView
+ * Features a floating card with 3 campaign rows, animated progress bars expanding on mount,
  * to 46%, 66%, and 54%, and an animated SVG cursor hovering near the bars.
  *
  * @param props - Component properties including optional className.
@@ -53,8 +53,7 @@ export function AutomatedPayoutMockup({ className = '' }: AutomatedPayoutMockupP
               <div className="relative h-1.5 w-full rounded-full bg-zinc-800/80 overflow-hidden">
                 <motion.div
                   initial={{ width: '0%' }}
-                  whileInView={{ width: `${row.progress}%` }}
-                  viewport={{ once: false }}
+                  animate={{ width: `${row.progress}%` }}
                   transition={{
                     duration: 1.5,
                     ease: [0.16, 1, 0.3, 1],

@@ -116,8 +116,7 @@ export function CreatorCampaignCardVisual({ className = '' }: CreatorCampaignCar
             <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: '0%' }}
-                whileInView={{ width: '82%' }}
-                viewport={{ once: false }}
+                animate={{ width: '82%' }}
                 transition={{ duration: 1.4, ease: 'easeOut' }}
                 className="h-full bg-gradient-to-r from-orange-500 to-rose-500 rounded-full"
               />

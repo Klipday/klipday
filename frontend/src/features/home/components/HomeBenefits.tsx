@@ -28,7 +28,6 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
   const headerTitleRef = useRef<HTMLHeadingElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  const isFirstAudienceRender = useRef(true);
   const isCreator = activeAudience === 'creator';
   const benefits = HOME_BENEFITS_CONTENT[activeAudience];
 
@@ -50,7 +49,7 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
   const creatorSliderPercent = ((sliderViews - 10000) / (500000 - 10000)) * 100;
   const brandSliderPercent = ((brandBudget - 500000) / (10000000 - 500000)) * 100;
 
-  // GSAP ScrollTrigger Entrance
+  // GSAP ScrollTrigger Entrance for Header
   useGSAP(
     () => {
       const matchMediaInstance = gsap.matchMedia();
@@ -69,23 +68,6 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
             ease: 'power3.out',
           });
         }
-
-        if (gridRef.current) {
-          const cards = gridRef.current.querySelectorAll('.bento-card');
-          gsap.from(cards, {
-            scrollTrigger: {
-              trigger: gridRef.current,
-              start: 'top 80%',
-              toggleActions: 'play none none none',
-            },
-            y: 35,
-            autoAlpha: 0,
-            scale: 0.97,
-            duration: 0.75,
-            stagger: 0.12,
-            ease: 'expo.out',
-          });
-        }
       });
 
       return () => {
@@ -93,36 +75,6 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
       };
     },
     { scope: containerRef }
-  );
-
-  // Audience Change Transition
-  useGSAP(
-    () => {
-      if (isFirstAudienceRender.current) {
-        isFirstAudienceRender.current = false;
-        return;
-      }
-
-      const cards = gridRef.current?.querySelectorAll('.bento-card');
-      if (cards && cards.length > 0) {
-        gsap.fromTo(
-          cards,
-          { autoAlpha: 0, y: 14, scale: 0.985 },
-          {
-            autoAlpha: 1,
-            y: 0,
-            scale: 1,
-            duration: 0.45,
-            ease: 'power3.out',
-            stagger: 0.05,
-            onComplete: () => {
-              ScrollTrigger.refresh();
-            },
-          }
-        );
-      }
-    },
-    { scope: containerRef, dependencies: [activeAudience] }
   );
 
   const sectionClasses = `w-full max-w-5xl px-4 sm:px-6 py-16 sm:py-24 scroll-mt-20 ${className}`.trim();
@@ -144,11 +96,18 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
         </h2>
       </div>
 
-      {/* Modern Bento Grid */}
-      <div ref={gridRef} className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      {/* Modern Bento Grid with Framer Motion transition */}
+      <motion.div
+        key={activeAudience}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        ref={gridRef}
+        className="grid grid-cols-1 gap-6 md:grid-cols-2"
+      >
         {/* Card 1 (Top-Left): Interactive CPM / Budget Calculator */}
         <div
-          className={`bento-card md:col-span-1 flex flex-col justify-between text-left ${cardSurfaceStyle}`}
+          className={`opacity-100 md:col-span-1 flex flex-col justify-between text-left ${cardSurfaceStyle}`}
         >
           {/* Top Visual Stage */}
           <div className="h-60 m-2 rounded-2xl bg-zinc-950/70 border border-white/[0.04] relative overflow-hidden flex items-center justify-center p-3 sm:p-4">
@@ -258,7 +217,7 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
 
         {/* Card 2 (Top-Right): FYP Retention Curve (Creator) / 1-to-Many Multiplier (Brand) */}
         <div
-          className={`bento-card md:col-span-1 flex flex-col justify-between text-left ${cardSurfaceStyle}`}
+          className={`opacity-100 md:col-span-1 flex flex-col justify-between text-left ${cardSurfaceStyle}`}
         >
           {/* Top Visual Stage */}
           <div className="h-60 m-2 rounded-2xl bg-zinc-950/70 border border-white/[0.04] relative overflow-hidden flex items-center justify-center p-3 sm:p-4">
@@ -321,8 +280,7 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
                       strokeWidth="2.5"
                       strokeLinecap="round"
                       initial={{ pathLength: 0 }}
-                      whileInView={{ pathLength: 1 }}
-                      viewport={{ once: false }}
+                      animate={{ pathLength: 1 }}
                       transition={{ duration: 1.4, ease: 'easeOut' }}
                     />
 
@@ -477,7 +435,7 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
         </div>
 
         {/* Card 3 (Bottom Full-Width): Floating Payout & Bank Pills (Creator) / Escrow Checklist (Brand) */}
-        <div className={`bento-card md:col-span-2 text-left ${cardSurfaceStyle}`}>
+        <div className={`opacity-100 md:col-span-2 text-left ${cardSurfaceStyle}`}>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-center p-3">
             {/* Left Column: ONLY Title + Description */}
             <div className="lg:col-span-5 p-3 sm:p-4">
@@ -592,7 +550,7 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

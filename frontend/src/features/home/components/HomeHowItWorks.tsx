@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { useGSAP } from '@gsap/react';
+import { motion } from 'framer-motion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { HOME_HOW_IT_WORKS_CONTENT } from '../constants/home.constants';
@@ -28,17 +29,15 @@ export function HomeHowItWorks({ activeAudience, className = '' }: HomeHowItWork
   const headerRef = useRef<HTMLDivElement>(null);
   const headerTitleRef = useRef<HTMLHeadingElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
-  const isFirstAudienceRender = useRef(true);
 
   const content = HOME_HOW_IT_WORKS_CONTENT[activeAudience];
 
-  // GSAP ScrollTrigger Entrance Choreography
+  // GSAP ScrollTrigger Entrance Choreography for Header
   useGSAP(
     () => {
       const matchMediaInstance = gsap.matchMedia();
 
       matchMediaInstance.add('(prefers-reduced-motion: no-preference)', () => {
-        // 1. Header reveal
         if (headerRef.current) {
           gsap.from(headerRef.current, {
             scrollTrigger: {
@@ -52,30 +51,6 @@ export function HomeHowItWorks({ activeAudience, className = '' }: HomeHowItWork
             ease: 'power3.out',
           });
         }
-
-        // 2. Bento Step Cards Staggered Slide-Up
-        const cards = containerRef.current?.querySelectorAll<HTMLElement>('.bento-step-card');
-        if (cards && cards.length > 0) {
-          gsap.from(cards, {
-            scrollTrigger: {
-              trigger: gridRef.current,
-              start: 'top 75%',
-              toggleActions: 'play none none none',
-            },
-            y: 30,
-            autoAlpha: 0,
-            stagger: 0.12,
-            duration: 0.7,
-            ease: 'power3.out',
-          });
-        }
-      });
-
-      matchMediaInstance.add('(prefers-reduced-motion: reduce)', () => {
-        gsap.set(['.bento-step-card'], {
-          autoAlpha: 1,
-          y: 0,
-        });
       });
 
       return () => {
@@ -83,40 +58,6 @@ export function HomeHowItWorks({ activeAudience, className = '' }: HomeHowItWork
       };
     },
     { scope: containerRef }
-  );
-
-  // Smooth Crossfade when switching audience (Creator <-> Brand)
-  useGSAP(
-    () => {
-      if (isFirstAudienceRender.current) {
-        isFirstAudienceRender.current = false;
-        return;
-      }
-
-      const elementsToFade = [
-        headerTitleRef.current,
-        ...(containerRef.current?.querySelectorAll('.bento-step-card') ?? []),
-      ].filter(Boolean);
-
-      if (elementsToFade.length > 0) {
-        gsap.fromTo(
-          elementsToFade,
-          { autoAlpha: 0, y: 14, scale: 0.985 },
-          {
-            autoAlpha: 1,
-            y: 0,
-            scale: 1,
-            duration: 0.45,
-            ease: 'power3.out',
-            stagger: 0.05,
-            onComplete: () => {
-              ScrollTrigger.refresh();
-            },
-          }
-        );
-      }
-    },
-    { scope: containerRef, dependencies: [activeAudience] }
   );
 
   const sectionClasses = `w-full max-w-5xl px-4 sm:px-6 py-16 sm:py-24 scroll-mt-20 ${className}`.trim();
@@ -136,8 +77,15 @@ export function HomeHowItWorks({ activeAudience, className = '' }: HomeHowItWork
         </h2>
       </div>
 
-      {/* 3-Column Bento Grid (1 col mobile, 2 cols tablet, 3 cols desktop) */}
-      <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 w-full">
+      {/* 3-Column Bento Grid (1 col mobile, 2 cols tablet, 3 cols desktop) with Framer Motion transition */}
+      <motion.div
+        key={activeAudience}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        ref={gridRef}
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 w-full"
+      >
         {content.steps.map((step, index) => {
           let stageContent = null;
           if (activeAudience === 'creator') {
@@ -163,7 +111,7 @@ export function HomeHowItWorks({ activeAudience, className = '' }: HomeHowItWork
           return (
             <div
               key={step.stepNumber}
-              className={`bento-step-card ${tabletSpanClass} rounded-3xl bg-zinc-900/50 border border-white/[0.06] overflow-hidden flex flex-col justify-between group transition-all duration-300 hover:border-white/15 hover:bg-zinc-900/70`}
+              className={`opacity-100 ${tabletSpanClass} rounded-3xl bg-zinc-900/50 border border-white/[0.06] overflow-hidden flex flex-col justify-between group transition-all duration-300 hover:border-white/15 hover:bg-zinc-900/70`}
             >
               {/* Top Visual Stage */}
               <div className="h-60 relative bg-zinc-950/60 m-2 rounded-2xl overflow-hidden flex items-center justify-center">
@@ -182,7 +130,7 @@ export function HomeHowItWorks({ activeAudience, className = '' }: HomeHowItWork
             </div>
           );
         })}
-      </div>
+      </motion.div>
     </section>
   );
 }
