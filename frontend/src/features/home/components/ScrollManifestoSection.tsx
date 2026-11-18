@@ -66,6 +66,8 @@ export function ScrollManifestoSection({
   );
 
   const sectionClasses = `relative h-[240vh] w-full bg-[#09090B] select-none ${className}`.trim();
+  const baseLineClasses =
+    'font-heading text-3xl sm:text-5xl lg:text-[62px] font-extrabold tracking-tight leading-[1.08] will-change-[transform,opacity,filter]';
 
   return (
     <section ref={containerRef} className={sectionClasses}>
@@ -115,7 +117,7 @@ export function ScrollManifestoSection({
               y: line1Y,
               filter: line1Filter,
             }}
-            className="self-start text-left text-white font-heading text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.08] will-change-[transform,opacity,filter]"
+            className={`self-start text-left text-white ${baseLineClasses}`}
           >
             {content.line1}
           </motion.div>
@@ -126,7 +128,7 @@ export function ScrollManifestoSection({
               y: line2Y,
               filter: line2Filter,
             }}
-            className="self-center text-center text-zinc-200 font-heading text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.08] will-change-[transform,opacity,filter]"
+            className={`self-center text-center text-zinc-200 ${baseLineClasses}`}
           >
             {content.line2}
           </motion.div>
@@ -137,7 +139,7 @@ export function ScrollManifestoSection({
               y: line3Y,
               filter: line3Filter,
             }}
-            className="self-end text-right bg-gradient-to-r from-white via-rose-200 to-[#E11D48] bg-clip-text text-transparent font-heading text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.08] will-change-[transform,opacity,filter]"
+            className={`self-end text-right bg-gradient-to-r from-white via-rose-200 to-[#E11D48] bg-clip-text text-transparent ${baseLineClasses}`}
           >
             {content.line3}
           </motion.div>

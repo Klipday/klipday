@@ -6,7 +6,6 @@ import type {
   FaqHeaderContent,
   FaqItem,
   FloatingPayoutChannelItem,
-  FooterNavGroup,
   HeroAudienceContent,
   HeroPayoutShareCardItem,
   HeroVideoClipStageItem,
@@ -14,6 +13,7 @@ import type {
   ManifestoAudienceContent,
   NavLinkItem,
   PayoutTickerItem,
+  VerticalClipCardItem,
 } from '../types';
 
 export const HOME_NAV_LINKS: readonly NavLinkItem[] = [
@@ -84,40 +84,34 @@ export const HERO_RIGHT_PAYOUT_CARDS: readonly HeroPayoutShareCardItem[] = [
   {
     id: 'payout-inner',
     handle: '@fajar_edit',
-    dateLabel: '12/11/2026 • 11:20',
     creatorAmount: '+Rp2.324.049',
     brandMetric: '193.6K Views',
-    period: '05/11/2026 - 12/11/2026',
+    payoutChannel: 'Mandiri',
     sizeClassName:
       'hidden lg:flex lg:w-[108px] lg:h-[144px] xl:w-[128px] xl:h-[168px]',
-    amountClassName: 'text-[10px] xl:text-xs',
-    emblemSizeClassName: 'size-8 xl:size-10',
+    amountClassName: 'text-[11px] xl:text-[13px]',
     delay: 0.45,
   },
   {
     id: 'payout-middle',
     handle: '@maya_cut',
-    dateLabel: '12/11/2026 • 11:42',
     creatorAmount: '+Rp4.230.245',
     brandMetric: '352.5K Views',
-    period: '05/11/2026 - 12/11/2026',
+    payoutChannel: 'DANA',
     sizeClassName:
       'flex w-[106px] h-[144px] sm:w-[146px] sm:h-[198px] md:w-[122px] md:h-[166px] lg:w-[124px] lg:h-[168px] xl:w-[152px] xl:h-[206px]',
     amountClassName: 'text-[11px] sm:text-sm md:text-xs xl:text-[15px]',
-    emblemSizeClassName: 'size-8 sm:size-11 md:size-9 xl:size-12',
     delay: 0.2,
   },
   {
     id: 'payout-outer',
     handle: '@adit_clip',
-    dateLabel: '12/11/2026 • 12:00',
     creatorAmount: '+Rp3.049.994',
     brandMetric: '254.1K Views',
-    period: '05/11/2026 - 12/11/2026',
+    payoutChannel: 'BCA',
     sizeClassName:
       'hidden md:flex md:w-[138px] md:h-[190px] lg:w-[142px] lg:h-[194px] xl:w-[178px] xl:h-[244px]',
-    amountClassName: 'text-xs lg:text-sm xl:text-lg',
-    emblemSizeClassName: 'size-10 lg:size-11 xl:size-14',
+    amountClassName: 'text-[13px] lg:text-sm xl:text-[17px]',
     delay: 0,
     isLive: true,
   },
@@ -308,11 +302,11 @@ export const HOME_MANIFESTO_CONTENT: Record<AudienceType, ManifestoAudienceConte
       'Gabung jadi bagian dari kami dan raih jutaan rupiah dari setiap views yang kamu dapet.',
   },
   brand: {
-    line1: '“Berhenti Bakar Budget.',
-    line2: 'Gerakkan Ratusan Clipper,',
-    line3: 'Dominasi FYP Tanpa Boncos.”',
+    line1: '“Berhenti Bakar Duit Marketing.',
+    line2: 'Raih Jutaan Views,',
+    line3: 'Dominasi Media Sosial.”',
     subtitle:
-      'Ubah satu materi video brand kamu jadi ratusan klip viral dan bayar cuma buat views yang valid.',
+      'Gabung sekarang untuk kuasai market media sosial lewat jutaan views organik dan bayar cuma buat penayangan asli.',
   },
 } as const;
 
@@ -400,44 +394,8 @@ export const HOME_FAQS: readonly FaqItem[] = [
 ] as const;
 
 export const HOME_FOOTER_LINKS: readonly NavLinkItem[] = [
-  { label: 'Cara Kerja', href: '#cara-kerja' },
-  { label: 'Benefit', href: '#benefit' },
-  { label: 'FAQ', href: '/faq' },
-  { label: 'Aturan Main', href: '/peraturan' },
   { label: 'Syarat & Ketentuan', href: '/syarat-ketentuan' },
   { label: 'Kebijakan Privasi', href: '/kebijakan-privasi' },
-] as const;
-
-export const HOME_FOOTER_NAV_GROUPS: readonly FooterNavGroup[] = [
-  {
-    title: 'Navigasi',
-    links: [
-      { label: 'Cara Kerja', href: '#cara-kerja' },
-      { label: 'Benefit', href: '#benefit' },
-      { label: 'FAQ', href: '#faq' },
-    ],
-  },
-  {
-    title: 'Ekosistem',
-    links: [
-      { label: 'Untuk Creator (Clipper)', href: '/signup?role=creator' },
-      { label: 'Untuk Brand', href: '/signup?role=brand' },
-      { label: 'Pasang Campaign', href: '/signup?role=brand' },
-    ],
-  },
-  {
-    title: 'Legal',
-    links: [
-      { label: 'Aturan Main', href: '/peraturan' },
-      { label: 'Syarat & Ketentuan', href: '/syarat-ketentuan' },
-      { label: 'Kebijakan Privasi', href: '/kebijakan-privasi' },
-    ],
-  },
-] as const;
-
-export const HOME_FOOTER_SOCIAL_LINKS: readonly NavLinkItem[] = [
-  { label: 'TikTok', href: 'https://tiktok.com/@klipday', isExternal: true },
-  { label: 'Instagram', href: 'https://instagram.com/klipday', isExternal: true },
   { label: 'Kontak Support', href: 'mailto:support@klipday.com', isExternal: true },
 ] as const;
 
@@ -481,4 +439,36 @@ export const HOME_PAYOUT_TICKER_ITEMS: readonly PayoutTickerItem[] = [
   { id: 'p10', username: '@kevin_editz', amount: 'Rp 600.000', channel: 'Mandiri', timeAgo: '22m lalu' },
   { id: 'p11', username: '@tiara_story', amount: 'Rp 420.000', channel: 'BCA', timeAgo: '25m lalu' },
   { id: 'p12', username: '@bayu_pratama', amount: 'Rp 1.050.000', channel: 'BRI', timeAgo: '28m lalu' },
+] as const;
+
+export const VERTICAL_CLIPS_MOCKUP_ITEMS: readonly VerticalClipCardItem[] = [
+  {
+    id: 'clip-1',
+    handle: '@maya_cut',
+    views: '86K',
+    thumbnailSrc: '/assets/images/clip-maya.webp',
+    thumbnailAlt: 'Thumbnail klip video ulasan produk oleh @maya_cut',
+    yRange: [-6, 6, -6],
+    duration: 4.6,
+  },
+  {
+    id: 'clip-2',
+    handle: '@adit_clipper',
+    views: '124K',
+    thumbnailSrc: '/assets/images/clip-adit.webp',
+    thumbnailAlt: 'Thumbnail klip video podcast oleh @adit_clipper',
+    isFocal: true,
+    yRange: [6, -8, 6],
+    duration: 3.8,
+  },
+  {
+    id: 'clip-3',
+    handle: '@fajar_edit',
+    views: '54K',
+    thumbnailSrc: '/assets/images/clip-fajar.webp',
+    thumbnailAlt: 'Thumbnail klip video ulasan teknologi oleh @fajar_edit',
+    yRange: [-8, 4, -8],
+    duration: 5.2,
+    delay: 0.4,
+  },
 ] as const;

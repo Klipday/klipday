@@ -239,7 +239,7 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
                     </div>
                   </div>
                   <span className="px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/25 text-[10px] font-medium text-rose-400 whitespace-nowrap shrink-0">
-                    🔥 Tembus FYP
+                    Tembus FYP
                   </span>
                 </div>
 

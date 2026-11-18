@@ -16,21 +16,6 @@ import type { AudienceType, HomeHeroProps } from '../types';
 gsap.registerPlugin(ScrollTrigger);
 
 /**
- * Renders a crisp miniature QR verification badge for payout share cards.
- *
- * @returns The rendered SVG QR square.
- */
-function MiniQrBadge() {
-  return (
-    <div className="size-4 sm:size-5 rounded-[3px] bg-white p-[2px] shrink-0 shadow-sm">
-      <svg viewBox="0 0 16 16" className="w-full h-full fill-zinc-950" aria-hidden="true">
-        <path d="M1 1h5v5H1V1zm1 1v3h3V2H2zm8-1h5v5h-5V1zm1 1v3h3V2h-3zM1 10h5v5H1v-5zm1 1v3h3v-3H2zm8-1h2v2h-2v-2zm3 0h2v2h-2v-2zm-3 3h2v2h-2v-2zm3 1h2v1h-2v-1zM7 2h2v2H7V2zm0 4h2v3H7V6zm0 5h2v4H7v-4z" />
-      </svg>
-    </div>
-  );
-}
-
-/**
  * Full-Screen (100svh) Volumetric Pipeline Hero for Klipday.
  * Features diagonal volumetric light rays, clean centered display typography (without social proof badge clutter),
  * and a large 7-card horizontal transformation pipeline:
@@ -280,10 +265,10 @@ export function HomeHero({ activeAudience, onAudienceChange, className = '' }: H
           {heroData.subcopy}
         </p>
 
-        {/* 4. Action Buttons */}
+        {/* 4. Primary Action Button */}
         <div
           ref={ctaGroupRef}
-          className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5"
+          className="flex items-center justify-center"
         >
           <Link
             ref={ctaBtnRef}
@@ -293,12 +278,6 @@ export function HomeHero({ activeAudience, onAudienceChange, className = '' }: H
             <span>{heroData.ctaLabel}</span>
             <ArrowRight className="size-3.5 sm:size-4" />
           </Link>
-          <a
-            href="#cara-kerja"
-            className="inline-flex items-center rounded-full border border-white/12 bg-zinc-900/85 px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-base font-medium text-zinc-200 transition-colors hover:bg-zinc-800 hover:text-white"
-          >
-            <span>Jelajahi Campaign</span>
-          </a>
         </div>
       </div>
 
@@ -408,13 +387,19 @@ export function HomeHero({ activeAudience, onAudienceChange, className = '' }: H
             </div>
           </motion.div>
 
-          {/* RIGHT WING: 3 Unified Payout Share-Cards (Small -> Medium -> Large) */}
+          {/* RIGHT WING: 3 Minimalist Payout Share-Cards (Small -> Medium -> Large) */}
           {HERO_RIGHT_PAYOUT_CARDS.map((card) => {
             const primaryReadout = isCreator
               ? card.isLive
                 ? formattedLivePayout
                 : card.creatorAmount
               : card.brandMetric;
+            const statusDotClass = card.isLive
+              ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.75)]'
+              : 'bg-emerald-400/75';
+            const metricLabel = isCreator ? 'Total Pendapatan' : 'Penayangan Asli';
+            const secondaryContext = isCreator ? card.brandMetric : 'Terverifikasi';
+            const footerLabel = isCreator ? card.payoutChannel : 'Rekber Aman';
 
             return (
               <motion.div
@@ -426,68 +411,47 @@ export function HomeHero({ activeAudience, onAudienceChange, className = '' }: H
                   ease: 'easeInOut',
                   delay: card.delay,
                 }}
-                className={`${card.sizeClassName} rounded-2xl border border-white/15 bg-gradient-to-b from-rose-950/75 via-zinc-950 to-black overflow-hidden flex-col justify-between shadow-[0_20px_50px_rgba(0,0,0,0.85)] shrink-0 relative`}
+                className={`${card.sizeClassName} rounded-2xl p-1 sm:p-1.5 bg-zinc-900/90 border border-white/12 shadow-[0_20px_50px_rgba(0,0,0,0.85)] shrink-0`}
               >
-                {/* Subtle Center Radial Glow */}
-                <div
-                  className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_55%,rgba(244,63,94,0.22)_0%,transparent_70%)]"
-                  aria-hidden="true"
-                />
+                <div className="relative w-full h-full rounded-[11px] overflow-hidden bg-gradient-to-b from-[#1a0e13] via-[#0c0c0f] to-[#09090b] p-2 sm:p-2.5 flex flex-col justify-between text-left">
+                  {/* Soft Ambient Rose Wash */}
+                  <div
+                    className="pointer-events-none absolute -top-8 -right-8 size-24 sm:size-28 rounded-full bg-rose-500/20 blur-2xl"
+                    aria-hidden="true"
+                  />
 
-                {/* Top Mini Header Bar */}
-                <div className="relative z-10 flex items-center justify-between px-2 sm:px-2.5 pt-2 sm:pt-2.5">
-                  <div className="flex items-center gap-1">
-                    <span className="font-heading text-[8px] sm:text-[9px] font-black text-white tracking-tight">
-                      Klipday<span className="text-rose-500">.</span>
+                  {/* Top Handle & Status Indicator */}
+                  <div className="relative z-10 flex items-center justify-between gap-1.5">
+                    <span className="text-[7px] sm:text-[8.5px] font-medium text-zinc-400 truncate">
+                      {card.handle}
+                    </span>
+                    <span className={`size-1.5 rounded-full shrink-0 ${statusDotClass}`} />
+                  </div>
+
+                  {/* Center Clean Metric Stack */}
+                  <div className="relative z-10 my-auto space-y-0.5 pt-2">
+                    <span className="block text-[6.5px] sm:text-[8px] xl:text-[9px] text-zinc-400 whitespace-nowrap">
+                      {metricLabel}
+                    </span>
+                    <div
+                      className={`font-heading ${card.amountClassName} font-bold text-white tracking-tight tabular-nums whitespace-nowrap`}
+                    >
+                      {primaryReadout}
+                    </div>
+                    <span className="block text-[6.5px] sm:text-[8px] text-zinc-500 whitespace-nowrap">
+                      {secondaryContext}
                     </span>
                   </div>
-                  <span className="text-[6px] sm:text-[7px] font-mono uppercase tracking-wider text-zinc-400 whitespace-nowrap">
-                    {isCreator ? 'VERIFIED' : 'REKBER'}
-                  </span>
-                </div>
 
-                {/* Upper-Middle Giant Payout Readout */}
-                <div className="relative z-10 px-1.5 sm:px-2 text-center space-y-0.5">
-                  <span className="block text-[6px] sm:text-[8px] text-zinc-300/90 whitespace-nowrap">
-                    {isCreator ? 'Total Pendapatan' : 'Total Penayangan Asli'}
-                  </span>
-                  <div
-                    className={`font-heading ${card.amountClassName} font-black text-white tracking-tight tabular-nums whitespace-nowrap drop-shadow`}
-                  >
-                    {primaryReadout}
-                  </div>
-                  <span className="block text-[5.5px] sm:text-[7px] font-mono text-zinc-400 whitespace-nowrap">
-                    {card.period}
-                  </span>
-                </div>
-
-                {/* Center Glossy 3D "K." Watermark Emblem */}
-                <div className="relative z-10 my-auto flex items-center justify-center">
-                  <div
-                    className={`${card.emblemSizeClassName} -rotate-6 rounded-lg sm:rounded-xl bg-gradient-to-br from-rose-400/30 via-rose-500/20 to-zinc-900/80 border border-rose-300/30 shadow-[0_0_25px_rgba(244,63,94,0.35)] flex items-center justify-center backdrop-blur-sm`}
-                  >
-                    <span className="font-heading text-sm sm:text-xl font-black text-white/90 drop-shadow">
-                      K<span className="text-rose-300">.</span>
+                  {/* Subtle Bottom Footer Line */}
+                  <div className="relative z-10 pt-1.5 border-t border-white/[0.06] flex items-center justify-between gap-1">
+                    <span className="text-[6.5px] sm:text-[8px] text-zinc-400 truncate whitespace-nowrap">
+                      {footerLabel}
+                    </span>
+                    <span className="font-heading text-[7px] sm:text-[8px] font-bold tracking-tight text-white/30 shrink-0">
+                      Klipday<span className="text-rose-400/50">.</span>
                     </span>
                   </div>
-                </div>
-
-                {/* Bottom Dark Footer Strip with Handle + Mini QR Square */}
-                <div className="relative z-10 bg-black/85 border-t border-white/[0.07] px-2 sm:px-2.5 py-1 sm:py-1.5 flex items-center justify-between gap-1 text-left">
-                  <div className="flex items-center gap-1 min-w-0">
-                    <div className="size-3 sm:size-3.5 rounded-full bg-zinc-800 border border-white/15 flex items-center justify-center text-[5px] sm:text-[6px] font-bold text-white shrink-0">
-                      K
-                    </div>
-                    <div className="flex flex-col leading-none min-w-0">
-                      <span className="text-[6.5px] sm:text-[8px] font-semibold text-zinc-200 truncate whitespace-nowrap">
-                        {card.handle}
-                      </span>
-                      <span className="text-[5.5px] sm:text-[6px] font-mono text-zinc-400 whitespace-nowrap mt-0.5 truncate">
-                        {card.dateLabel}
-                      </span>
-                    </div>
-                  </div>
-                  <MiniQrBadge />
                 </div>
               </motion.div>
             );

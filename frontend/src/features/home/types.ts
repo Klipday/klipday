@@ -8,11 +8,6 @@ export interface NavLinkItem {
   readonly isExternal?: boolean;
 }
 
-export interface FooterNavGroup {
-  readonly title: string;
-  readonly links: readonly NavLinkItem[];
-}
-
 export interface HowItWorksStepItem {
   readonly stepNumber: string;
   readonly badgeText: string;
@@ -79,13 +74,11 @@ export interface HeroVideoClipStageItem {
 export interface HeroPayoutShareCardItem {
   readonly id: string;
   readonly handle: string;
-  readonly dateLabel: string;
   readonly creatorAmount: string;
   readonly brandMetric: string;
-  readonly period: string;
+  readonly payoutChannel: string;
   readonly sizeClassName: string;
   readonly amountClassName: string;
-  readonly emblemSizeClassName: string;
   readonly delay: number;
   readonly isLive?: boolean;
 }
@@ -105,6 +98,18 @@ export interface AutomatedPayoutCampaignRow {
   readonly payout: string;
   readonly gradient: string;
   readonly delay: number;
+}
+
+export interface VerticalClipCardItem {
+  readonly id: string;
+  readonly handle: string;
+  readonly views: string;
+  readonly thumbnailSrc: string;
+  readonly thumbnailAlt: string;
+  readonly isFocal?: boolean;
+  readonly yRange: readonly number[];
+  readonly duration: number;
+  readonly delay?: number;
 }
 
 export interface PayoutTickerItem {
