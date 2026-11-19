@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router';
-import { Loader2 } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
+import { LoaderIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { UseLoginMutation, UseResendVerificationMutation } from '../hooks';
 import { signInSchema, type SignInFormValues } from '../schemas';
+import type { AuthLocationState } from '../types';
 import { PasswordInput } from './PasswordInput';
 import type { ApiError } from '@/lib/api-client';
 
@@ -19,7 +20,9 @@ import type { ApiError } from '@/lib/api-client';
  */
 export function SignInForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const isSessionExpired = searchParams.get('expired') === 'true';
 
   const form = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
@@ -58,6 +61,14 @@ export function SignInForm() {
   return (
     <form noValidate onSubmit={form.handleSubmit(OnSubmit)} className="space-y-4">
       <FieldGroup>
+        {isSessionExpired && !mutation.isError && !unverifiedEmail && (
+          <div
+            role="status"
+            className="rounded-lg border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground leading-relaxed">
+            Sesi Anda telah berakhir. Silakan masuk kembali untuk melanjutkan.
+          </div>
+        )}
+
         <Controller
           name="email"
           control={form.control}
@@ -131,7 +142,9 @@ export function SignInForm() {
                     { email: unverifiedEmail },
                     {
                       onSuccess: () =>
-                        navigate(`/verify-email?email=${encodeURIComponent(unverifiedEmail)}`),
+                        navigate(`/verify-email?email=${encodeURIComponent(unverifiedEmail)}`, {
+                          state: { otpJustSent: true } satisfies AuthLocationState,
+                        }),
                     },
                   );
                 }}>
@@ -146,7 +159,7 @@ export function SignInForm() {
         <Button type="submit" disabled={mutation.isPending} className="w-full">
           {mutation.isPending ? (
             <span className="flex items-center gap-2">
-              <Loader2 className="size-4 animate-spin" />
+              <LoaderIcon className="size-4 animate-spin" />
               <span>Memproses...</span>
             </span>
           ) : (

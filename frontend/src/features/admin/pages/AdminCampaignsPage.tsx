@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { CloseIcon, MagnifierIcon } from '@solar-icons/react/linear';
 import { useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -83,7 +83,7 @@ export default function AdminCampaignsPage() {
         <AdminModerationTabs counts={data?.counts} />
 
         <div className="relative w-full sm:w-80 md:w-96">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <MagnifierIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
             type="text"
             value={searchInput}
@@ -101,7 +101,7 @@ export default function AdminCampaignsPage() {
               aria-label="Hapus pencarian"
               className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer transition-colors"
             >
-              <X className="size-3.5" />
+              <CloseIcon className="size-3.5" />
             </button>
           )}
         </div>

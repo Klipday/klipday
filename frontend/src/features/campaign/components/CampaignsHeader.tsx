@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { AddIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { CreateCampaignDialog } from './CreateCampaignDialog';
 
@@ -20,7 +20,7 @@ export function CampaignsHeader() {
       <div>
         <CreateCampaignDialog>
           <Button size="default" className="shadow-xs flex items-center gap-2">
-            <Plus className="h-4 w-4" />
+            <AddIcon className="h-4 w-4" />
             <span>Buat Kampanye</span>
           </Button>
         </CreateCampaignDialog>

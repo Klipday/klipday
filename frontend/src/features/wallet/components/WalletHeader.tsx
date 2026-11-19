@@ -1,4 +1,4 @@
-import { ArrowUpRight, Plus } from 'lucide-react';
+import { AddIcon, ArrowRightUpIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { WalletHeaderProps } from '../types';
@@ -47,7 +47,7 @@ export function WalletHeader({
           variant={hasTopUpAction ? 'secondary' : 'default'}
           size="default"
           className={withdrawalButtonClassName}>
-          <ArrowUpRight className="mr-1.5 size-4" />
+          <ArrowRightUpIcon className="mr-1.5 size-4" />
           <span>Tarik Saldo</span>
         </Button>
 
@@ -57,7 +57,7 @@ export function WalletHeader({
             onClick={onOpenTopUp}
             size="default"
             className="cursor-pointer font-medium shadow-xs">
-            <Plus className="mr-1.5 size-4" />
+            <AddIcon className="mr-1.5 size-4" />
             <span>Top Up Saldo</span>
           </Button>
         ) : null}

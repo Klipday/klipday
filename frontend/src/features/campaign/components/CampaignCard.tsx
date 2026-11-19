@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ImageOff, Users } from 'lucide-react';
+import { GalleryOffIcon, UsersGroupRoundedIcon } from '@solar-icons/react/linear';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,7 +59,7 @@ export function CampaignCard({ campaign, onClick, className }: CampaignCardProps
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-muted/60 text-muted-foreground">
-            <ImageOff className="size-8 opacity-40" />
+            <GalleryOffIcon className="size-8 opacity-40" />
           </div>
         )}
 
@@ -106,8 +106,6 @@ export function CampaignCard({ campaign, onClick, className }: CampaignCardProps
               <img src="/assets/icons/tiktok.svg" alt="TikTok" className="size-3.5 opacity-80 dark:invert" />
             </div>
 
-            <span className="text-muted-foreground/40 text-[10px]">•</span>
-
             {/* Category Tag Pill */}
             <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground text-[10px] font-semibold uppercase tracking-wider border border-border/40">
               {categoryBadge}
@@ -117,7 +115,7 @@ export function CampaignCard({ campaign, onClick, className }: CampaignCardProps
             <div
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground text-[10px] font-semibold border border-border/40 ml-auto"
               title={`${joinedCountDisplay} creator telah bergabung`}>
-              <Users className="size-3 text-muted-foreground" />
+              <UsersGroupRoundedIcon className="size-3 text-muted-foreground" />
               <span>{joinedCountDisplay}</span>
             </div>
           </div>

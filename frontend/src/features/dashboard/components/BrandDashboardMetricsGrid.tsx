@@ -1,91 +1,78 @@
-import { FormatCompactCount } from '@/features/submission/utils/submission-utils';
 import { FormatNumber, FormatRupiah } from '@/features/wallet/utils/wallet-format';
 import { cn } from '@/lib/utils';
 import { DASHBOARD_MESSAGES } from '../constants';
-import type { BrandDashboardMetricsGridProps } from '../types';
+import type {
+  BrandDashboardMetricItem,
+  BrandDashboardMetricsGridProps,
+} from '../types';
 
 /**
- * 4-card KPI metric strip for brand monitoring dashboard.
- * Displays:
- * 1. Total Views Terverifikasi
- * 2. Kampanye Aktif (with status breakdown below)
+ * Minimalist 4-column hairline-divided KPI summary strip for the brand dashboard.
+ * Displays strictly title and value inside each cell:
+ * 1. Total Views
+ * 2. Kampanye Tersubmit (Active + Selesai)
  * 3. Total Saldo Terpakai
- * 4. Saldo Siap Pakai (with Saldo Terkunci below)
+ * 4. Total Video Tersubmit (Approved + Verified)
  *
  * @param props - Metrics data and optional styling className.
- * @returns Bento metric grid element.
+ * @returns Hairline-divided KPI summary strip element.
  */
 export function BrandDashboardMetricsGrid({
   metrics,
   className,
 }: BrandDashboardMetricsGridProps) {
   const counts = metrics.campaignStatusCounts;
-  const statusBreakdownText = counts
-    ? `${counts.draft} Draf • ${counts.finished} Selesai • ${counts.inReview} Review`
-    : 'Semua status kampanye';
+  const fallbackSubmittedCampaigns = counts
+    ? counts.active + counts.finished
+    : 0;
+  const submittedCampaignsCount =
+    metrics.submittedCampaignsCount ?? fallbackSubmittedCampaigns;
+  const submittedVideosCount = metrics.submittedVideosCount ?? 0;
+
+  const formattedTotalViews = FormatNumber(metrics.totalVerifiedViews);
+  const formattedSubmittedCampaigns = FormatNumber(submittedCampaignsCount);
+  const formattedTotalSpent = FormatRupiah(metrics.totalSpent);
+  const formattedSubmittedVideos = FormatNumber(submittedVideosCount);
+
+  const metricItems: BrandDashboardMetricItem[] = [
+    {
+      label: DASHBOARD_MESSAGES.METRICS_TOTAL_VIEWS,
+      value: formattedTotalViews,
+    },
+    {
+      label: DASHBOARD_MESSAGES.METRICS_SUBMITTED_CAMPAIGNS,
+      value: formattedSubmittedCampaigns,
+    },
+    {
+      label: DASHBOARD_MESSAGES.METRICS_TOTAL_SPENT,
+      value: formattedTotalSpent,
+    },
+    {
+      label: DASHBOARD_MESSAGES.METRICS_SUBMITTED_VIDEOS,
+      value: formattedSubmittedVideos,
+    },
+  ];
 
   return (
-    <div className={cn('grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4', className)}>
-      {/* 1. Total Views Terverifikasi */}
-      <div className="rounded-xl border border-border/60 bg-card p-5 transition-colors">
-        <p className="text-xs font-medium text-muted-foreground">
-          {DASHBOARD_MESSAGES.METRICS_TOTAL_VIEWS}
-        </p>
-        <div className="mt-3">
-          <p className="text-2xl font-semibold tracking-tight text-foreground">
-            {FormatCompactCount(metrics.totalVerifiedViews)}
+    <div
+      className={cn(
+        'rounded-xl border border-border/60 bg-border/50 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px overflow-hidden',
+        className,
+      )}
+    >
+      {metricItems.map((item) => (
+        <div key={item.label} className="bg-card px-5 py-4.5">
+          <p className="text-xs font-medium text-muted-foreground">
+            {item.label}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground truncate">
-            {FormatNumber(metrics.totalVerifiedViews)} views valid
-          </p>
-        </div>
-      </div>
-
-      {/* 2. Kampanye Aktif (with draft, selesai, review below) */}
-      <div className="rounded-xl border border-border/60 bg-card p-5 transition-colors">
-        <p className="text-xs font-medium text-muted-foreground">
-          {DASHBOARD_MESSAGES.METRICS_ACTIVE_CAMPAIGNS}
-        </p>
-        <div className="mt-3">
-          <p className="text-2xl font-semibold tracking-tight text-foreground">
-            {metrics.activeCampaignsCount} Kampanye
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground truncate" title={statusBreakdownText}>
-            {statusBreakdownText}
+          <p
+            className="mt-2 text-2xl sm:text-[26px] font-semibold tracking-tight text-foreground tabular-nums leading-tight truncate"
+            title={item.value}
+          >
+            {item.value}
           </p>
         </div>
-      </div>
-
-      {/* 3. Total Saldo Terpakai */}
-      <div className="rounded-xl border border-border/60 bg-card p-5 transition-colors">
-        <p className="text-xs font-medium text-muted-foreground">
-          {DASHBOARD_MESSAGES.METRICS_TOTAL_SPENT}
-        </p>
-        <div className="mt-3">
-          <p className="text-2xl font-semibold tracking-tight text-foreground truncate">
-            {FormatRupiah(metrics.totalSpent)}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground truncate">
-            {DASHBOARD_MESSAGES.METRICS_TOTAL_SPENT_HINT}
-          </p>
-        </div>
-      </div>
-
-      {/* 4. Saldo Siap Pakai (with Saldo Terkunci below, no redundant escrow wording) */}
-      <div className="rounded-xl border border-border/60 bg-card p-5 transition-colors">
-        <p className="text-xs font-medium text-muted-foreground">
-          {DASHBOARD_MESSAGES.METRICS_WALLET_BALANCE}
-        </p>
-        <div className="mt-3">
-          <p className="text-2xl font-semibold tracking-tight text-foreground truncate">
-            {FormatRupiah(metrics.walletActiveBalance)}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground truncate">
-            {DASHBOARD_MESSAGES.METRICS_LOCKED_BALANCE_PREFIX}
-            {FormatRupiah(metrics.escrowLockedBalance)}
-          </p>
-        </div>
-      </div>
+      ))}
     </div>
   );
 }

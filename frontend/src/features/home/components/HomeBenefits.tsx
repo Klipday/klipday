@@ -3,7 +3,7 @@ import { useGSAP } from '@gsap/react';
 import { motion } from 'framer-motion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Video } from 'lucide-react';
+import { VideocameraIcon } from '@solar-icons/react/linear';
 import {
   FLOATING_PAYOUT_CHANNELS,
   HOME_BENEFITS_CONTENT,
@@ -324,7 +324,7 @@ export function HomeBenefits({ activeAudience, className = '' }: HomeBenefitsPro
                 {/* Left Side: 1 Source Video */}
                 <div className="w-[82px] sm:w-24 p-2 sm:p-2.5 rounded-xl bg-zinc-900 border border-white/15 text-center space-y-1 shrink-0 z-10 shadow-xl">
                   <div className="mx-auto size-6 sm:size-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
-                    <Video className="size-3.5 text-rose-400" />
+                    <VideocameraIcon className="size-3.5 text-rose-400" />
                   </div>
                   <span className="block text-[9px] sm:text-[10px] font-semibold text-white whitespace-nowrap">
                     1 Video Brand

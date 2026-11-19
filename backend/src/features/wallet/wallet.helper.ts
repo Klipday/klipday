@@ -1,8 +1,104 @@
+import { randomInt } from 'node:crypto';
 import { Prisma } from '../../generated/prisma/client.js';
 import type { PrismaClient, Wallet } from '../../generated/prisma/client.js';
-import { Role, Status } from '../../generated/prisma/enums.js';
+import { PaymentStatus, PayoutStatus, Role, Status } from '../../generated/prisma/enums.js';
 import { prisma } from '../../utils/prisma.js';
 import { TOP_UP_LIMITS } from './wallet.constants.js';
+import type { PayoutRequestRecord, TopUpRequestRecord } from './wallet.types.js';
+
+interface TopUpRequestEntityFields {
+  id: string;
+  referenceCode: string;
+  walletId: string;
+  amount: Prisma.Decimal | number;
+  uniqueCode: number;
+  totalPayable: Prisma.Decimal | number;
+  destinationBank: string;
+  destinationAccount: string;
+  destinationHolderName: string;
+  senderBank: string | null;
+  senderAccountName: string | null;
+  transferProofUrl: string | null;
+  status: PaymentStatus;
+  rejectionReason: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface PayoutRequestEntityFields {
+  id: string;
+  referenceCode: string;
+  walletId: string;
+  amount: Prisma.Decimal | number;
+  accountProvider: string;
+  accountNumber: string;
+  accountHolderName: string;
+  payoutStatus: PayoutStatus;
+  payoutAccountId?: string | null;
+  rejectionReason: string | null;
+  transferProofUrl: string | null;
+  adminNote: string | null;
+  cancellationRequestedAt: Date | null;
+  cancellationReason: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Maps a TopUpRequest entity into its serialized API DTO record.
+ *
+ * @param topUp - Prisma TopUpRequest record.
+ * @returns Normalized TopUpRequestRecord DTO.
+ */
+export function MapTopUpRequestToRecord(topUp: TopUpRequestEntityFields): TopUpRequestRecord {
+  const record: TopUpRequestRecord = {
+    id: topUp.id,
+    referenceCode: topUp.referenceCode,
+    walletId: topUp.walletId,
+    amount: Number(topUp.amount),
+    uniqueCode: topUp.uniqueCode,
+    totalPayable: Number(topUp.totalPayable),
+    destinationBank: topUp.destinationBank,
+    destinationAccount: topUp.destinationAccount,
+    destinationHolderName: topUp.destinationHolderName,
+    senderBank: topUp.senderBank,
+    senderAccountName: topUp.senderAccountName,
+    transferProofUrl: topUp.transferProofUrl,
+    status: topUp.status,
+    rejectionReason: topUp.rejectionReason,
+    createdAt: topUp.createdAt,
+    updatedAt: topUp.updatedAt,
+  };
+  return record;
+}
+
+/**
+ * Maps a PayoutRequest entity into its serialized API DTO record.
+ *
+ * @param payout - Prisma PayoutRequest record.
+ * @returns Normalized PayoutRequestRecord DTO.
+ */
+export function MapPayoutRequestToRecord(payout: PayoutRequestEntityFields): PayoutRequestRecord {
+  const record: PayoutRequestRecord = {
+    id: payout.id,
+    referenceCode: payout.referenceCode,
+    walletId: payout.walletId,
+    amount: Number(payout.amount),
+    accountProvider: payout.accountProvider,
+    accountNumber: payout.accountNumber,
+    accountHolderName: payout.accountHolderName,
+    payoutStatus: payout.payoutStatus,
+    ...(payout.payoutAccountId !== undefined ? { payoutAccountId: payout.payoutAccountId } : {}),
+    rejectionReason: payout.rejectionReason,
+    transferProofUrl: payout.transferProofUrl,
+    adminNote: payout.adminNote,
+    cancellationRequestedAt: payout.cancellationRequestedAt,
+    cancellationReason: payout.cancellationReason,
+    createdAt: payout.createdAt,
+    updatedAt: payout.updatedAt,
+  };
+  return record;
+}
 
 /**
  * Generates a human-readable reference code for top-up requests (e.g. TU-XXXXXX-XXXX).
@@ -11,7 +107,7 @@ import { TOP_UP_LIMITS } from './wallet.constants.js';
  */
 export function GenerateTopUpReferenceCode(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const randomSuffix = randomInt(1000, 10000);
   const refCode = `TU-${timestamp}-${randomSuffix}`;
   return refCode;
 }
@@ -23,21 +119,18 @@ export function GenerateTopUpReferenceCode(): string {
  */
 export function GenerateWalletTransactionReferenceCode(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const randomSuffix = randomInt(1000, 10000);
   const refCode = `TXN-${timestamp}-${randomSuffix}`;
   return refCode;
 }
 
 /**
- * Generates a random 3-digit verification unique code between 100 and 999.
+ * Generates a cryptographically random 3-digit verification unique code between 100 and 999.
  *
  * @returns Three-digit integer unique code.
  */
 export function GenerateTopUpUniqueCode(): number {
-  const code = Math.floor(
-    TOP_UP_LIMITS.UNIQUE_CODE_MIN +
-      Math.random() * (TOP_UP_LIMITS.UNIQUE_CODE_MAX - TOP_UP_LIMITS.UNIQUE_CODE_MIN + 1),
-  );
+  const code = randomInt(TOP_UP_LIMITS.UNIQUE_CODE_MIN, TOP_UP_LIMITS.UNIQUE_CODE_MAX + 1);
   return code;
 }
 
@@ -48,7 +141,7 @@ export function GenerateTopUpUniqueCode(): number {
  */
 export function GenerateWithdrawalReferenceCode(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const randomSuffix = randomInt(1000, 10000);
   const refCode = `WD-${timestamp}-${randomSuffix}`;
   return refCode;
 }

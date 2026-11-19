@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { ArrowUpRight, Check } from 'lucide-react';
+import { ArrowRightUpIcon, CheckIcon } from '@solar-icons/react/linear';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { FormatRupiah } from '@/features/wallet/utils/wallet-format';
 import { cn } from '@/lib/utils';
@@ -39,7 +39,7 @@ export function AdminActionableCampaignsWidget({
           className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
           <span>{ADMIN_DASHBOARD_MESSAGES.ACTION_MANAGE}</span>
-          <ArrowUpRight className="size-3" />
+          <ArrowRightUpIcon className="size-3" />
         </Link>
       </div>
 
@@ -47,7 +47,7 @@ export function AdminActionableCampaignsWidget({
         {campaigns.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <div className="size-9 rounded-full border border-border bg-muted/40 flex items-center justify-center text-emerald-400 mb-2.5">
-              <Check className="size-4" />
+              <CheckIcon className="size-4" />
             </div>
             <p className="text-sm font-medium text-foreground">
               {ADMIN_DASHBOARD_MESSAGES.CAMPAIGNS_EMPTY_TITLE}

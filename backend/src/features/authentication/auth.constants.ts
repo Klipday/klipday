@@ -51,14 +51,18 @@ export function IsCookieSecure(): boolean {
  * @returns The resolved SameSite policy for the cookie.
  */
 export function ResolveCookieSameSite(): 'lax' | 'strict' | 'none' {
+  const secure = IsCookieSecure();
+
   if (process.env.COOKIE_SAME_SITE) {
     const configured = process.env.COOKIE_SAME_SITE.toLowerCase();
-    if (configured === 'lax' || configured === 'strict' || configured === 'none') {
+    if (configured === 'none') {
+      return secure ? 'none' : 'lax';
+    }
+    if (configured === 'lax' || configured === 'strict') {
       return configured;
     }
   }
 
-  const secure = IsCookieSecure();
   const sameSite = secure ? 'none' : 'lax';
 
   return sameSite;
@@ -113,6 +117,15 @@ export const AUTH_COOKIE_OPTIONS: CookieOptions = GetAuthCookieOptions();
 
 export const AUTH_CLEAR_COOKIE_OPTIONS: CookieOptions = GetAuthClearCookieOptions();
 
+export const AUTH_ERROR_CODES = {
+  EMAIL_NOT_VERIFIED: 'EMAIL_NOT_VERIFIED',
+  RESEND_COOLDOWN_ACTIVE: 'RESEND_COOLDOWN_ACTIVE',
+  EMAIL_DELIVERY_FAILED: 'EMAIL_DELIVERY_FAILED',
+  CSRF_FORBIDDEN: 'CSRF_FORBIDDEN',
+  INVALID_OR_EXPIRED_CODE: 'INVALID_OR_EXPIRED_CODE',
+  INVALID_OR_EXPIRED_RESET_TOKEN: 'INVALID_OR_EXPIRED_RESET_TOKEN',
+} as const;
+
 export const AUTH_MESSAGES = {
   // Success messages
   REGISTER_SUCCESS: 'Account registered successfully.',
@@ -128,6 +141,8 @@ export const AUTH_MESSAGES = {
   CONFIG_MISSING: 'Authentication configuration is missing.',
   SESSION_EXPIRED: 'Session has expired or is invalid.',
   EMAIL_VERIFICATION_REQUIRED: 'Email Anda belum diverifikasi. Silakan masukkan kode verifikasi.',
+  EMAIL_DELIVERY_FAILED: 'Gagal mengirim email verifikasi. Silakan coba beberapa saat lagi.',
+  CSRF_FORBIDDEN: 'Permintaan ditolak karena origin tidak valid.',
 
   // Verification & recovery messages
   INVALID_OR_EXPIRED_CODE: 'Kode verifikasi tidak valid atau telah kedaluwarsa.',

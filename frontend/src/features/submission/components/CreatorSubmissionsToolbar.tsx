@@ -1,4 +1,4 @@
-import { Search, X } from 'lucide-react';
+import { CloseIcon, MagnifierIcon } from '@solar-icons/react/linear';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { CreatorSubmissionsToolbarProps, SubmissionStatus } from '../types';
@@ -71,7 +71,7 @@ export function CreatorSubmissionsToolbar({
 
       {/* Search Input with Clear Button */}
       <div className="relative w-full sm:w-64">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <MagnifierIcon className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -84,7 +84,7 @@ export function CreatorSubmissionsToolbar({
             onClick={onResetSearch}
             aria-label="Hapus pencarian"
             className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-md text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
-            <X className="size-3.5" />
+            <CloseIcon className="size-3.5" />
           </button>
         ) : null}
       </div>

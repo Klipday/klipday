@@ -1,4 +1,4 @@
-import { Calendar, Pencil } from 'lucide-react';
+import { CalendarIcon, PenIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -54,7 +54,7 @@ export function CampaignReviewReward({ campaign, projections, onEdit }: Campaign
           size="sm"
           onClick={onEdit}
           className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-          <Pencil className="size-3.5" />
+          <PenIcon className="size-3.5" />
           Ubah
         </Button>
       </CardHeader>
@@ -107,7 +107,7 @@ export function CampaignReviewReward({ campaign, projections, onEdit }: Campaign
         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 text-sm">
           <div className="rounded-lg border border-border/40 bg-muted/20 p-3.5 space-y-1.5">
             <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <Calendar className="size-3.5" />
+              <CalendarIcon className="size-3.5" />
               <span>Periode & Jadwal Kampanye</span>
             </div>
             <p className="text-sm sm:text-base font-medium text-foreground">{dateRangeDisplay}</p>

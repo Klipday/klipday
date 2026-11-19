@@ -3,7 +3,7 @@ import { useGSAP } from '@gsap/react';
 import { motion } from 'framer-motion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRightIcon } from '@solar-icons/react/linear';
 import { Link } from 'react-router';
 import {
   HERO_LEFT_VIDEO_CLIPS,
@@ -276,7 +276,7 @@ export function HomeHero({ activeAudience, onAudienceChange, className = '' }: H
             className="inline-flex items-center gap-2 rounded-full bg-gradient-to-b from-rose-500 to-rose-600 px-5 sm:px-7 py-2.5 sm:py-3 text-xs sm:text-base font-semibold text-white shadow-[0_0_28px_rgba(244,63,94,0.4)] transition-all duration-200 hover:from-rose-400 hover:to-rose-500 active:scale-[0.98]"
           >
             <span>{heroData.ctaLabel}</span>
-            <ArrowRight className="size-3.5 sm:size-4" />
+            <ArrowRightIcon className="size-3.5 sm:size-4" />
           </Link>
         </div>
       </div>

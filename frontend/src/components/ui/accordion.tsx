@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Accordion as AccordionPrimitive } from 'radix-ui';
-import { ChevronDown } from 'lucide-react';
+import { AltArrowDownIcon } from '@solar-icons/react/linear';
 import { cn } from '@/lib/utils';
 
 function Accordion({
@@ -42,7 +42,7 @@ function AccordionTrigger({
       >
         {children}
         {showChevron && (
-          <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200" />
+          <AltArrowDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform duration-200" />
         )}
       </AccordionPrimitive.Trigger>
     </AccordionPrimitive.Header>

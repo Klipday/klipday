@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import { ArrowRight, Clock, Loader2, Trash2 } from 'lucide-react';
+import {
+  ArrowRightIcon,
+  ClockCircleIcon,
+  LoaderIcon,
+  TrashBinTrashIcon,
+} from '@solar-icons/react/linear';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,7 +69,7 @@ export function BrandPendingTopUpBanner({
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <Clock className="size-3.5" />
+                <ClockCircleIcon className="size-3.5" />
                 Permintaan Top Up Aktif
               </span>
               {isRejected && (
@@ -112,7 +117,7 @@ export function BrandPendingTopUpBanner({
                         size="sm"
                         disabled={cancelMutation.isPending}
                         className="h-9 px-3 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer">
-                        <Trash2 className="size-3.5" />
+                        <TrashBinTrashIcon className="size-3.5" />
                         <span className="ml-1.5">Batalkan</span>
                       </Button>
                     </AlertDialogTrigger>
@@ -139,7 +144,7 @@ export function BrandPendingTopUpBanner({
                           disabled={cancelMutation.isPending}>
                           {cancelMutation.isPending ? (
                             <>
-                              <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                              <LoaderIcon className="mr-1.5 size-3.5 animate-spin" />
                               Membatalkan...
                             </>
                           ) : (
@@ -162,7 +167,7 @@ export function BrandPendingTopUpBanner({
                   <span>
                     {isPending ? 'Lanjutkan Transfer' : isRejected ? 'Unggah Ulang Bukti' : 'Lihat Detail'}
                   </span>
-                  <ArrowRight className="ml-1.5 size-3.5" />
+                  <ArrowRightIcon className="ml-1.5 size-3.5" />
                 </Button>
               </>
             ) : (
@@ -182,7 +187,7 @@ export function BrandPendingTopUpBanner({
                   className="h-9 px-4 text-xs font-medium cursor-pointer"
                   onClick={() => onResumeTopUp(latestTopUp)}>
                   <span>Lanjutkan Terakhir</span>
-                  <ArrowRight className="ml-1.5 size-3.5" />
+                  <ArrowRightIcon className="ml-1.5 size-3.5" />
                 </Button>
               </>
             )}

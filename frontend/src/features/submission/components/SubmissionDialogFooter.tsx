@@ -1,4 +1,9 @@
-import { ArrowLeft, ArrowRight, Loader2, SendHorizontal } from 'lucide-react';
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  LoaderIcon,
+  PlaneIcon,
+} from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { SubmissionDialogFooterProps } from '../types';
@@ -38,7 +43,7 @@ export function SubmissionDialogFooter({
             disabled={isSubmitting}
             onClick={onBack}
             className="gap-2 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground rounded-xl h-10 px-4">
-            <ArrowLeft className="size-3.5" />
+            <ArrowLeftIcon className="size-3.5" />
             <span>Kembali</span>
           </Button>
         )}
@@ -55,12 +60,12 @@ export function SubmissionDialogFooter({
             className="gap-2 font-semibold px-6 rounded-xl h-10 text-xs sm:text-sm bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs cursor-pointer">
             {isSubmitting ? (
               <>
-                <Loader2 className="size-4 animate-spin" />
+                <LoaderIcon className="size-4 animate-spin" />
                 <span>Mengirimkan...</span>
               </>
             ) : (
               <>
-                <SendHorizontal className="size-4" />
+                <PlaneIcon className="size-4" />
                 <span>Kirim Video</span>
               </>
             )}
@@ -74,13 +79,13 @@ export function SubmissionDialogFooter({
             className="gap-2 font-semibold px-6 rounded-xl h-10 text-xs sm:text-sm bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs cursor-pointer">
             {isSubmitting && currentStep === 3 ? (
               <>
-                <Loader2 className="size-4 animate-spin" />
+                <LoaderIcon className="size-4 animate-spin" />
                 <span>Menyimpan...</span>
               </>
             ) : (
               <>
                 <span>Selanjutnya</span>
-                <ArrowRight className="size-4" />
+                <ArrowRightIcon className="size-4" />
               </>
             )}
           </Button>

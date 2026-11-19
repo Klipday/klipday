@@ -67,7 +67,6 @@ export interface NotificationBellProps {
 
 export interface NotificationPopoverProps {
   onClose?: () => void;
-  onSelectFeedback?: (notification: NotificationItem) => void;
   className?: string;
 }
 

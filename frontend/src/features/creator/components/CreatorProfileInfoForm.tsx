@@ -1,6 +1,6 @@
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Lock, Save } from 'lucide-react';
+import { DisketteIcon, LoaderIcon, LockIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -207,7 +207,7 @@ export function CreatorProfileInfoForm({ profile }: CreatorProfileInfoFormProps)
                 disabled
                 className="h-9 rounded-xl pr-9 text-xs border-border/60 bg-muted/40 cursor-not-allowed select-none text-muted-foreground"
               />
-              <Lock className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <LockIcon className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             </div>
             <p className="text-[11px] text-muted-foreground">
               Alamat email terdaftar pada akun Klipday Anda dan tidak dapat diubah.
@@ -245,9 +245,9 @@ export function CreatorProfileInfoForm({ profile }: CreatorProfileInfoFormProps)
           disabled={updateProfileMutation.isPending || !isDirty}
           className="cursor-pointer text-xs">
           {updateProfileMutation.isPending ? (
-            <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+            <LoaderIcon className="mr-1.5 size-3.5 animate-spin" />
           ) : (
-            <Save className="mr-1.5 size-3.5" />
+            <DisketteIcon className="mr-1.5 size-3.5" />
           )}
           <span>Simpan Perubahan</span>
         </Button>

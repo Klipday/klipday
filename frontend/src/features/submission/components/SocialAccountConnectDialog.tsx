@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2, RefreshCw, X } from 'lucide-react';
+import { CloseIcon, LoaderIcon, RefreshIcon } from '@solar-icons/react/linear';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -237,7 +237,7 @@ function SocialAccountConnectDialogInner({
             variant="ghost"
             size="icon-sm"
             className="rounded-full text-muted-foreground hover:text-foreground cursor-pointer shrink-0">
-            <X className="size-4" />
+            <CloseIcon className="size-4" />
             <span className="sr-only">Tutup</span>
           </Button>
         </DialogClose>
@@ -304,7 +304,7 @@ function SocialAccountConnectDialogInner({
                       disabled={requestCodeMutation.isPending || !username.trim()}
                       className="h-10 rounded-xl px-4 text-xs font-medium shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer">
                       {requestCodeMutation.isPending ? (
-                        <Loader2 className="size-4 animate-spin" />
+                        <LoaderIcon className="size-4 animate-spin" />
                       ) : isCodeExpired ? (
                         'Minta Ulang'
                       ) : (
@@ -319,7 +319,7 @@ function SocialAccountConnectDialogInner({
                       variant="outline"
                       onClick={HandleResetCode}
                       className="h-10 rounded-xl px-3 text-xs gap-1.5 text-muted-foreground shrink-0 cursor-pointer">
-                      <RefreshCw className="size-3.5" />
+                      <RefreshIcon className="size-3.5" />
                       <span>Ganti</span>
                     </Button>
                   )}

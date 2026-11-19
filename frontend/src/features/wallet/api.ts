@@ -482,12 +482,17 @@ export async function SetPrimaryCreatorPayoutAccount(
  * Deletes / deactivates a payout account for the authenticated creator.
  *
  * @param accountId - UUID of the payout account.
+ * @param isPendingCancel - When true, passes `intent=cancel_pending` to guard against concurrent admin verification.
  * @throws Standardized API error if deletion fails.
  */
-export async function DeleteCreatorPayoutAccount(accountId: string): Promise<void> {
+export async function DeleteCreatorPayoutAccount(
+  accountId: string,
+  isPendingCancel?: boolean,
+): Promise<void> {
   try {
+    const querySuffix = isPendingCancel ? '?intent=cancel_pending' : '';
     await apiClient.delete<ApiResponse<null>>(
-      `/wallet/creator/payout-accounts/${accountId}`,
+      `/wallet/creator/payout-accounts/${accountId}${querySuffix}`,
     );
   } catch (error) {
     const apiError = ExtractApiError(error, 'Gagal menghapus akun penarikan.');

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, Loader2, Trash2 } from 'lucide-react';
+import { ArrowRightIcon, LoaderIcon, TrashBinTrashIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -74,7 +74,7 @@ export function DraftItemRow({
               className="h-8 px-2 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
               disabled={isDeleting}
             >
-              <Trash2 className="size-3.5" />
+              <TrashBinTrashIcon className="size-3.5" />
               <span className="ml-1.5">Hapus</span>
             </Button>
           </AlertDialogTrigger>
@@ -94,7 +94,7 @@ export function DraftItemRow({
               >
                 {isDeleting ? (
                   <>
-                    <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                    <LoaderIcon className="mr-1.5 size-3.5 animate-spin" />
                     Menghapus...
                   </>
                 ) : (
@@ -113,7 +113,7 @@ export function DraftItemRow({
           disabled={isDeleting}
         >
           <span>Lanjutkan</span>
-          <ArrowRight className="ml-1 size-3.5" />
+          <ArrowRightIcon className="ml-1 size-3.5" />
         </Button>
       </div>
     </div>

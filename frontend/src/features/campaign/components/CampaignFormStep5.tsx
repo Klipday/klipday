@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowLeftIcon, ArrowRightIcon, LoaderIcon } from '@solar-icons/react/linear';
 import { useNavigate, useParams } from 'react-router';
 import {
   AlertDialog,
@@ -109,7 +109,7 @@ export function CampaignFormStep5() {
       {/* ACTION FOOTER BAR */}
       <div className="flex items-center justify-between pt-2 border-t border-border">
         <Button type="button" variant="outline" onClick={HandleBack} disabled={isPending} className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeftIcon className="h-4 w-4" />
           Kembali ke Hadiah & Anggaran
         </Button>
 
@@ -122,13 +122,13 @@ export function CampaignFormStep5() {
                 <Button type="button" disabled={isPending || !completeness.isComplete} className="gap-2 font-semibold">
                   {isPending ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <LoaderIcon className="h-4 w-4 animate-spin" />
                       Memproses...
                     </>
                   ) : (
                     <>
                       <span>{isPaidRevision ? 'Kirim Revisi ke Admin' : 'Lanjut ke Pembayaran'}</span>
-                      <ArrowRight className="h-4 w-4" />
+                      <ArrowRightIcon className="h-4 w-4" />
                     </>
                   )}
                 </Button>
@@ -158,7 +158,7 @@ export function CampaignFormStep5() {
                   <AlertDialogAction onClick={HandleConfirmSubmit} disabled={isPending} className="gap-2">
                     {isPending ? (
                       <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <LoaderIcon className="h-4 w-4 animate-spin" />
                         Memproses...
                       </>
                     ) : (

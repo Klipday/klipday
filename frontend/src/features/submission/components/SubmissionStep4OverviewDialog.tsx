@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ExternalLink, Info, Video } from 'lucide-react';
+import { InfoCircleIcon, SquareTopDownIcon, VideocameraIcon } from '@solar-icons/react/linear';
 import { cn, SanitizeHttpUrl } from '@/lib/utils';
 import type { SubmissionStep4OverviewDialogProps } from '../types';
 
@@ -71,7 +71,7 @@ export function SubmissionStep4OverviewDialog({
                 />
               ) : (
                 <div className="flex flex-col h-full w-full items-center justify-center gap-1.5 p-3 text-center text-xs text-muted-foreground">
-                  <Video className="size-5 text-muted-foreground/60" />
+                  <VideocameraIcon className="size-5 text-muted-foreground/60" />
                   <span className="text-[11px]">Tanpa pratinjau</span>
                 </div>
               )}
@@ -97,7 +97,7 @@ export function SubmissionStep4OverviewDialog({
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-xs text-foreground/90 hover:text-foreground hover:underline break-all font-medium">
                     <span>{liveVideoUrl}</span>
-                    <ExternalLink className="size-3 shrink-0" />
+                    <SquareTopDownIcon className="size-3 shrink-0" />
                   </a>
                 </div>
               </div>
@@ -108,7 +108,7 @@ export function SubmissionStep4OverviewDialog({
 
       {/* Quiet Review Notice */}
       <div className="rounded-xl border border-border/50 bg-muted/20 p-3.5 flex items-start gap-2.5">
-        <Info className="size-4 text-muted-foreground shrink-0 mt-0.5" />
+        <InfoCircleIcon className="size-4 text-muted-foreground shrink-0 mt-0.5" />
         <p className="text-[11px] text-muted-foreground leading-relaxed">
           Setelah dikirim, brand akan meninjau video kamu dalam 1×24 jam kerja. Pastikan video tidak di-private atau dihapus selama periode kampanye berlangsung agar pelacakan views tetap berjalan.
         </p>

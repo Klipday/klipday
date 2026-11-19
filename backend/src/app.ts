@@ -15,6 +15,7 @@ import { creatorWalletRouter } from './features/wallet/creator-wallet.routes.js'
 import { walletRouter } from './features/wallet/wallet.routes.js';
 import { notificationRouter } from './features/notification/notification.routes.js';
 import { ErrorHandler } from './middleware/error.middleware.js';
+import { VerifyCsrfOrigin } from './middleware/csrf.middleware.js';
 
 type HelmetMiddlewareFactory = (
   options?: Readonly<Record<string, unknown>>
@@ -33,9 +34,11 @@ export function CreateApp() {
   app.set('trust proxy', 1);
 
   const configuredOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
-  const allowedOrigins = configuredOrigin.includes(',')
-    ? configuredOrigin.split(',').map((origin) => origin.trim())
-    : configuredOrigin;
+  const parsedOrigins = configuredOrigin
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  const allowedOrigins = parsedOrigins.length > 0 ? parsedOrigins : ['http://localhost:5173'];
 
   const helmetFn = (
     typeof helmet === 'function'
@@ -52,6 +55,7 @@ export function CreateApp() {
 
   app.use(express.json());
   app.use(cookieParser());
+  app.use(VerifyCsrfOrigin);
 
   app.use('/health', healthRouter);
 

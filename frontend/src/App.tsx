@@ -1,10 +1,9 @@
 import { lazy, Suspense } from 'react';
-import { Loader2 } from 'lucide-react';
+import { LoaderIcon } from '@solar-icons/react/linear';
 import { createBrowserRouter, createRoutesFromElements, Navigate, Route, RouterProvider } from 'react-router';
 import { Toaster } from '@/components/ui/sonner';
 import { RootErrorBoundary } from '@/components/RootErrorBoundary';
 import { ProtectedRoute } from '@/features/authentication/components';
-import AuthLayout from '@/features/authentication/layouts/AuthLayout';
 import { CampaignWizardIndexRedirect } from '@/features/campaign/components';
 import CampaignWizardLayout from '@/features/campaign/layouts/CampaignWizardLayout';
 import { SubmissionWizardIndexRedirect } from '@/features/submission/components';
@@ -13,6 +12,7 @@ import { DashboardRoleRedirect } from '@/features/dashboard/components';
 import { AdminKycSkeleton } from '@/features/admin/components/AdminKycSkeleton';
 
 const Home = lazy(() => import('@/features/home/pages/Home'));
+const AuthLayout = lazy(() => import('@/features/authentication/layouts/AuthLayout'));
 const SignIn = lazy(() => import('@/features/authentication/pages/SignIn'));
 const SignUp = lazy(() => import('@/features/authentication/pages/SignUp'));
 const VerifyEmail = lazy(() => import('@/features/authentication/pages/VerifyEmail'));
@@ -56,7 +56,7 @@ const NotificationsPage = lazy(() => import('@/features/notification/pages/Notif
 function PageLoadingFallback() {
   return (
     <div className="flex min-h-svh items-center justify-center bg-background">
-      <Loader2 className="size-8 animate-spin text-primary" />
+      <LoaderIcon className="size-8 animate-spin text-primary" />
     </div>
   );
 }
@@ -110,7 +110,12 @@ const router = createBrowserRouter(
       <Route path="terms-of-service" element={<Navigate to="/syarat-ketentuan" replace />} />
       <Route path="privacy" element={<Navigate to="/kebijakan-privasi" replace />} />
       <Route path="privacy-policy" element={<Navigate to="/kebijakan-privasi" replace />} />
-      <Route element={<AuthLayout />}>
+      <Route
+        element={
+          <Suspense fallback={<PageLoadingFallback />}>
+            <AuthLayout />
+          </Suspense>
+        }>
         <Route path="signin" element={<SignIn />} />
         <Route path="login" element={<Navigate to="/signin" replace />} />
         <Route path="signup" element={<SignUp />} />

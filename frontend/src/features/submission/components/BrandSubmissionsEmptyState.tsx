@@ -1,4 +1,4 @@
-import { RotateCcw, SearchX, Video } from 'lucide-react';
+import { MagnifierCloseIcon, RestartIcon, VideocameraIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { BrandSubmissionsEmptyProps } from '../types';
@@ -23,7 +23,7 @@ export function BrandSubmissionsEmptyState({
           className,
         )}>
         <div className="flex size-10 items-center justify-center rounded-xl bg-muted/50 text-muted-foreground border border-border/40">
-          <SearchX className="size-5" />
+          <MagnifierCloseIcon className="size-5" />
         </div>
         <div className="max-w-md space-y-1">
           <h3 className="text-sm font-medium text-foreground">
@@ -40,7 +40,7 @@ export function BrandSubmissionsEmptyState({
             size="sm"
             onClick={onResetFilters}
             className="gap-1.5 text-xs rounded-lg cursor-pointer border-border/60">
-            <RotateCcw className="size-3.5" />
+            <RestartIcon className="size-3.5" />
             <span>Reset Filter</span>
           </Button>
         )}
@@ -55,7 +55,7 @@ export function BrandSubmissionsEmptyState({
         className,
       )}>
       <div className="flex size-10 items-center justify-center rounded-xl bg-muted/50 text-muted-foreground border border-border/40">
-        <Video className="size-5" />
+        <VideocameraIcon className="size-5" />
       </div>
       <div className="max-w-md space-y-1">
         <h3 className="text-sm font-medium text-foreground">

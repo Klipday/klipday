@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, RotateCcw } from 'lucide-react';
+import { DangerCircleIcon, RestartIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { UseCampaignSubmissionsQuery } from '../hooks';
@@ -114,7 +114,7 @@ export function BrandSubmissionsView({
       {!isLoading && isError && (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/5 p-8 text-center space-y-3.5">
           <div className="flex size-10 items-center justify-center rounded-xl bg-destructive/10 text-destructive border border-destructive/20">
-            <AlertCircle className="size-5" />
+            <DangerCircleIcon className="size-5" />
           </div>
           <div className="max-w-md space-y-1">
             <h4 className="text-sm font-medium text-destructive">Gagal Memuat Pengajuan</h4>
@@ -126,7 +126,7 @@ export function BrandSubmissionsView({
             size="sm"
             onClick={() => refetch()}
             className="gap-1.5 text-xs rounded-lg cursor-pointer border-border/60">
-            <RotateCcw className="size-3.5" />
+            <RestartIcon className="size-3.5" />
             <span>Coba Lagi</span>
           </Button>
         </div>

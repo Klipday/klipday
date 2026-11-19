@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { PayoutAccountType } from '../../generated/prisma/enums.js';
 import { PROVIDER_ACCOUNT_RULES } from '../brand/brand.constants.js';
+import { IsSafeHttpsProofUrl } from '../brand/brand.schemas.js';
 import {
   CREATOR_PAYOUT_LIMITS,
   CREATOR_WALLET_MESSAGES,
@@ -28,7 +29,7 @@ export const CreateWithdrawalSchema = z.object({
     .int('Nominal harus berupa bilangan bulat')
     .min(WITHDRAWAL_LIMITS.MIN_AMOUNT, WALLET_MESSAGES.INVALID_WITHDRAWAL_AMOUNT)
     .max(WITHDRAWAL_LIMITS.MAX_AMOUNT, WALLET_MESSAGES.INVALID_WITHDRAWAL_AMOUNT),
-  payoutAccountId: z.string().uuid('ID akun penarikan tidak valid').optional(),
+  payoutAccountId: z.string().uuid('ID akun penarikan tidak valid'),
   accountProvider: z.string().trim().optional(),
   accountNumber: z.string().trim().optional(),
   accountHolderName: z.string().trim().optional(),
@@ -83,7 +84,10 @@ export const CreateCreatorPayoutAccountSchema = z
       .trim()
       .min(CREATOR_PAYOUT_LIMITS.MIN_ACCOUNT_HOLDER_LENGTH, CREATOR_WALLET_MESSAGES.ACCOUNT_HOLDER_REQUIRED)
       .max(CREATOR_PAYOUT_LIMITS.MAX_ACCOUNT_HOLDER_LENGTH, CREATOR_WALLET_MESSAGES.ACCOUNT_HOLDER_REQUIRED),
-    proofUrl: z.string().url(CREATOR_WALLET_MESSAGES.PROOF_URL_REQUIRED),
+    proofUrl: z
+      .string()
+      .url(CREATOR_WALLET_MESSAGES.PROOF_URL_REQUIRED)
+      .refine(IsSafeHttpsProofUrl, { message: CREATOR_WALLET_MESSAGES.PROOF_URL_REQUIRED }),
     isPrimary: z.boolean().optional().default(false),
   })
   .superRefine((data, ctx) => {

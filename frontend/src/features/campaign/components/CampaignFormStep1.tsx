@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ExternalLink } from 'lucide-react';
+import { SquareTopDownIcon } from '@solar-icons/react/linear';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -285,7 +285,7 @@ export function CampaignFormStep1() {
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors">
                       <span>Uji Tautan</span>
-                      <ExternalLink className="size-3" />
+                      <SquareTopDownIcon className="size-3" />
                     </a>
                   )}
                 </div>

@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { AltArrowLeftIcon, AltArrowRightIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { BrandSubmissionsPaginationProps } from '../types';
@@ -62,7 +62,7 @@ export function BrandSubmissionsPagination({
           onClick={HandlePrevious}
           disabled={isFirstPage}
           className="h-8 gap-1 px-3 text-xs rounded-lg cursor-pointer border-border/60">
-          <ChevronLeft className="size-3.5" />
+          <AltArrowLeftIcon className="size-3.5" />
           <span>Sebelumnya</span>
         </Button>
 
@@ -78,7 +78,7 @@ export function BrandSubmissionsPagination({
           disabled={isLastPage}
           className="h-8 gap-1 px-3 text-xs rounded-lg cursor-pointer border-border/60">
           <span>Selanjutnya</span>
-          <ChevronRight className="size-3.5" />
+          <AltArrowRightIcon className="size-3.5" />
         </Button>
       </div>
     </div>

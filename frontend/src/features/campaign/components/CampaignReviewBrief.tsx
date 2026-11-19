@@ -1,4 +1,4 @@
-import { Pencil } from 'lucide-react';
+import { PenIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CampaignReviewBriefProps } from '../types';
@@ -34,7 +34,7 @@ export function CampaignReviewBrief({ brief, onEdit }: CampaignReviewBriefProps)
           size="sm"
           onClick={onEdit}
           className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-          <Pencil className="size-3.5" />
+          <PenIcon className="size-3.5" />
           Ubah
         </Button>
       </CardHeader>

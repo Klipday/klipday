@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, RotateCcw } from 'lucide-react';
+import { DangerCircleIcon, RestartIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
@@ -110,7 +110,7 @@ export default function CreatorSubmissionsPage({ className }: CreatorSubmissions
         <CreatorSubmissionsSkeleton />
       ) : isError ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center space-y-3">
-          <AlertCircle className="size-5 text-destructive" />
+          <DangerCircleIcon className="size-5 text-destructive" />
           <p className="text-xs text-destructive font-medium">{errorMessage}</p>
           <Button
             type="button"
@@ -118,7 +118,7 @@ export default function CreatorSubmissionsPage({ className }: CreatorSubmissions
             size="sm"
             onClick={() => void refetch()}
             className="gap-1.5 rounded-xl text-xs h-8 cursor-pointer">
-            <RotateCcw className="size-3.5" />
+            <RestartIcon className="size-3.5" />
             <span>Coba Lagi</span>
           </Button>
         </div>

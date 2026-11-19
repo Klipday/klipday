@@ -1,4 +1,4 @@
-import { Check, Eye, X } from 'lucide-react';
+import { CheckIcon, CloseIcon, EyeIcon } from '@solar-icons/react/linear';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -137,7 +137,7 @@ export function AdminTopUpItemRow({
               onClick={() => onOpenProof(topUp)}
               className="h-8 gap-1.5 text-xs cursor-pointer"
             >
-              <Eye className="size-3.5" />
+              <EyeIcon className="size-3.5" />
               <span>Lihat Bukti Struk</span>
             </Button>
           ) : (
@@ -157,7 +157,7 @@ export function AdminTopUpItemRow({
                 onClick={() => onReview(topUp, 'REJECT')}
                 className="h-8 text-xs cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive border-border/60"
               >
-                <X className="mr-1 size-3.5" />
+                <CloseIcon className="mr-1 size-3.5" />
                 <span>Tolak</span>
               </Button>
               <Button
@@ -167,7 +167,7 @@ export function AdminTopUpItemRow({
                 onClick={() => onReview(topUp, 'APPROVE')}
                 className="h-8 text-xs cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                <Check className="mr-1 size-3.5" />
+                <CheckIcon className="mr-1 size-3.5" />
                 <span>Setujui Top Up</span>
               </Button>
             </>

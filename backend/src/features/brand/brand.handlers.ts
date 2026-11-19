@@ -4,12 +4,14 @@ import type { NextFunction, Request, Response } from 'express';
 import { Prisma } from '../../generated/prisma/client.js';
 import {
   CampaignStatus,
+  NotificationType,
   PayoutStatus,
   Role,
   Status,
   SubmissionStatus,
   VerificationStatus,
 } from '../../generated/prisma/enums.js';
+import { NotifyAdminPendingItem } from '../../services/notification/notification.dispatcher.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
 import { prisma } from '../../utils/prisma.js';
 import {
@@ -165,6 +167,10 @@ export async function UpdateBrandProfile(
 
     if (payload.companyName !== undefined) {
       updateData.companyName = payload.companyName.trim();
+    }
+    if (payload.phoneNumber !== undefined) {
+      const sanitizedPhone = payload.phoneNumber?.replace(/[\s-]/g, '').trim() ?? '';
+      updateData.phoneNumber = sanitizedPhone ? sanitizedPhone : null;
     }
     if (payload.industry !== undefined) {
       updateData.industry = payload.industry ?? null;
@@ -642,10 +648,39 @@ export async function CreateBrandPayoutAccount(
       },
     });
 
-    // If first account, no active primary account exists, or explicitly requested as primary
-    const shouldBePrimary = !hasPrimaryAccount || Boolean(payload.isPrimary);
+    // Never demote an existing VERIFIED primary account when creating an unverified PENDING account
+    const hasVerifiedPrimary =
+      hasPrimaryAccount?.verificationStatus === VerificationStatus.VERIFIED;
+    const shouldBePrimary =
+      !hasPrimaryAccount || (!hasVerifiedPrimary && Boolean(payload.isPrimary));
 
     const createdAccount = await prisma.$transaction(async (tx) => {
+      if (typeof tx.brandPayoutAccount.count === 'function') {
+        const txActiveCount = await tx.brandPayoutAccount.count({
+          where: {
+            walletId: wallet.id,
+            status: Status.ACTIVE,
+          },
+        });
+        if (txActiveCount >= BRAND_LIMITS.MAX_PAYOUT_ACCOUNTS) {
+          throw new Error('PAYOUT_ACCOUNT_LIMIT_EXCEEDED');
+        }
+      }
+
+      if (typeof tx.brandPayoutAccount.findFirst === 'function') {
+        const txDuplicate = await tx.brandPayoutAccount.findFirst({
+          where: {
+            walletId: wallet.id,
+            provider: normalizedProvider,
+            accountNumber: normalizedAccountNumber,
+            status: Status.ACTIVE,
+          },
+        });
+        if (txDuplicate) {
+          throw new Error('PAYOUT_ACCOUNT_DUPLICATE');
+        }
+      }
+
       if (shouldBePrimary) {
         await tx.brandPayoutAccount.updateMany({
           where: {
@@ -691,8 +726,24 @@ export async function CreateBrandPayoutAccount(
       updatedAt: createdAccount.updatedAt,
     };
 
+    void NotifyAdminPendingItem({
+      type: NotificationType.ADMIN_NEW_KYC,
+      title: 'Dokumen KYC Baru Menunggu Verifikasi',
+      message: 'Brand baru mengajukan verifikasi data rekening / e-wallet.',
+      actionUrl: '/admin-dashboard/kyc',
+      metadata: { payoutAccountId: createdAccount.id },
+    });
+
     SendSuccess(res, record, BRAND_MESSAGES.PAYOUT_ACCOUNT_CREATED_SUCCESS, 201);
   } catch (err) {
+    if (err instanceof Error && err.message === 'PAYOUT_ACCOUNT_LIMIT_EXCEEDED') {
+      SendError(res, BRAND_MESSAGES.PAYOUT_ACCOUNT_LIMIT_EXCEEDED, 400);
+      return;
+    }
+    if (err instanceof Error && err.message === 'PAYOUT_ACCOUNT_DUPLICATE') {
+      SendError(res, BRAND_MESSAGES.PAYOUT_ACCOUNT_DUPLICATE, 409);
+      return;
+    }
     next(err);
   }
 }
@@ -746,6 +797,11 @@ export async function SetPrimaryBrandPayoutAccount(
 
     if (!targetAccount) {
       SendError(res, BRAND_MESSAGES.PAYOUT_ACCOUNT_NOT_FOUND, 404);
+      return;
+    }
+
+    if (targetAccount.verificationStatus !== VerificationStatus.VERIFIED) {
+      SendError(res, BRAND_MESSAGES.PAYOUT_ACCOUNT_MUST_BE_VERIFIED, 400);
       return;
     }
 
@@ -866,21 +922,46 @@ export async function DeleteBrandPayoutAccount(
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.brandPayoutAccount.update({
-        where: { id: targetAccount.id },
-        data: { status: Status.DELETED, isPrimary: false },
-      });
-
-      // If deleted account was primary, promote another active account to primary
-      if (targetAccount.isPrimary) {
-        const remainingAccount = await tx.brandPayoutAccount.findFirst({
+      if (intent === 'cancel_pending' && typeof tx.brandPayoutAccount.updateMany === 'function') {
+        const cancelResult = await tx.brandPayoutAccount.updateMany({
           where: {
+            id: targetAccount.id,
             walletId: wallet.id,
             status: Status.ACTIVE,
-            id: { not: targetAccount.id },
+            verificationStatus: VerificationStatus.PENDING,
           },
-          orderBy: { createdAt: 'desc' },
+          data: { status: Status.DELETED, isPrimary: false },
         });
+        if (cancelResult.count === 0) {
+          throw new Error('PAYOUT_ACCOUNT_ALREADY_VERIFIED');
+        }
+      } else {
+        await tx.brandPayoutAccount.update({
+          where: { id: targetAccount.id },
+          data: { status: Status.DELETED, isPrimary: false },
+        });
+      }
+
+      // If deleted account was primary, prioritize promoting a remaining VERIFIED account first
+      if (targetAccount.isPrimary) {
+        const remainingAccount =
+          (await tx.brandPayoutAccount.findFirst({
+            where: {
+              walletId: wallet.id,
+              status: Status.ACTIVE,
+              verificationStatus: VerificationStatus.VERIFIED,
+              id: { not: targetAccount.id },
+            },
+            orderBy: { createdAt: 'desc' },
+          })) ??
+          (await tx.brandPayoutAccount.findFirst({
+            where: {
+              walletId: wallet.id,
+              status: Status.ACTIVE,
+              id: { not: targetAccount.id },
+            },
+            orderBy: { createdAt: 'desc' },
+          }));
 
         if (remainingAccount) {
           await tx.brandPayoutAccount.update({
@@ -898,6 +979,10 @@ export async function DeleteBrandPayoutAccount(
 
     SendSuccess(res, { id: targetAccount.id }, successMessage);
   } catch (err) {
+    if (err instanceof Error && err.message === 'PAYOUT_ACCOUNT_ALREADY_VERIFIED') {
+      SendError(res, BRAND_MESSAGES.PAYOUT_ACCOUNT_ALREADY_VERIFIED, 409);
+      return;
+    }
     next(err);
   }
 }
@@ -987,7 +1072,7 @@ export async function GetBrandDashboardSummary(
       },
     });
 
-    const overallVerifiedSubmissionsPromise = prisma.submission.aggregate({
+    const overallVerifiedSubmissionsQuery = {
       where: {
         status: Status.ACTIVE,
         submissionStatus: {
@@ -999,10 +1084,16 @@ export async function GetBrandDashboardSummary(
         },
       },
       _sum: {
-        verifiedViews: true,
-        earnings: true,
+        verifiedViews: true as const,
+        earnings: true as const,
       },
-    });
+      _count: {
+        _all: true as const,
+      },
+    };
+    const overallVerifiedSubmissionsPromise = prisma.submission.aggregate(
+      overallVerifiedSubmissionsQuery,
+    );
 
     const ongoingCampaignsPromise = prisma.campaign.findMany({
       where: {
@@ -1220,6 +1311,10 @@ export async function GetBrandDashboardSummary(
       return topClipItem;
     });
 
+    const submittedCampaignsCount =
+      campaignStatusCounts.active + campaignStatusCounts.finished;
+    const submittedVideosCount = overallVerifiedSubmissions._count?._all ?? 0;
+
     const summary: BrandDashboardResponse = {
       brand: {
         id: brand.id,
@@ -1230,6 +1325,8 @@ export async function GetBrandDashboardSummary(
         totalVerifiedViews: overallVerifiedSubmissions._sum.verifiedViews ?? 0,
         totalSpent: Number(overallVerifiedSubmissions._sum.earnings ?? 0),
         activeCampaignsCount,
+        submittedCampaignsCount,
+        submittedVideosCount,
         pendingReviewsCount,
         walletActiveBalance: wallet ? Number(wallet.balance) : 0,
         escrowLockedBalance,

@@ -1,5 +1,10 @@
 import { Link } from 'react-router';
-import { ArrowUpRight, Plus, ShieldCheck, Wallet } from 'lucide-react';
+import {
+  AddIcon,
+  ArrowRightUpIcon,
+  ShieldCheckIcon,
+  WalletIcon,
+} from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { FormatRupiah } from '@/features/wallet/utils/wallet-format';
 import { cn } from '@/lib/utils';
@@ -46,7 +51,7 @@ export function BrandWalletOverviewCard({
           >
             <Link to="/brand-dashboard/wallet">
               <span>Rincian</span>
-              <ArrowUpRight className="size-3.5" />
+              <ArrowRightUpIcon className="size-3.5" aria-hidden="true" />
             </Link>
           </Button>
         </div>
@@ -55,7 +60,7 @@ export function BrandWalletOverviewCard({
           <div className="rounded-lg border border-border/60 bg-muted/20 p-3.5 space-y-1">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Saldo Aktif Siap Pakai</span>
-              <Wallet className="size-3.5" />
+              <WalletIcon className="size-3.5" aria-hidden="true" />
             </div>
             <p className="text-xl font-bold text-foreground">
               {FormatRupiah(walletActiveBalance)}
@@ -65,7 +70,7 @@ export function BrandWalletOverviewCard({
           <div className="space-y-2 text-xs">
             <div className="flex items-center justify-between py-1.5 border-b border-border/30">
               <span className="text-muted-foreground flex items-center gap-1.5">
-                <ShieldCheck className="size-3.5 text-primary" />
+                <ShieldCheckIcon className="size-3.5 text-primary" aria-hidden="true" />
                 Escrow Terkunci
               </span>
               <span className="font-semibold text-foreground">
@@ -89,7 +94,7 @@ export function BrandWalletOverviewCard({
           onClick={onTopUpClick}
           className="w-full h-9 gap-1.5 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90"
         >
-          <Plus className="size-3.5" />
+          <AddIcon className="size-3.5" aria-hidden="true" />
           <span>Top-Up Saldo Dompet</span>
         </Button>
       </div>

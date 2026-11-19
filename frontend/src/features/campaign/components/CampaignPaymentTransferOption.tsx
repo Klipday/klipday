@@ -1,5 +1,11 @@
 import { useState, useRef } from 'react';
-import { Check, Copy, Loader2, SendHorizontal, UploadCloud } from 'lucide-react';
+import {
+  CheckIcon,
+  CloudUploadIcon,
+  CopyIcon,
+  LoaderIcon,
+  PlaneIcon,
+} from '@solar-icons/react/linear';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -191,12 +197,12 @@ export function CampaignPaymentTransferOption({
             className="gap-2 shrink-0 self-start sm:self-center border-border/60 hover:bg-muted text-xs font-medium">
             {copiedField === 'amount' ? (
               <>
-                <Check className="size-3.5 text-emerald-500" />
+                <CheckIcon className="size-3.5 text-emerald-500" />
                 Nominal Tersalin
               </>
             ) : (
               <>
-                <Copy className="size-3.5" />
+                <CopyIcon className="size-3.5" />
                 Salin Nominal
               </>
             )}
@@ -226,12 +232,12 @@ export function CampaignPaymentTransferOption({
             className="gap-2 shrink-0 self-start sm:self-center border-border/60 hover:bg-muted text-xs font-medium">
             {copiedField === 'account' ? (
               <>
-                <Check className="size-3.5 text-emerald-500" />
+                <CheckIcon className="size-3.5 text-emerald-500" />
                 Rekening Tersalin
               </>
             ) : (
               <>
-                <Copy className="size-3.5" />
+                <CopyIcon className="size-3.5" />
                 Salin Rekening
               </>
             )}
@@ -357,7 +363,7 @@ export function CampaignPaymentTransferOption({
                   </div>
                   <div className="min-w-0 flex-1 space-y-0.5">
                     <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-500">
-                      <Check className="size-3.5" />
+                      <CheckIcon className="size-3.5" />
                       Bukti transfer siap diajukan
                     </div>
                     <a
@@ -389,12 +395,12 @@ export function CampaignPaymentTransferOption({
                 )}>
                 {isUploading ? (
                   <div className="flex flex-col items-center gap-2 py-2">
-                    <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                    <LoaderIcon className="size-5 animate-spin text-muted-foreground" />
                     <span className="text-xs text-muted-foreground">Mengunggah bukti transfer ({uploadProgress}%)...</span>
                   </div>
                 ) : (
                   <>
-                    <UploadCloud className="size-5 text-muted-foreground mb-2" />
+                    <CloudUploadIcon className="size-5 text-muted-foreground mb-2" />
                     <p className="text-xs font-medium text-foreground">Klik untuk mengunggah bukti transfer</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">JPG, PNG, atau WEBP (Maksimal 5MB)</p>
                   </>
@@ -410,12 +416,12 @@ export function CampaignPaymentTransferOption({
         <Button type="submit" disabled={!canSubmit} className="gap-2 font-semibold min-w-44 h-10 shadow-xs">
           {confirmMutation.isPending ? (
             <>
-              <Loader2 className="size-4 animate-spin" />
+              <LoaderIcon className="size-4 animate-spin" />
               Mengirim Bukti...
             </>
           ) : (
             <>
-              <SendHorizontal className="size-4" />
+              <PlaneIcon className="size-4" />
               Konfirmasi Pembayaran
             </>
           )}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { SquareTopDownIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -130,7 +130,7 @@ export function AdminKycProofDialog({
             >
               <a href={safeProofUrl} target="_blank" rel="noopener noreferrer">
                 <span>Buka Ukuran Penuh</span>
-                <ExternalLink className="size-3.5" />
+                <SquareTopDownIcon className="size-3.5" />
               </a>
             </Button>
           )}

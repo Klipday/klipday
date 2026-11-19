@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, Copy, Eye, X } from 'lucide-react';
+import {
+  CheckIcon,
+  CloseIcon,
+  CopyIcon,
+  EyeIcon,
+} from '@solar-icons/react/linear';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -183,9 +188,9 @@ export function AdminKycItemRow({
               className="inline-flex items-center gap-1 rounded border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
             >
               {copied ? (
-                <Check className="size-3 text-emerald-500" />
+                <CheckIcon className="size-3 text-emerald-500" />
               ) : (
-                <Copy className="size-3" />
+                <CopyIcon className="size-3" />
               )}
               <span>{copied ? 'Tersalin' : 'Salin'}</span>
             </button>
@@ -224,7 +229,7 @@ export function AdminKycItemRow({
           onClick={() => onOpenProof(item)}
           className="h-8 gap-1.5 text-xs cursor-pointer"
         >
-          <Eye className="size-3.5" />
+          <EyeIcon className="size-3.5" />
           <span>Lihat Foto Bukti Rekening</span>
         </Button>
 
@@ -238,7 +243,7 @@ export function AdminKycItemRow({
                 onClick={() => onReview(item, 'REJECT')}
                 className="h-8 text-xs cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive border-border/60"
               >
-                <X className="mr-1 size-3.5" />
+                <CloseIcon className="mr-1 size-3.5" />
                 <span>Tolak</span>
               </Button>
               <Button
@@ -248,7 +253,7 @@ export function AdminKycItemRow({
                 onClick={() => onReview(item, 'APPROVE')}
                 className="h-8 text-xs cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                <Check className="mr-1 size-3.5" />
+                <CheckIcon className="mr-1 size-3.5" />
                 <span>Setujui KYC</span>
               </Button>
             </>

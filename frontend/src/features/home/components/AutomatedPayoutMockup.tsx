@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { ArrowRightUpIcon, CheckCircleIcon } from '@solar-icons/react/linear';
 import { AUTOMATED_PAYOUT_CAMPAIGN_ROWS } from '../constants/home.constants';
 import type { AutomatedPayoutMockupProps } from '../types';
 
@@ -31,7 +31,7 @@ export function AutomatedPayoutMockup({ className = '' }: AutomatedPayoutMockupP
             <span className="font-semibold text-white truncate">Akumulasi Saldo</span>
           </div>
           <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-medium shrink-0">
-            <CheckCircle2 className="size-3 text-emerald-400" />
+            <CheckCircleIcon className="size-3 text-emerald-400" />
             Terhitung
           </span>
         </div>
@@ -71,7 +71,7 @@ export function AutomatedPayoutMockup({ className = '' }: AutomatedPayoutMockupP
           <span className="text-zinc-400">Total Cair:</span>
           <span className="font-heading font-bold text-white text-xs flex items-center gap-0.5 tabular-nums">
             Rp 996.000
-            <ArrowUpRight className="size-3 text-emerald-400" />
+            <ArrowRightUpIcon className="size-3 text-emerald-400" />
           </span>
         </div>
       </div>

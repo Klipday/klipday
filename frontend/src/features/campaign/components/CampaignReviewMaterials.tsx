@@ -1,4 +1,4 @@
-import { ExternalLink, Pencil } from 'lucide-react';
+import { PenIcon, SquareTopDownIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SanitizeHttpUrl } from '@/lib/utils';
@@ -28,7 +28,7 @@ export function CampaignReviewMaterials({ materials, onEdit }: CampaignReviewMat
           size="sm"
           onClick={onEdit}
           className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-          <Pencil className="size-3.5" />
+          <PenIcon className="size-3.5" />
           Ubah
         </Button>
       </CardHeader>
@@ -57,7 +57,7 @@ export function CampaignReviewMaterials({ materials, onEdit }: CampaignReviewMat
                       target="_blank"
                       rel="noopener noreferrer"
                       className="ml-4 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline shrink-0 transition-colors">
-                      Buka Aset <ExternalLink className="h-3 w-3" />
+                      Buka Aset <SquareTopDownIcon className="h-3 w-3" />
                     </a>
                   ) : (
                     <span className="ml-4 text-xs text-muted-foreground italic shrink-0">Tautan tidak valid</span>

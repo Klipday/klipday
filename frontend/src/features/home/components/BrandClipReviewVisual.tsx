@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Play } from 'lucide-react';
+import { PlayIcon } from '@solar-icons/react/linear';
 import type { BrandClipReviewVisualProps } from '../types';
 
 /**
@@ -29,7 +29,7 @@ export function BrandClipReviewVisual({ className = '' }: BrandClipReviewVisualP
           {/* Left: Mini Play Button + Stack */}
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="size-9 rounded-lg bg-zinc-800 border border-white/10 flex items-center justify-center shrink-0">
-              <Play className="size-3.5 fill-white text-white ml-0.5" />
+              <PlayIcon className="size-3.5 fill-white text-white ml-0.5" />
             </div>
 
             <div className="flex flex-col min-w-0">

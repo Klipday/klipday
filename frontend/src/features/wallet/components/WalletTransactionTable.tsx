@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { AltArrowLeftIcon, AltArrowRightIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -141,7 +141,7 @@ export function WalletTransactionTable({
                 onClick={() => onPageChange(page - 1)}
                 disabled={page <= 1 || isLoading}
                 className="cursor-pointer text-xs h-8 rounded-lg border-border/60">
-                <ChevronLeft className="mr-1 size-3.5" />
+                <AltArrowLeftIcon className="mr-1 size-3.5" />
                 Sebelumnya
               </Button>
               <Button
@@ -152,7 +152,7 @@ export function WalletTransactionTable({
                 disabled={page >= totalPages || isLoading}
                 className="cursor-pointer text-xs h-8 rounded-lg border-border/60">
                 Selanjutnya
-                <ChevronRight className="ml-1 size-3.5" />
+                <AltArrowRightIcon className="ml-1 size-3.5" />
               </Button>
             </div>
           </div>

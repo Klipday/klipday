@@ -1,4 +1,10 @@
-import { ArrowLeft, Check, Loader2, Users, Video } from 'lucide-react';
+import {
+  ArrowLeftIcon,
+  CheckIcon,
+  LoaderIcon,
+  UsersGroupRoundedIcon,
+  VideocameraIcon,
+} from '@solar-icons/react/linear';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -114,7 +120,7 @@ export function CampaignDetailHeader({
             size="sm"
             onClick={HandleBackClick}
             className="h-8 -ml-2 gap-1.5 text-xs text-muted-foreground hover:text-foreground bg-background/50 backdrop-blur-md border border-border/40 hover:bg-background/80 rounded-lg px-2.5">
-            <ArrowLeft className="size-3.5" />
+            <ArrowLeftIcon className="size-3.5" />
             <span>Kembali</span>
           </Button>
         </div>
@@ -189,7 +195,7 @@ export function CampaignDetailHeader({
               <div
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background/60 backdrop-blur-md border border-border/50 text-muted-foreground font-medium text-[11px]"
                 title={`${joinedCountDisplay} kreator telah bergabung`}>
-                <Users className="size-3.5 text-muted-foreground" />
+                <UsersGroupRoundedIcon className="size-3.5 text-muted-foreground" />
                 <span>{joinedCountDisplay} Kreator Bergabung</span>
               </div>
             </div>
@@ -210,7 +216,7 @@ export function CampaignDetailHeader({
                       disabled={joinMutation.isPending}
                       onClick={HandleJoinClick}
                       className="bg-primary text-primary-foreground font-semibold px-5 shadow-xs hover:bg-primary/90 rounded-xl h-10 text-xs sm:text-sm cursor-pointer gap-2">
-                      {joinMutation.isPending && <Loader2 className="size-4 animate-spin" />}
+                      {joinMutation.isPending && <LoaderIcon className="size-4 animate-spin" />}
                       <span>Gabung Kampanye</span>
                     </Button>
 
@@ -221,14 +227,14 @@ export function CampaignDetailHeader({
                       disabled
                       title="Silakan gabung kampanye terlebih dahulu untuk mulai mengirim video."
                       className="h-10 px-4 rounded-xl gap-2 text-xs sm:text-sm border-border/60 bg-background/40 backdrop-blur-xs opacity-50 cursor-not-allowed">
-                      <Video className="size-4" />
+                      <VideocameraIcon className="size-4" />
                       <span>Kirim Video</span>
                     </Button>
                   </>
                 ) : submissionStatus === 'JOINED' ? (
                   <>
                     <div className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-muted/70 border border-border/60 text-foreground text-xs sm:text-sm font-semibold select-none">
-                      <Check className="size-4 text-emerald-500" />
+                      <CheckIcon className="size-4 text-emerald-500" />
                       <span>Tergabung</span>
                     </div>
 
@@ -237,14 +243,14 @@ export function CampaignDetailHeader({
                       size="default"
                       onClick={onOpenSubmitDialog}
                       className="bg-primary text-primary-foreground font-semibold px-5 shadow-xs hover:bg-primary/90 rounded-xl h-10 text-xs sm:text-sm cursor-pointer gap-2">
-                      <Video className="size-4" />
+                      <VideocameraIcon className="size-4" />
                       <span>Kirim Video</span>
                     </Button>
                   </>
                 ) : (
                   <>
                     <div className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm font-semibold select-none">
-                      <Check className="size-4" />
+                      <CheckIcon className="size-4" />
                       <span>
                         {submissionStatus === 'PENDING_REVIEW'
                           ? 'Video Sedang Ditinjau'
@@ -262,7 +268,7 @@ export function CampaignDetailHeader({
                         size="default"
                         onClick={onOpenSubmitDialog}
                         className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-4 rounded-xl h-10 text-xs sm:text-sm cursor-pointer gap-2">
-                        <Video className="size-4" />
+                        <VideocameraIcon className="size-4" />
                         <span>Perbaiki Video</span>
                       </Button>
                     )}

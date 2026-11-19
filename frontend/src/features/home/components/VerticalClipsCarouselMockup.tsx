@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Eye, Play, Volume2 } from 'lucide-react';
+import { EyeIcon, PlayIcon, VolumeLoudIcon } from '@solar-icons/react/linear';
 import { VERTICAL_CLIPS_MOCKUP_ITEMS } from '../constants/home.constants';
 import type { VerticalClipsCarouselMockupProps } from '../types';
 
@@ -86,7 +86,7 @@ export function VerticalClipsCarouselMockup({ className = '' }: VerticalClipsCar
               </span>
               {isFocal && (
                 <span className="flex items-center gap-0.5 shrink-0">
-                  <Volume2 className="size-2.5 text-rose-400 drop-shadow" />
+                  <VolumeLoudIcon className="size-2.5 text-rose-400 drop-shadow" />
                 </span>
               )}
             </div>
@@ -94,13 +94,13 @@ export function VerticalClipsCarouselMockup({ className = '' }: VerticalClipsCar
             {/* Center Play Icon */}
             <div className="relative z-10 my-auto flex items-center justify-center">
               <div className={playButtonClassName}>
-                <Play className={playIconClassName} />
+                <PlayIcon className={playIconClassName} />
               </div>
             </div>
 
             {/* Bottom Views Pill */}
             <div className={viewsPillClassName}>
-              <Eye className={isFocal ? 'size-2.5 text-emerald-400 shrink-0' : 'size-2 text-zinc-400'} />
+              <EyeIcon className={isFocal ? 'size-2.5 text-emerald-400 shrink-0' : 'size-2 text-zinc-400'} />
               <span
                 className={
                   isFocal

@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowRightUpIcon } from '@solar-icons/react/linear';
 import { FormatRupiah } from '@/features/wallet/utils/wallet-format';
 import { cn } from '@/lib/utils';
 import { ADMIN_DASHBOARD_MESSAGES } from '../constants';
@@ -139,7 +139,7 @@ export function AdminActionQueuesGrid({
                 <span className="text-xs font-medium text-muted-foreground">
                   {card.title}
                 </span>
-                <ArrowUpRight className="size-3.5 text-muted-foreground/60 group-hover:text-foreground transition-colors" />
+                <ArrowRightUpIcon className="size-3.5 text-muted-foreground/60 group-hover:text-foreground transition-colors" />
               </div>
 
               <div className="mt-2.5 flex items-baseline gap-1.5">

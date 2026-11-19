@@ -245,6 +245,57 @@ describe('Brand Profile and KYC Payout Feature Module', () => {
         }),
       );
     });
+
+    it('sanitizes and updates valid 62-prefixed phoneNumber', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, role: Role.BRAND },
+        body: {
+          phoneNumber: '62812-3456-7890',
+        },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      jest.spyOn(prisma.brand, 'findFirst').mockResolvedValue(mockBrand as never);
+      const updateSpy = jest.spyOn(prisma.brand, 'update').mockResolvedValue({
+        ...mockBrand,
+        phoneNumber: '6281234567890',
+      } as never);
+
+      await UpdateBrandProfile(req, res, next);
+
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { phoneNumber: '6281234567890' },
+        }),
+      );
+      expect(statusMock).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: BRAND_MESSAGES.PROFILE_UPDATE_SUCCESS,
+        }),
+      );
+    });
+
+    it('returns 400 when phoneNumber does not start with 62', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, role: Role.BRAND },
+        body: {
+          phoneNumber: '081234567890',
+        },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      await UpdateBrandProfile(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        data: null,
+        message: BRAND_MESSAGES.INVALID_PHONE_NUMBER,
+      });
+    });
   });
 
   // ===========================================================================
@@ -513,6 +564,7 @@ describe('Brand Profile and KYC Payout Feature Module', () => {
         id: 'payout-acc-2',
         walletId: mockWallet.id,
         isPrimary: false,
+        verificationStatus: VerificationStatus.VERIFIED,
       } as never);
 
       const txMock = {
@@ -539,6 +591,30 @@ describe('Brand Profile and KYC Payout Feature Module', () => {
       expect(statusMock).toHaveBeenCalledWith(200);
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({ message: BRAND_MESSAGES.PAYOUT_ACCOUNT_PRIMARY_SUCCESS }),
+      );
+    });
+
+    it('SetPrimaryBrandPayoutAccount returns 400 when target account is not VERIFIED', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, role: Role.BRAND },
+        params: { id: 'payout-acc-pending' },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as never);
+      jest.spyOn(prisma.brandPayoutAccount, 'findFirst').mockResolvedValue({
+        id: 'payout-acc-pending',
+        walletId: mockWallet.id,
+        isPrimary: false,
+        verificationStatus: VerificationStatus.PENDING,
+      } as never);
+
+      await SetPrimaryBrandPayoutAccount(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({ message: BRAND_MESSAGES.PAYOUT_ACCOUNT_MUST_BE_VERIFIED }),
       );
     });
 
@@ -775,7 +851,7 @@ describe('Brand Profile and KYC Payout Feature Module', () => {
 
       const txMock = {
         wallet: {
-          update: jest.fn().mockResolvedValue({} as never),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 } as never),
         },
         payoutRequest: {
           create: jest.fn().mockResolvedValue({
@@ -891,6 +967,9 @@ describe('Brand Profile and KYC Payout Feature Module', () => {
           verifiedViews: 125000,
           earnings: new Prisma.Decimal(1250000),
         },
+        _count: {
+          _all: 12,
+        },
       } as never);
 
       jest.spyOn(prisma.campaign, 'findMany')
@@ -984,6 +1063,8 @@ describe('Brand Profile and KYC Payout Feature Module', () => {
               totalVerifiedViews: 125000,
               totalSpent: 1250000,
               activeCampaignsCount: 2,
+              submittedCampaignsCount: 7, // active: 2 + finished: 5
+              submittedVideosCount: 12,
               pendingReviewsCount: 4,
               walletActiveBalance: 2500000,
               escrowLockedBalance: 3750000, // 5000000 - 1250000
@@ -1050,6 +1131,9 @@ describe('Brand Profile and KYC Payout Feature Module', () => {
           verifiedViews: null,
           earnings: null,
         },
+        _count: {
+          _all: 0,
+        },
       } as never);
 
       jest.spyOn(prisma.campaign, 'findMany')
@@ -1072,6 +1156,8 @@ describe('Brand Profile and KYC Payout Feature Module', () => {
               totalVerifiedViews: 0,
               totalSpent: 0,
               activeCampaignsCount: 0,
+              submittedCampaignsCount: 0,
+              submittedVideosCount: 0,
               pendingReviewsCount: 0,
               walletActiveBalance: 0,
               escrowLockedBalance: 0,

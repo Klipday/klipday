@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { CloseIcon, MagnifierIcon } from '@solar-icons/react/linear';
 import { Input } from '@/components/ui/input';
 import {
   WalletHeader,
@@ -159,7 +159,7 @@ export default function CreatorWalletPage() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             {/* Search Input */}
             <div className="relative w-full sm:w-60">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <MagnifierIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchQuery}
                 onChange={(e) => HandleSearchChange(e.target.value)}
@@ -172,7 +172,7 @@ export default function CreatorWalletPage() {
                   onClick={HandleResetSearch}
                   aria-label="Hapus pencarian"
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-md text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
-                  <X className="size-3.5" />
+                  <CloseIcon className="size-3.5" />
                 </button>
               ) : null}
             </div>

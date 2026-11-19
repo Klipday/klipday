@@ -40,6 +40,9 @@ function GetSmtpTransporter(): Transporter {
     port,
     secure,
     auth,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 15_000,
   });
 
   return cachedSmtpTransporter;
@@ -62,10 +65,11 @@ function GetResendClient(): Resend {
 
 /**
  * Resolves the active email provider based on configuration and environment variables.
+ * Never falls back to `'console'` when `NODE_ENV === 'production'` to avoid silent delivery failures.
  *
- * @returns One of `'resend'`, `'smtp'`, or `'console'`.
+ * @returns One of `'resend'`, `'smtp'`, `'console'`, or `'unconfigured'`.
  */
-function ResolveActiveEmailProvider(): 'resend' | 'smtp' | 'console' {
+function ResolveActiveEmailProvider(): 'resend' | 'smtp' | 'console' | 'unconfigured' {
   const configuredProvider = process.env.EMAIL_PROVIDER?.trim().toLowerCase();
 
   if (process.env.NODE_ENV === 'test') {
@@ -84,6 +88,10 @@ function ResolveActiveEmailProvider(): 'resend' | 'smtp' | 'console' {
     return 'resend';
   }
 
+  if (process.env.NODE_ENV === 'production') {
+    return 'unconfigured';
+  }
+
   return 'console';
 }
 
@@ -96,6 +104,14 @@ function ResolveActiveEmailProvider(): 'resend' | 'smtp' | 'console' {
 export async function SendEmail(options: SendEmailOptions): Promise<EmailSendResult> {
   const provider = ResolveActiveEmailProvider();
   const from = process.env.EMAIL_FROM ?? 'Klipday <no-reply@klipday.com>';
+
+  if (provider === 'unconfigured') {
+    console.error('[EmailService] Email provider is not configured in production.');
+    return {
+      success: false,
+      error: 'Email provider is not configured for production.',
+    };
+  }
 
   if (provider === 'console') {
     // Zero-config developer fallback: print cleanly to terminal
@@ -174,7 +190,7 @@ export async function SendVerificationOtpEmail(
   to: string,
   params: VerificationEmailTemplateParams,
 ): Promise<EmailSendResult> {
-  const subject = `${params.otpCode} adalah kode verifikasi akun Klipday Anda`;
+  const subject = 'Kode Verifikasi Akun Klipday Anda';
   const html = BuildVerificationOtpEmailHtml(params);
   const text = BuildVerificationOtpEmailText(params);
 

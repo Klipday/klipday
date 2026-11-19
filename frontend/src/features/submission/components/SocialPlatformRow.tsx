@@ -1,4 +1,4 @@
-import { Check, Lock, Plus } from 'lucide-react';
+import { AddIcon, CheckIcon, LockIcon } from '@solar-icons/react/linear';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -48,7 +48,7 @@ export function SocialPlatformRow({
         </div>
 
         <div className="flex items-center gap-1.5 pl-3 shrink-0">
-          <Lock className="size-4 text-muted-foreground" aria-label="Terkunci" />
+          <LockIcon className="size-4 text-muted-foreground" aria-label="Terkunci" />
         </div>
       </div>
     );
@@ -117,7 +117,7 @@ export function SocialPlatformRow({
           <div
             className="size-6 rounded-full bg-foreground text-background flex items-center justify-center shrink-0 shadow-xs"
             aria-label="Akun terpilih">
-            <Check className="size-3.5 stroke-[2.5]" />
+            <CheckIcon className="size-3.5 stroke-[2.5]" />
           </div>
         </div>
       </div>
@@ -156,7 +156,7 @@ export function SocialPlatformRow({
           size="sm"
           onClick={onConnect}
           className="w-full sm:w-auto h-8 text-xs font-semibold rounded-lg gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer">
-          <Plus className="size-3.5" />
+          <AddIcon className="size-3.5" />
           <span>Hubungkan Akun</span>
         </Button>
       </div>

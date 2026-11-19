@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import { LoaderIcon } from '@solar-icons/react/linear';
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { UseCurrentAccountQuery } from '../hooks';
 import type { ProtectedRouteProps } from '../types';
@@ -14,13 +14,13 @@ import type { ProtectedRouteProps } from '../types';
  * @returns The rendered child route outlet or redirect navigation.
  */
 export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps = {}) {
-  const { data: account, isLoading, isError } = UseCurrentAccountQuery();
+  const { data: account, isLoading, isFetching, isError } = UseCurrentAccountQuery();
   const location = useLocation();
 
-  if (isLoading) {
+  if (isLoading || (!account && isFetching)) {
     return (
       <div className="flex min-h-svh items-center justify-center bg-background">
-        <Loader2 className="size-8 animate-spin text-primary" />
+        <LoaderIcon className="size-8 animate-spin text-primary" />
       </div>
     );
   }

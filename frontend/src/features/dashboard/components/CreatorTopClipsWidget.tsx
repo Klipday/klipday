@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { ExternalLink, Video } from 'lucide-react';
+import { SquareTopDownIcon, VideocameraIcon } from '@solar-icons/react/linear';
 import { FormatCompactCount } from '@/features/submission/utils/submission-utils';
 import { FormatRupiah } from '@/features/wallet/utils/wallet-format';
 import { SanitizeHttpUrl, cn } from '@/lib/utils';
@@ -41,7 +41,7 @@ export function CreatorTopClipsWidget({
         {!hasClips ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <div className="size-10 rounded-full border border-border/60 bg-muted/30 flex items-center justify-center text-muted-foreground mb-3">
-              <Video className="size-5" />
+              <VideocameraIcon className="size-5" />
             </div>
             <p className="text-sm font-medium text-foreground">
               {CREATOR_DASHBOARD_MESSAGES.TOP_CLIPS_EMPTY_TITLE}
@@ -67,7 +67,7 @@ export function CreatorTopClipsWidget({
                 >
                   {/* Vertical Video Thumbnail */}
                   <div className="w-full h-48 sm:h-52 rounded-lg overflow-hidden bg-muted/40 border border-border/60 shrink-0 relative flex items-center justify-center">
-                    <Video className="size-8 text-muted-foreground/60 shrink-0" />
+                    <VideocameraIcon className="size-8 text-muted-foreground/60 shrink-0" />
                     {cleanThumbnail && (
                       <img
                         src={cleanThumbnail}
@@ -115,7 +115,7 @@ export function CreatorTopClipsWidget({
                           className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 shrink-0 pb-0.5"
                         >
                           <span>TikTok</span>
-                          <ExternalLink className="size-3.5" />
+                          <SquareTopDownIcon className="size-3.5" />
                         </a>
                       )}
                     </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Loader2, Video } from 'lucide-react';
+import { CheckIcon, LoaderIcon, VideocameraIcon } from '@solar-icons/react/linear';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,13 +56,13 @@ export function SubmissionManualVideoForm({
               />
             ) : (
               <div className="size-16 rounded-lg bg-muted/60 border border-border/60 flex flex-col items-center justify-center text-xs text-muted-foreground shrink-0 gap-1">
-                <Video className="size-5 text-muted-foreground/60" />
+                <VideocameraIcon className="size-5 text-muted-foreground/60" />
                 <span className="text-[10px]">Video</span>
               </div>
             )}
             <div className="min-w-0 space-y-1">
               <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-foreground text-background">
-                <Check className="size-3 stroke-[2.5]" />
+                <CheckIcon className="size-3 stroke-[2.5]" />
                 <span>Tautan Terverifikasi</span>
               </div>
               <p className="text-xs font-semibold text-foreground line-clamp-1">
@@ -109,7 +109,7 @@ export function SubmissionManualVideoForm({
                 disabled={isPending || !manualUrlInput.trim()}
                 className="h-10 rounded-xl px-4 text-xs font-medium shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer">
                 {isPending ? (
-                  <Loader2 className="size-4 animate-spin" />
+                  <LoaderIcon className="size-4 animate-spin" />
                 ) : (
                   'Periksa'
                 )}

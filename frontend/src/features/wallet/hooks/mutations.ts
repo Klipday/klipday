@@ -359,22 +359,33 @@ export function UseSetPrimaryCreatorPayoutAccountMutation(): UseMutationResult<
 }
 
 /**
- * Mutation hook for deleting a payout account.
+ * Mutation hook for deleting or cancelling a creator payout account.
  *
  * @returns TanStack Query mutation for DeleteCreatorPayoutAccount.
  */
 export function UseDeleteCreatorPayoutAccountMutation(): UseMutationResult<
   void,
   Error,
-  string
+  string | { id: string; isPendingCancel?: boolean }
 > {
   const queryClient = useQueryClient();
 
   const mutationResult = useMutation({
-    mutationFn: (accountId: string) => DeleteCreatorPayoutAccount(accountId),
-    onSuccess: () => {
+    mutationFn: (input: string | { id: string; isPendingCancel?: boolean }) => {
+      if (typeof input === 'string') {
+        return DeleteCreatorPayoutAccount(input);
+      }
+      return DeleteCreatorPayoutAccount(input.id, input.isPendingCancel);
+    },
+    onSuccess: (_data, variables) => {
+      const isPendingCancel =
+        typeof variables === 'object' && Boolean(variables.isPendingCancel);
       queryClient.invalidateQueries({ queryKey: ['creator-payout-accounts'] });
-      toast.success('Akun penarikan berhasil dihapus.');
+      toast.success(
+        isPendingCancel
+          ? 'Pengajuan verifikasi rekening berhasil dibatalkan.'
+          : 'Akun penarikan berhasil dihapus.',
+      );
     },
     onError: (error) => {
       toast.error(error.message || 'Gagal menghapus akun penarikan.');

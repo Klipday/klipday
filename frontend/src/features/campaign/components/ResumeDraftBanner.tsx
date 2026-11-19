@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowRight, FileText, Loader2, Trash2 } from 'lucide-react';
+import {
+  ArrowRightIcon,
+  FileTextIcon,
+  LoaderIcon,
+  TrashBinTrashIcon,
+} from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -116,7 +121,7 @@ export function ResumeDraftBanner({ className }: ResumeDraftBannerProps) {
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <FileText className="size-3.5" />
+                <FileTextIcon className="size-3.5" />
                 Draf Belum Selesai
               </span>
               <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/70 px-2 py-0.5 text-xs font-medium text-foreground">
@@ -148,7 +153,7 @@ export function ResumeDraftBanner({ className }: ResumeDraftBannerProps) {
                       className="h-9 px-3 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                       disabled={deleteMutation.isPending}
                     >
-                      <Trash2 className="size-3.5" />
+                      <TrashBinTrashIcon className="size-3.5" />
                       <span className="ml-1.5">Hapus</span>
                     </Button>
                   </AlertDialogTrigger>
@@ -170,7 +175,7 @@ export function ResumeDraftBanner({ className }: ResumeDraftBannerProps) {
                       >
                         {deleteMutation.isPending ? (
                           <>
-                            <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                            <LoaderIcon className="mr-1.5 size-3.5 animate-spin" />
                             Menghapus...
                           </>
                         ) : (
@@ -188,7 +193,7 @@ export function ResumeDraftBanner({ className }: ResumeDraftBannerProps) {
                   onClick={handleContinueLatest}
                 >
                   <span>Lanjutkan Draf</span>
-                  <ArrowRight className="ml-1.5 size-3.5" />
+                  <ArrowRightIcon className="ml-1.5 size-3.5" />
                 </Button>
               </>
             ) : (
@@ -210,7 +215,7 @@ export function ResumeDraftBanner({ className }: ResumeDraftBannerProps) {
                   onClick={handleContinueLatest}
                 >
                   <span>Lanjutkan Terakhir</span>
-                  <ArrowRight className="ml-1.5 size-3.5" />
+                  <ArrowRightIcon className="ml-1.5 size-3.5" />
                 </Button>
               </>
             )}

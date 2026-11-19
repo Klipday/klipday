@@ -3,6 +3,7 @@ import { Industry, PayoutAccountType } from '../../generated/prisma/enums.js';
 import {
   BRAND_LIMITS,
   BRAND_MESSAGES,
+  INDONESIAN_PHONE_REGEX,
   PROVIDER_ACCOUNT_RULES,
 } from './brand.constants.js';
 
@@ -12,6 +13,14 @@ export const UpdateBrandProfileSchema = z.object({
     .trim()
     .min(BRAND_LIMITS.MIN_COMPANY_NAME_LENGTH, BRAND_MESSAGES.COMPANY_NAME_MIN_LENGTH)
     .max(BRAND_LIMITS.MAX_COMPANY_NAME_LENGTH, BRAND_MESSAGES.COMPANY_NAME_MAX_LENGTH)
+    .optional(),
+  phoneNumber: z
+    .string()
+    .trim()
+    .refine((val) => !val || INDONESIAN_PHONE_REGEX.test(val.replace(/[\s-]/g, '')), {
+      message: BRAND_MESSAGES.INVALID_PHONE_NUMBER,
+    })
+    .nullable()
     .optional(),
   industry: z.nativeEnum(Industry).nullable().optional(),
   location: z
@@ -67,6 +76,36 @@ export const UpdateBrandProfileSchema = z.object({
 
 export type UpdateBrandProfileInput = z.infer<typeof UpdateBrandProfileSchema>;
 
+/**
+ * Validates that a KYC proof URL uses HTTPS and does not target loopback, link-local, or private network hosts.
+ *
+ * @param rawUrl - Candidate proof URL string.
+ * @returns True if the URL is a safe HTTPS proof URL.
+ */
+export function IsSafeHttpsProofUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== 'https:') {
+      return false;
+    }
+    const host = parsed.hostname.toLowerCase();
+    if (
+      host === 'localhost' ||
+      host.endsWith('.local') ||
+      /^127\./.test(host) ||
+      /^10\./.test(host) ||
+      /^169\.254\./.test(host) ||
+      /^192\.168\./.test(host) ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host)
+    ) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const CreateBrandPayoutAccountSchema = z
   .object({
     accountType: z.nativeEnum(PayoutAccountType),
@@ -84,7 +123,10 @@ export const CreateBrandPayoutAccountSchema = z
       .trim()
       .min(BRAND_LIMITS.MIN_ACCOUNT_HOLDER_LENGTH, BRAND_MESSAGES.ACCOUNT_HOLDER_REQUIRED)
       .max(BRAND_LIMITS.MAX_ACCOUNT_HOLDER_LENGTH, BRAND_MESSAGES.ACCOUNT_HOLDER_REQUIRED),
-    proofUrl: z.string().url(BRAND_MESSAGES.PROOF_URL_REQUIRED),
+    proofUrl: z
+      .string()
+      .url(BRAND_MESSAGES.PROOF_URL_REQUIRED)
+      .refine(IsSafeHttpsProofUrl, { message: BRAND_MESSAGES.PROOF_URL_REQUIRED }),
     isPrimary: z.boolean().optional().default(false),
   })
   .superRefine((data, ctx) => {

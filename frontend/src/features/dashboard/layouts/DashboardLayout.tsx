@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useRef } from 'react';
-import { Loader2 } from 'lucide-react';
+import { LoaderIcon } from '@solar-icons/react/linear';
 import { Outlet, useLocation } from 'react-router';
 import { UseCurrentAccountQuery } from '@/features/authentication/hooks';
 import { DashboardSidebar, DashboardTopBar } from '@/features/dashboard/components';
@@ -28,7 +28,7 @@ function DashboardLayout() {
     <NavbarProvider>
       <div className="fixed inset-0 flex overflow-hidden bg-background text-foreground">
         <DashboardSidebar role={userProfile?.role} />
-        <div className="flex flex-1 flex-col h-full min-h-0 overflow-hidden">
+        <div className="flex flex-1 flex-col h-full min-h-0 min-w-0 overflow-hidden">
           <DashboardTopBar
             userName={userProfile?.name}
             userEmail={userProfile?.email}
@@ -36,11 +36,11 @@ function DashboardLayout() {
             avatarUrl={avatarUrl}
           />
           <main ref={mainRef} className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto bg-background p-4 sm:p-6 lg:p-8">
-            <div className="w-full">
+            <div className="w-full min-w-0">
               <Suspense
                 fallback={
                   <div className="flex min-h-[50vh] w-full items-center justify-center">
-                    <Loader2 className="size-8 animate-spin text-primary" />
+                    <LoaderIcon className="size-8 animate-spin text-primary" />
                   </div>
                 }>
                 <Outlet context={{ user: userProfile }} />

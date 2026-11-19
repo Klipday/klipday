@@ -54,6 +54,8 @@ export interface BrandDashboardMetrics {
   totalVerifiedViews: number;
   totalSpent: number;
   activeCampaignsCount: number;
+  submittedCampaignsCount: number;
+  submittedVideosCount: number;
   pendingReviewsCount: number;
   walletActiveBalance: number;
   escrowLockedBalance: number;

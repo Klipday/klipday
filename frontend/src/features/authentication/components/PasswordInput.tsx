@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { EyeIcon, EyeOffIcon } from '@solar-icons/react/linear';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { PasswordInputProps } from '../types';
@@ -30,7 +30,7 @@ export function PasswordInput({ className, disabled, ...props }: PasswordInputPr
         disabled={disabled}
         aria-label={isVisible ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50">
-        {isVisible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+        {isVisible ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
       </button>
     </div>
   );

@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ArrowRightIcon, CheckCircleIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { CREATOR_DASHBOARD_MESSAGES } from '../constants';
@@ -53,7 +53,7 @@ export function CreatorDashboardLaunchpad({
 
           {isTikTokConnected ? (
             <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2.5 flex items-center justify-center gap-1.5 text-center">
-              <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <CheckCircleIcon className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                 {CREATOR_DASHBOARD_MESSAGES.LAUNCHPAD_STEP_1_CONNECTED}
               </span>
@@ -67,7 +67,7 @@ export function CreatorDashboardLaunchpad({
             >
               <Link to="/creator-dashboard/profile?tab=social-accounts">
                 <span>{CREATOR_DASHBOARD_MESSAGES.LAUNCHPAD_STEP_1_CTA}</span>
-                <ArrowRight className="size-3.5" />
+                <ArrowRightIcon className="size-3.5" />
               </Link>
             </Button>
           )}
@@ -94,7 +94,7 @@ export function CreatorDashboardLaunchpad({
           >
             <Link to="/creator-dashboard/creator-campaigns">
               <span>{CREATOR_DASHBOARD_MESSAGES.LAUNCHPAD_STEP_2_CTA}</span>
-              <ArrowRight className="size-3.5" />
+              <ArrowRightIcon className="size-3.5" />
             </Link>
           </Button>
         </div>

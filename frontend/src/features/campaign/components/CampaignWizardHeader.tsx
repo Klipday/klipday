@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeftIcon } from '@solar-icons/react/linear';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 
@@ -15,7 +15,7 @@ export function CampaignWizardHeader() {
       <div>
         <Button asChild variant="ghost" size="sm" className="h-8 -ml-2 px-2 text-xs text-muted-foreground hover:text-foreground">
           <Link to="/brand-dashboard/brand-campaigns" className="flex items-center gap-1.5">
-            <ArrowLeft className="size-3.5" />
+            <ArrowLeftIcon className="size-3.5" />
             <span>Kembali ke Kampanye</span>
           </Link>
         </Button>

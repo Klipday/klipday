@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Lock } from 'lucide-react';
+import { LockIcon } from '@solar-icons/react/linear';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -121,7 +121,7 @@ export function CampaignFormStep4() {
       {/* LOCKED BUDGET CALLOUT NOTICE */}
       {isBudgetLocked && (
         <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 text-xs text-muted-foreground">
-          <Lock className="size-4 shrink-0 text-muted-foreground mt-0.5" />
+          <LockIcon className="size-4 shrink-0 text-muted-foreground mt-0.5" />
           <div className="space-y-1">
             <h4 className="font-semibold text-foreground">Tarif CPM & Total Anggaran Terkunci</h4>
             <p className="leading-relaxed">

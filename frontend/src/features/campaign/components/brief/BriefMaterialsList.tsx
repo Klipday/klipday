@@ -1,4 +1,10 @@
-import { ExternalLink, FileSpreadsheet, Image as ImageIcon, Link2, Video } from 'lucide-react';
+import {
+  FileSpreadsheetIcon,
+  GalleryIcon,
+  LinkIcon,
+  SquareTopDownIcon,
+  VideocameraIcon,
+} from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn, SanitizeHttpUrl } from '@/lib/utils';
 import type { BriefMaterialsListProps } from '../../types';
@@ -12,19 +18,19 @@ import type { BriefMaterialsListProps } from '../../types';
 export function ResolveMaterialIcon(type: string) {
   const normalizedType = (type || '').toUpperCase();
   if (normalizedType.includes('VIDEO')) {
-    return <Video className="size-4 text-primary" />;
+    return <VideocameraIcon className="size-4 text-primary" />;
   }
   if (normalizedType.includes('IMAGE')) {
-    return <ImageIcon className="size-4 text-emerald-500" />;
+    return <GalleryIcon className="size-4 text-emerald-500" />;
   }
   if (
     normalizedType.includes('DOCUMENT') ||
     normalizedType.includes('DOC') ||
     normalizedType.includes('PDF')
   ) {
-    return <FileSpreadsheet className="size-4 text-sky-500" />;
+    return <FileSpreadsheetIcon className="size-4 text-sky-500" />;
   }
-  return <Link2 className="size-4 text-amber-500" />;
+  return <LinkIcon className="size-4 text-amber-500" />;
 }
 
 /**
@@ -74,7 +80,7 @@ export function BriefMaterialsList({ materials = [], className }: BriefMaterials
               className="h-8 shrink-0 gap-1 text-xs border-border/60">
               <a href={SanitizeHttpUrl(material.url)!} target="_blank" rel="noopener noreferrer">
                 <span>Buka</span>
-                <ExternalLink className="size-3" />
+                <SquareTopDownIcon className="size-3" />
               </a>
             </Button>
           ) : (

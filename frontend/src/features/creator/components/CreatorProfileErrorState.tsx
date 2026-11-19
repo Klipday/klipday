@@ -1,4 +1,4 @@
-import { AlertTriangle, RotateCw } from 'lucide-react';
+import { DangerTriangleIcon, RestartIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { CreatorProfileErrorStateProps } from '../types';
@@ -20,7 +20,7 @@ export function CreatorProfileErrorState({
         className,
       )}>
       <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-destructive/10 text-destructive border border-destructive/20">
-        <AlertTriangle className="size-6" />
+        <DangerTriangleIcon className="size-6" />
       </div>
 
       <div className="space-y-1">
@@ -39,7 +39,7 @@ export function CreatorProfileErrorState({
           size="sm"
           onClick={onRetry}
           className="cursor-pointer text-xs border-border/80 hover:bg-muted/40">
-          <RotateCw className="mr-1.5 size-3.5" />
+          <RestartIcon className="mr-1.5 size-3.5" />
           <span>Coba Lagi</span>
         </Button>
       ) : null}

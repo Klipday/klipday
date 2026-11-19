@@ -1,6 +1,4 @@
-import { Menu } from 'lucide-react';
-import { Link } from 'react-router';
-import { KlipdayLogo } from '@/components';
+import { HamburgerMenuIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { UseNavbar } from '../hooks';
 import type { DashboardTopBarProps } from '../types';
@@ -19,25 +17,21 @@ export function DashboardTopBar({ userName, userEmail, userRole, avatarUrl }: Da
   const { ToggleMobileMenu, isMobileOpen } = UseNavbar();
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 shrink-0 w-full items-center justify-between border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/60 sm:px-6">
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-40 flex h-16 shrink-0 w-full items-center justify-between gap-2 border-b bg-background/95 px-3 backdrop-blur supports-backdrop-filter:bg-background/60 sm:px-6">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden"
+          className="md:hidden shrink-0"
           onClick={ToggleMobileMenu}
           aria-label="Buka menu navigasi"
           aria-expanded={isMobileOpen}>
-          <Menu className="h-5 w-5" />
+          <HamburgerMenuIcon className="h-5 w-5" />
         </Button>
-
-        <Link to="/dashboard" className="flex items-center gap-2 transition-opacity hover:opacity-90 md:hidden">
-          <KlipdayLogo size="sm" />
-        </Link>
       </div>
 
-      <div className="flex items-center gap-3">
-        <NotificationBell />
+      <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+        <NotificationBell className="shrink-0" />
         <UserNav name={userName} email={userEmail} role={userRole} avatarUrl={avatarUrl} />
       </div>
     </header>

@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import { AlertCircle, CheckCircle2, Loader2, Wallet } from 'lucide-react';
+import {
+  CheckCircleIcon,
+  DangerCircleIcon,
+  LoaderIcon,
+  WalletIcon,
+} from '@solar-icons/react/linear';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -96,12 +101,12 @@ export function CampaignPaymentWalletOption({
         <div className="p-5 sm:p-6 bg-muted/10">
           {canPay ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+              <CheckCircleIcon className="size-4 text-emerald-500 shrink-0" />
               <span>Saldo dompet Anda mencukupi untuk mendanai kampanye ini.</span>
             </div>
           ) : (
             <div className="flex items-start gap-2 text-xs text-muted-foreground">
-              <AlertCircle className="size-4 text-amber-500 shrink-0 mt-0.5" />
+              <DangerCircleIcon className="size-4 text-amber-500 shrink-0 mt-0.5" />
               <p>
                 Saldo dompet tidak mencukupi untuk mendanai kampanye ini. Silakan gunakan metode{' '}
                 <strong className="text-foreground font-medium">Transfer Bank Manual</strong> untuk melanjutkan.
@@ -119,12 +124,12 @@ export function CampaignPaymentWalletOption({
           className="gap-2 font-semibold">
           {isPending ? (
             <>
-              <Loader2 className="size-4 animate-spin" />
+              <LoaderIcon className="size-4 animate-spin" />
               Memproses Pembayaran...
             </>
           ) : (
             <>
-              <Wallet className="size-4" />
+              <WalletIcon className="size-4" />
               Bayar dengan Saldo Dompet ({FormatRupiah(budget)})
             </>
           )}
@@ -144,7 +149,7 @@ export function CampaignPaymentWalletOption({
             <AlertDialogAction onClick={HandleConfirmPay} disabled={isPending} className="gap-2">
               {isPending ? (
                 <>
-                  <Loader2 className="size-4 animate-spin" />
+                  <LoaderIcon className="size-4 animate-spin" />
                   Memproses...
                 </>
               ) : (

@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { CheckCircle2, ExternalLink, Loader2, ShieldCheck, XCircle } from 'lucide-react';
+import {
+  CheckCircleIcon,
+  CloseCircleIcon,
+  LoaderIcon,
+  ShieldCheckIcon,
+  SquareTopDownIcon,
+} from '@solar-icons/react/linear';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -84,7 +90,7 @@ export function AdminPaymentReviewCard({
       <CardHeader className="pb-3 border-b border-primary/10">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="size-5 text-primary shrink-0" />
+            <ShieldCheckIcon className="size-5 text-primary shrink-0" />
             <CardTitle className="text-base font-semibold text-foreground tracking-tight">
               Verifikasi Pembayaran Manual
             </CardTitle>
@@ -164,7 +170,7 @@ export function AdminPaymentReviewCard({
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors">
                       <span>Buka Bukti Gambar Ukuran Penuh</span>
-                      <ExternalLink className="size-3" />
+                      <SquareTopDownIcon className="size-3" />
                     </a>
                   )}
                 </>
@@ -181,7 +187,7 @@ export function AdminPaymentReviewCard({
             disabled={isPending}
             onClick={() => setIsRejectOpen(true)}
             className="gap-2 text-xs sm:text-sm text-destructive hover:bg-destructive/10 hover:text-destructive">
-            <XCircle className="size-4" />
+            <CloseCircleIcon className="size-4" />
             Tolak Pembayaran
           </Button>
 
@@ -192,12 +198,12 @@ export function AdminPaymentReviewCard({
             className="gap-2 text-xs sm:text-sm font-semibold">
             {isPending ? (
               <>
-                <Loader2 className="size-4 animate-spin" />
+                <LoaderIcon className="size-4 animate-spin" />
                 Memverifikasi...
               </>
             ) : (
               <>
-                <CheckCircle2 className="size-4" />
+                <CheckCircleIcon className="size-4" />
                 Setujui & Aktifkan Kampanye
               </>
             )}
@@ -219,7 +225,7 @@ export function AdminPaymentReviewCard({
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isPending}>Batal</AlertDialogCancel>
             <AlertDialogAction onClick={HandleConfirmApprove} disabled={isPending} className="gap-2">
-              {isPending ? <Loader2 className="size-4 animate-spin" /> : 'Ya, Setujui Sekarang'}
+              {isPending ? <LoaderIcon className="size-4 animate-spin" /> : 'Ya, Setujui Sekarang'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -259,7 +265,7 @@ export function AdminPaymentReviewCard({
               onClick={HandleConfirmReject}
               disabled={isPending}
               className="gap-2 bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {isPending ? <Loader2 className="size-4 animate-spin" /> : 'Tolak Pembayaran'}
+              {isPending ? <LoaderIcon className="size-4 animate-spin" /> : 'Tolak Pembayaran'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

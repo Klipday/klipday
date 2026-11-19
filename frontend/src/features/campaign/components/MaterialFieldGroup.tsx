@@ -1,5 +1,5 @@
 import { Controller } from 'react-hook-form';
-import { ExternalLink, Trash2 } from 'lucide-react';
+import { SquareTopDownIcon, TrashBinTrashIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -35,7 +35,7 @@ export function MaterialFieldGroup({ index, control, canRemove, onRemove, disabl
             onClick={() => onRemove(index)}
             disabled={disabled}
             className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-7 px-2 text-xs flex items-center gap-1.5 transition-colors">
-            <Trash2 className="size-3" />
+            <TrashBinTrashIcon className="size-3" />
             <span>Hapus</span>
           </Button>
         ) : (
@@ -135,7 +135,7 @@ export function MaterialFieldGroup({ index, control, canRemove, onRemove, disabl
                           rel="noreferrer noopener"
                           className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors">
                           <span>Uji Tautan</span>
-                          <ExternalLink className="size-3" />
+                          <SquareTopDownIcon className="size-3" />
                         </a>
                       )}
                     </div>

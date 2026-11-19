@@ -3,13 +3,13 @@ import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useLocation } from 'react-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  AlertCircle,
-  CheckCircle2,
-  Loader2,
-  Plus,
-  Upload,
-  X,
-} from 'lucide-react';
+  AddIcon,
+  CheckCircleIcon,
+  CloseIcon,
+  DangerCircleIcon,
+  LoaderIcon,
+  UploadIcon,
+} from '@solar-icons/react/linear';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -334,7 +334,7 @@ export function AddPayoutAccountDialog({
                     />
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
-                        <CheckCircle2 className="size-3.5 text-emerald-600" />
+                        <CheckCircleIcon className="size-3.5 text-emerald-600" />
                         <span>Foto Berhasil Diunggah</span>
                       </div>
                       <span className="text-[11px] text-muted-foreground">
@@ -350,7 +350,7 @@ export function AddPayoutAccountDialog({
                     onClick={HandleClearProof}
                     className="size-8 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
                     aria-label="Hapus foto bukti">
-                    <X className="size-4" />
+                    <CloseIcon className="size-4" />
                   </Button>
                 </div>
               </div>
@@ -363,7 +363,7 @@ export function AddPayoutAccountDialog({
                 )}>
                 {uploadProofMutation.isPending ? (
                   <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="size-6 animate-spin text-primary" />
+                    <LoaderIcon className="size-6 animate-spin text-primary" />
                     <span className="text-xs font-medium text-foreground">
                       Mengunggah berkas ({uploadProgress}%)...
                     </span>
@@ -371,7 +371,7 @@ export function AddPayoutAccountDialog({
                 ) : (
                   <>
                     <div className="flex size-10 items-center justify-center rounded-xl bg-muted/40 mb-2">
-                      <Upload className="size-5 text-muted-foreground" />
+                      <UploadIcon className="size-5 text-muted-foreground" />
                     </div>
                     <span className="text-xs font-semibold text-foreground">
                       Klik untuk mengunggah foto bukti
@@ -400,7 +400,7 @@ export function AddPayoutAccountDialog({
           {/* Calm verification notice banner */}
           <div className="rounded-xl border border-border/60 bg-muted/20 p-3.5 text-xs text-muted-foreground">
             <div className="flex items-start gap-2.5">
-              <AlertCircle className="size-4 shrink-0 text-muted-foreground mt-0.5" />
+              <DangerCircleIcon className="size-4 shrink-0 text-muted-foreground mt-0.5" />
               <p className="text-[11px] leading-relaxed">
                 Akun akan diverifikasi oleh Admin Klipday dalam 1x24 jam kerja sebelum dapat digunakan untuk penarikan saldo.
               </p>
@@ -425,12 +425,12 @@ export function AddPayoutAccountDialog({
               className="cursor-pointer font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs">
               {createAccountMutation.isPending ? (
                 <>
-                  <Loader2 className="mr-1.5 size-4 animate-spin" />
+                  <LoaderIcon className="mr-1.5 size-4 animate-spin" />
                   <span>Mendaftarkan...</span>
                 </>
               ) : (
                 <>
-                  <Plus className="mr-1.5 size-4" />
+                  <AddIcon className="mr-1.5 size-4" />
                   <span>Daftarkan Akun</span>
                 </>
               )}

@@ -1549,11 +1549,7 @@ describe('Creator Profile and Payout Accounts Feature Module', () => {
         jest.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => {
           const tx = {
             wallet: {
-              findUniqueOrThrow: jest.fn<any>().mockResolvedValue(mockWallet),
-              update: jest.fn<any>().mockResolvedValue({ ...mockWallet, balance: new Prisma.Decimal(400000) }),
-            },
-            walletTransaction: {
-              create: jest.fn<any>().mockResolvedValue({ id: 'txn-wd' }),
+              updateMany: jest.fn<any>().mockResolvedValue({ count: 1 }),
             },
             payoutRequest: {
               create: jest.fn<any>().mockResolvedValue(mockCreatedPayout),

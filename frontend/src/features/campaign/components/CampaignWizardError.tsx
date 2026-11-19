@@ -1,4 +1,4 @@
-import { AlertCircle } from 'lucide-react';
+import { DangerCircleIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { CampaignWizardHeader } from './CampaignWizardHeader';
@@ -20,7 +20,7 @@ export function CampaignWizardError({
     <div className="w-full max-w-5xl space-y-6 pb-12">
       <CampaignWizardHeader />
       <Card className="flex flex-col items-center justify-center p-8 text-center">
-        <AlertCircle className="h-10 w-10 text-destructive mb-3" />
+        <DangerCircleIcon className="h-10 w-10 text-destructive mb-3" />
         <div className="space-y-1 mb-4">
           <h2 className="text-lg font-semibold text-foreground">Gagal memuat kampanye</h2>
           <p className="text-sm text-muted-foreground">{message}</p>

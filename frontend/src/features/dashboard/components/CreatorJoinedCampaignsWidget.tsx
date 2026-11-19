@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { ArrowUpRight, Megaphone } from 'lucide-react';
+import { ArrowRightUpIcon, MegaphoneIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { FormatRupiah } from '@/features/wallet/utils/wallet-format';
 import { cn } from '@/lib/utils';
@@ -49,7 +49,7 @@ export function CreatorJoinedCampaignsWidget({
         >
           <Link to="/creator-dashboard/creator-campaigns">
             <span>{CREATOR_DASHBOARD_MESSAGES.ACTION_FIND_CAMPAIGNS}</span>
-            <ArrowUpRight className="size-3.5" />
+            <ArrowRightUpIcon className="size-3.5" />
           </Link>
         </Button>
       </div>
@@ -58,7 +58,7 @@ export function CreatorJoinedCampaignsWidget({
         {!hasCampaigns ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <div className="size-10 rounded-full border border-border/60 bg-muted/30 flex items-center justify-center text-muted-foreground mb-3">
-              <Megaphone className="size-5" />
+              <MegaphoneIcon className="size-5" />
             </div>
             <p className="text-sm font-medium text-foreground">
               {CREATOR_DASHBOARD_MESSAGES.JOINED_CAMPAIGNS_EMPTY_TITLE}
@@ -73,7 +73,7 @@ export function CreatorJoinedCampaignsWidget({
             >
               <Link to="/creator-dashboard/creator-campaigns">
                 <span>{CREATOR_DASHBOARD_MESSAGES.ACTION_EXPLORE_CAMPAIGNS}</span>
-                <ArrowUpRight className="size-3.5" />
+                <ArrowRightUpIcon className="size-3.5" />
               </Link>
             </Button>
           </div>

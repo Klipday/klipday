@@ -37,8 +37,8 @@ export function AdminSettlementTabs({ counts, className }: AdminSettlementTabsPr
   return (
     <div className={cn('w-full sm:w-auto', className)}>
       <Tabs value={activeFilter} onValueChange={HandleTabChange} className="w-full">
-        <div className="flex items-center overflow-x-auto pb-1 sm:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <TabsList className="inline-flex h-9 items-stretch gap-0 rounded-lg border border-border/60 bg-card p-0 overflow-hidden divide-x divide-border/50">
+        <div className="w-full overflow-x-auto pb-1 sm:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <TabsList className="inline-flex w-max shrink-0 justify-start h-9 items-stretch gap-0 rounded-lg border border-border/60 bg-card p-0 overflow-hidden divide-x divide-border/50">
             {ADMIN_SETTLEMENT_TABS.map((tab) => {
               const count = counts ? counts[tab.countKey] : 0;
               const isSelected = activeFilter === tab.key;
@@ -48,7 +48,7 @@ export function AdminSettlementTabs({ counts, className }: AdminSettlementTabsPr
                   key={tab.key}
                   value={tab.key}
                   className={cn(
-                    'relative inline-flex h-full items-center justify-center gap-2 rounded-none px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer whitespace-nowrap after:hidden',
+                    'relative inline-flex shrink-0 flex-none h-full items-center justify-center gap-2 rounded-none px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer whitespace-nowrap after:hidden',
                     'first:rounded-l-[7px] last:rounded-r-[7px]',
                     'text-muted-foreground hover:bg-muted/40 hover:text-foreground',
                     isSelected

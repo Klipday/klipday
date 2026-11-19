@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react';
+import { CheckIcon } from '@solar-icons/react/linear';
 import { cn } from '@/lib/utils';
 import type { SubmissionDialogStepperProps } from '../types';
 
@@ -30,7 +30,7 @@ export function SubmissionDialogStepper({
         const isLast = index === stepItems.length - 1;
 
         const circleContent = isCompleted ? (
-          <Check className="size-3 stroke-[2.5]" />
+          <CheckIcon className="size-3 stroke-[2.5]" />
         ) : (
           stepNumber
         );

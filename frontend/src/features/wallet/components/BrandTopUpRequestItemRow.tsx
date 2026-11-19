@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, Loader2, Trash2 } from 'lucide-react';
+import { ArrowRightIcon, LoaderIcon, TrashBinTrashIcon } from '@solar-icons/react/linear';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -97,7 +97,7 @@ export function BrandTopUpRequestItemRow({
                 size="sm"
                 className="h-8 px-2 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive cursor-pointer"
                 disabled={cancelMutation.isPending}>
-                <Trash2 className="mr-1.5 size-3.5" />
+                <TrashBinTrashIcon className="mr-1.5 size-3.5" />
                 <span>Batalkan</span>
               </Button>
             </AlertDialogTrigger>
@@ -119,7 +119,7 @@ export function BrandTopUpRequestItemRow({
                   disabled={cancelMutation.isPending}>
                   {cancelMutation.isPending ? (
                     <>
-                      <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                      <LoaderIcon className="mr-1.5 size-3.5 animate-spin" />
                       Membatalkan...
                     </>
                   ) : (
@@ -145,7 +145,7 @@ export function BrandTopUpRequestItemRow({
           <span>
             {isPending ? 'Lanjutkan Transfer' : isRejected ? 'Unggah Ulang Bukti' : 'Lihat Detail'}
           </span>
-          <ArrowRight className="ml-1.5 size-3.5" />
+          <ArrowRightIcon className="ml-1.5 size-3.5" />
         </Button>
       </div>
     </div>

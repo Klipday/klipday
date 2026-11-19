@@ -58,6 +58,7 @@ export interface BrandPayoutAccount {
 
 export interface UpdateBrandProfilePayload {
   companyName: string;
+  phoneNumber?: string | null;
   industry?: IndustryType | null;
   location?: string | null;
   website?: string | null;

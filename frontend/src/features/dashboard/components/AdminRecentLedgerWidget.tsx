@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react';
+import { CheckIcon } from '@solar-icons/react/linear';
 import { FormatRupiah } from '@/features/wallet/utils/wallet-format';
 import { cn } from '@/lib/utils';
 import { ADMIN_DASHBOARD_MESSAGES } from '../constants';
@@ -59,7 +59,7 @@ export function AdminRecentLedgerWidget({
         {transactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <div className="size-9 rounded-full border border-border bg-muted/40 flex items-center justify-center text-emerald-400 mb-2.5">
-              <Check className="size-4" />
+              <CheckIcon className="size-4" />
             </div>
             <p className="text-sm font-medium text-foreground">
               {ADMIN_DASHBOARD_MESSAGES.LEDGER_EMPTY_TITLE}

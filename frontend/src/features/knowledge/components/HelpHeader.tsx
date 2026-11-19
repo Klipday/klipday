@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeftIcon } from '@solar-icons/react/linear';
 import { Link } from 'react-router';
 import { cn } from '@/lib/utils';
 import { UseCurrentAccountQuery } from '@/features/authentication/hooks';
@@ -31,7 +31,7 @@ export function HelpHeader({ activeTab, onTabChange, className = '' }: HelpHeade
           to={backDestination}
           className="group inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 transition-colors hover:text-white"
         >
-          <ArrowLeft className="size-3.5 transition-transform duration-150 group-hover:-translate-x-0.5 text-zinc-400 group-hover:text-white" />
+          <ArrowLeftIcon className="size-3.5 transition-transform duration-150 group-hover:-translate-x-0.5 text-zinc-400 group-hover:text-white" />
           <span>{backLabel}</span>
         </Link>
       </div>

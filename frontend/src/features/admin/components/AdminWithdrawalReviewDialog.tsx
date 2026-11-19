@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { LoaderIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -202,7 +202,7 @@ function AdminWithdrawalReviewDialogContent({
             disabled={isPending}
             className="text-xs cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            {isPending && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
+            {isPending && <LoaderIcon className="mr-1.5 size-3.5 animate-spin" />}
             Konfirmasi Sudah Transfer
           </Button>
         ) : (
@@ -214,7 +214,7 @@ function AdminWithdrawalReviewDialogContent({
             disabled={!isRejectValid || isPending}
             className="text-xs cursor-pointer"
           >
-            {isPending && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
+            {isPending && <LoaderIcon className="mr-1.5 size-3.5 animate-spin" />}
             {isCancellation ? 'Setujui Pembatalan & Refund' : 'Tolak & Kembalikan Saldo'}
           </Button>
         )}

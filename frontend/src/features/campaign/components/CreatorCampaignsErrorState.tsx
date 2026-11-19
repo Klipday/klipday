@@ -1,4 +1,4 @@
-import { AlertCircle, RotateCcw } from 'lucide-react';
+import { DangerCircleIcon, RestartIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { ExtractApiError } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
@@ -28,7 +28,7 @@ export function CreatorCampaignsErrorState({
       )}
       data-testid="creator-campaigns-error">
       <div className="mb-3.5 flex size-12 items-center justify-center rounded-xl bg-destructive/10 text-destructive border border-destructive/20">
-        <AlertCircle className="size-6" />
+        <DangerCircleIcon className="size-6" />
       </div>
 
       <h3 className="text-base font-semibold tracking-tight text-foreground sm:text-lg">
@@ -46,7 +46,7 @@ export function CreatorCampaignsErrorState({
           size="sm"
           onClick={onRetry}
           className="mt-6 gap-2 rounded-xl border-border/60 hover:bg-muted/50 cursor-pointer">
-          <RotateCcw className="size-4" />
+          <RestartIcon className="size-4" />
           <span>Coba Lagi</span>
         </Button>
       )}

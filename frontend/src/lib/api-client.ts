@@ -2,6 +2,28 @@ import axios, { type AxiosInstance } from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
+const AUTH_API_PATHS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/me',
+  '/auth/logout',
+  '/auth/verify-email',
+  '/auth/resend-verification',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+] as const;
+
+const AUTH_PAGE_PATHS = [
+  '/signin',
+  '/login',
+  '/signup',
+  '/verify-email',
+  '/forgot-password',
+  '/reset-password',
+] as const;
+
+let isRedirectingToSignIn = false;
+
 /**
  * Shared Axios instance configured with base URL, credentials, and default headers
  * for all communication with the Klipday backend API.
@@ -11,6 +33,7 @@ export const apiClient: AxiosInstance = axios.create({
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
   },
 });
 
@@ -19,15 +42,17 @@ apiClient.interceptors.response.use(
   (error) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       const url = error.config?.url ?? '';
-      const isAuthEndpoint =
-        url.includes('/auth/login') ||
-        url.includes('/auth/register') ||
-        url.includes('/auth/me') ||
-        url.includes('/auth/logout');
+      const isAuthEndpoint = AUTH_API_PATHS.some((path) => url.includes(path));
 
-      if (!isAuthEndpoint && typeof window !== 'undefined') {
-        const currentPath = window.location.pathname;
-        if (!currentPath.includes('/signin') && !currentPath.includes('/signup')) {
+      if (!isAuthEndpoint && typeof window !== 'undefined' && !isRedirectingToSignIn) {
+        const currentPathname = window.location.pathname;
+        const isAuthPage = AUTH_PAGE_PATHS.some(
+          (path) => currentPathname === path || currentPathname.startsWith(`${path}/`),
+        );
+
+        if (!isAuthPage) {
+          isRedirectingToSignIn = true;
+          const currentPath = `${window.location.pathname}${window.location.search}`;
           window.location.href = `/signin?expired=true&redirect=${encodeURIComponent(currentPath)}`;
         }
       }

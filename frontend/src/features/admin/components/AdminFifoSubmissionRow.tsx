@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-react';
+import { DangerTriangleIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { AdminFifoSubmissionRowProps } from '../types';
@@ -65,7 +65,7 @@ export function AdminFifoSubmissionRow({
             )}
             {submission.isFlaggedUnavailable && !isRejected && (
               <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-500">
-                <AlertTriangle className="size-3" />
+                <DangerTriangleIcon className="size-3" />
                 Video Privat / Dihapus
               </span>
             )}

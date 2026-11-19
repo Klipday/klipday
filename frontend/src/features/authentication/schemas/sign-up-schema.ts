@@ -4,8 +4,8 @@ import {
   INDONESIAN_PHONE_REGEX,
   INDUSTRY_OPTIONS,
   type Industry,
-  MIN_PASSWORD_LENGTH,
 } from '../constants';
+import { passwordField } from './recovery-schemas';
 
 export {
   AUTH_VALIDATION_MESSAGES,
@@ -13,15 +13,6 @@ export {
   INDUSTRY_OPTIONS,
   type Industry,
 };
-
-// Mirrors the password strength rules enforced by the backend register schema,
-// so invalid passwords are rejected before a request is ever sent.
-const passwordField = z
-  .string()
-  .min(MIN_PASSWORD_LENGTH, AUTH_VALIDATION_MESSAGES.PASSWORD_MIN)
-  .regex(/[A-Z]/, AUTH_VALIDATION_MESSAGES.PASSWORD_UPPERCASE)
-  .regex(/[0-9]/, AUTH_VALIDATION_MESSAGES.PASSWORD_NUMBER)
-  .regex(/[^A-Za-z0-9]/, AUTH_VALIDATION_MESSAGES.PASSWORD_SYMBOL);
 
 /**
  * Flat shape for every field the form can hold. Which fields are required

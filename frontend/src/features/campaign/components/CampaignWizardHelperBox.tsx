@@ -1,4 +1,4 @@
-import { Lightbulb } from 'lucide-react';
+import { LightbulbIcon } from '@solar-icons/react/linear';
 import type { CampaignWizardHelperBoxProps } from '../types';
 
 /**
@@ -8,7 +8,7 @@ import type { CampaignWizardHelperBoxProps } from '../types';
  * @param props - Component properties including title, description, tip, icon, and className.
  * @returns The rendered helper box element.
  */
-export function CampaignWizardHelperBox({ title, description, tip, icon: Icon = Lightbulb, className = '' }: CampaignWizardHelperBoxProps) {
+export function CampaignWizardHelperBox({ title, description, tip, icon: Icon = LightbulbIcon, className = '' }: CampaignWizardHelperBoxProps) {
   const containerClass =
     `flex items-start gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 text-sm ${className}`.trim();
 

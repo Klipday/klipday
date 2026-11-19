@@ -18,11 +18,11 @@ export function BrandDashboardHeader({
     : DASHBOARD_MESSAGES.TITLE;
 
   return (
-    <div className={cn('space-y-1', className)}>
+    <div className={cn('space-y-1.5', className)}>
       <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
         {displayTitle}
       </h1>
-      <p className="text-sm text-muted-foreground max-w-2xl">
+      <p className="text-sm text-muted-foreground">
         {DASHBOARD_MESSAGES.SUBTITLE}
       </p>
     </div>

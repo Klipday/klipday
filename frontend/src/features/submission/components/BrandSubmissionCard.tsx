@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { AlertCircle, CheckCircle2, Clock, ExternalLink, Video } from 'lucide-react';
+import {
+  CheckCircleIcon,
+  ClockCircleIcon,
+  DangerCircleIcon,
+  SquareTopDownIcon,
+  VideocameraIcon,
+} from '@solar-icons/react/linear';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn, SanitizeHttpUrl } from '@/lib/utils';
@@ -66,25 +72,25 @@ export function BrandSubmissionCard({ submission, onReview, className }: BrandSu
 
           {isPending && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-              <Clock className="size-3" />
+              <ClockCircleIcon className="size-3" />
               <span>Menunggu Review</span>
             </span>
           )}
           {isApproved && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-              <CheckCircle2 className="size-3" />
+              <CheckCircleIcon className="size-3" />
               <span>Disetujui</span>
             </span>
           )}
           {isRevision && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30">
-              <AlertCircle className="size-3" />
+              <DangerCircleIcon className="size-3" />
               <span>Perlu Revisi</span>
             </span>
           )}
           {isRejected && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-destructive/10 text-destructive border border-destructive/30">
-              <AlertCircle className="size-3" />
+              <DangerCircleIcon className="size-3" />
               <span>Ditolak</span>
             </span>
           )}
@@ -106,7 +112,7 @@ export function BrandSubmissionCard({ submission, onReview, className }: BrandSu
               />
             ) : (
               <div className="flex flex-col h-full w-full items-center justify-center gap-1.5 p-3 text-center text-xs text-muted-foreground">
-                <Video className="size-6 text-muted-foreground/60" />
+                <VideocameraIcon className="size-6 text-muted-foreground/60" />
                 <span className="text-[11px]">Tanpa thumbnail</span>
               </div>
             )}
@@ -133,7 +139,7 @@ export function BrandSubmissionCard({ submission, onReview, className }: BrandSu
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline break-all">
                     <span>{submission.liveVideoUrl}</span>
-                    <ExternalLink className="size-3 shrink-0" />
+                    <SquareTopDownIcon className="size-3 shrink-0" />
                   </a>
                 </div>
               </div>

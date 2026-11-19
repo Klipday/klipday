@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { SquareTopDownIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { UseModerateCampaignMutation } from '../hooks';
@@ -157,7 +157,7 @@ export function AdminCampaignModerationPanel({
                       className="inline-flex items-center gap-1 font-medium text-foreground underline hover:text-primary cursor-pointer transition-colors"
                     >
                       <span>Lihat Bukti Struk</span>
-                      <ExternalLink className="size-3" />
+                      <SquareTopDownIcon className="size-3" />
                     </button>
                   </>
                 )}
@@ -183,7 +183,7 @@ export function AdminCampaignModerationPanel({
                       className="inline-flex items-center gap-1 font-medium text-foreground underline hover:text-primary cursor-pointer transition-colors"
                     >
                       <span>Lihat Bukti Struk</span>
-                      <ExternalLink className="size-3" />
+                      <SquareTopDownIcon className="size-3" />
                     </button>
                   </>
                 )}

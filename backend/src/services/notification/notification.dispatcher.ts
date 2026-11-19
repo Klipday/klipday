@@ -417,34 +417,46 @@ export async function NotifyWithdrawalRejected(params: {
 }
 
 /**
- * Notifies creator when KYC identity verification is approved.
+ * Notifies creator or brand when KYC payout account verification is approved.
  */
 export async function NotifyKycApproved(params: {
   creatorAccountId: string;
+  role?: Role;
 }): Promise<void> {
+  const actionUrl =
+    params.role === Role.BRAND
+      ? '/brand-dashboard/profile?tab=payout-accounts'
+      : '/creator-dashboard/profile?tab=payout-accounts';
+
   await DispatchNotification({
     recipientAccountId: params.creatorAccountId,
     type: NotificationType.KYC_VERIFIED,
     title: 'Verifikasi Identitas Berhasil',
     message: 'Profil KYC Anda telah disetujui admin. Batas penarikan dana Anda kini aktif penuh.',
-    actionUrl: '/creator-dashboard/settings',
+    actionUrl,
     emailActionLabel: 'Lihat Status Akun',
   });
 }
 
 /**
- * Notifies creator when KYC identity verification is rejected.
+ * Notifies creator or brand when KYC payout account verification is rejected.
  */
 export async function NotifyKycRejected(params: {
   creatorAccountId: string;
   rejectionReason: string;
+  role?: Role;
 }): Promise<void> {
+  const actionUrl =
+    params.role === Role.BRAND
+      ? '/brand-dashboard/profile?tab=payout-accounts'
+      : '/creator-dashboard/profile?tab=payout-accounts';
+
   await DispatchNotification({
     recipientAccountId: params.creatorAccountId,
     type: NotificationType.KYC_REJECTED,
     title: 'Verifikasi Identitas Ditolak',
     message: 'Dokumen KYC Anda ditolak oleh admin. Silakan perbarui foto atau data identitas Anda.',
-    actionUrl: '/creator-dashboard/settings',
+    actionUrl,
     metadata: { rejectionReason: params.rejectionReason },
     emailNote: params.rejectionReason,
     emailNoteLabel: 'Alasan Penolakan KYC',

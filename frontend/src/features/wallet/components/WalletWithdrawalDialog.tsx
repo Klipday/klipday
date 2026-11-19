@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, Info, Loader2 } from 'lucide-react';
+import { DangerCircleIcon, InfoCircleIcon, LoaderIcon } from '@solar-icons/react/linear';
 import { useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
@@ -367,7 +367,7 @@ export function WalletWithdrawalDialog({
               ) : (
                 /* No verified accounts alert prompt */
                 <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-center space-y-2">
-                  <AlertCircle className="size-5 text-muted-foreground mx-auto" />
+                  <DangerCircleIcon className="size-5 text-muted-foreground mx-auto" />
                   <p className="text-xs font-semibold text-foreground">
                     Belum Ada Akun Penarikan Terverifikasi
                   </p>
@@ -391,7 +391,7 @@ export function WalletWithdrawalDialog({
             {/* Notice info */}
             <div className="rounded-xl border border-border/60 bg-muted/30 p-3.5 text-xs space-y-1">
               <div className="flex items-start gap-2.5">
-                <Info className="size-4 shrink-0 text-muted-foreground mt-0.5" />
+                <InfoCircleIcon className="size-4 shrink-0 text-muted-foreground mt-0.5" />
                 <div className="space-y-0.5">
                   <p className="font-medium text-foreground">
                     Penarikan akan ditransfer admin ke rekening Anda dalam 1x24 jam kerja.
@@ -421,7 +421,7 @@ export function WalletWithdrawalDialog({
                 className="cursor-pointer font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs">
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-1.5 size-4 animate-spin" />
+                    <LoaderIcon className="mr-1.5 size-4 animate-spin" />
                     <span>Memproses...</span>
                   </>
                 ) : (
@@ -478,7 +478,7 @@ export function WalletWithdrawalDialog({
               className="bg-primary text-primary-foreground hover:bg-primary/90 font-medium cursor-pointer">
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                  <LoaderIcon className="mr-1.5 size-3.5 animate-spin" />
                   Memproses...
                 </>
               ) : (

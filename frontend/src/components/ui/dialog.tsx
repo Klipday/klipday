@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { Dialog as DialogPrimitive } from 'radix-ui';
-import { XIcon } from 'lucide-react';
+import { CloseIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 
 /**
@@ -96,7 +96,7 @@ function DialogContent({
               size="icon-sm"
               className="absolute top-4 right-4 rounded-full text-muted-foreground hover:text-foreground cursor-pointer z-20"
             >
-              <XIcon className="size-4" />
+              <CloseIcon className="size-4" />
               <span className="sr-only">Tutup</span>
             </Button>
           </DialogPrimitive.Close>

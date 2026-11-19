@@ -1,11 +1,11 @@
 import {
-  ArrowUpRight,
-  HelpCircle,
-  LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
-  X,
-} from 'lucide-react';
+  ArrowRightUpIcon,
+  CloseIcon,
+  LogoutIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
+  QuestionCircleIcon,
+} from '@solar-icons/react/linear';
 import { Link, useLocation } from 'react-router';
 import { KlipdayLogo } from '@/components';
 import { Button } from '@/components/ui/button';
@@ -86,7 +86,7 @@ function SidebarHeader({ collapsed, isDrawer = false }: SidebarHeaderProps) {
           className="size-11 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
           aria-label="Perluas sidebar"
           title="Perluas sidebar">
-          <PanelLeftOpen className="h-5 w-5" />
+          <PanelLeftOpenIcon className="h-5 w-5" />
         </Button>
       </div>
     );
@@ -105,7 +105,7 @@ function SidebarHeader({ collapsed, isDrawer = false }: SidebarHeaderProps) {
           onClick={CloseMobileMenu}
           className="text-muted-foreground hover:bg-muted hover:text-foreground"
           aria-label="Tutup menu">
-          <X className="h-5 w-5" />
+          <CloseIcon className="h-5 w-5" />
         </Button>
       ) : (
         <Button
@@ -115,7 +115,7 @@ function SidebarHeader({ collapsed, isDrawer = false }: SidebarHeaderProps) {
           className="text-muted-foreground hover:bg-muted hover:text-foreground"
           aria-label="Kecilkan sidebar"
           title="Kecilkan sidebar">
-          <PanelLeftClose className="h-5 w-5" />
+          <PanelLeftCloseIcon className="h-5 w-5" />
         </Button>
       )}
     </div>
@@ -191,7 +191,7 @@ function SidebarNavItem({ item, collapsed, isActive, onItemClick }: SidebarNavIt
         className={expandedClasses}>
         <IconComponent className="h-5 w-5 shrink-0" />
         <span className="truncate">{item.title}</span>
-        <ArrowUpRight className="ml-auto size-3.5 text-muted-foreground/60" />
+        <ArrowRightUpIcon className="ml-auto size-3.5 text-muted-foreground/60" />
       </a>
     );
   }
@@ -261,7 +261,7 @@ function SidebarCommunityCard({ collapsed, onItemClick }: SidebarCommunityCardPr
         className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#5865F2] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#4752C4] transition-colors shadow-xs">
         <DiscordIcon className="size-3.5 shrink-0" />
         <span>Gabung Discord</span>
-        <ArrowUpRight className="ml-auto size-3 opacity-70" />
+        <ArrowRightUpIcon className="ml-auto size-3 opacity-70" />
       </a>
     </div>
   );
@@ -312,7 +312,7 @@ function SidebarHelpSection({ collapsed, onItemClick }: SidebarHelpSectionProps)
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
               aria-label="FAQ & Peraturan">
-              <HelpCircle className="h-5 w-5 shrink-0" />
+              <QuestionCircleIcon className="h-5 w-5 shrink-0" />
             </Link>
           </TooltipTrigger>
           <TooltipContent side="right" sideOffset={12}>
@@ -338,7 +338,7 @@ function SidebarHelpSection({ collapsed, onItemClick }: SidebarHelpSectionProps)
           className="flex items-center gap-3.5 rounded-xl px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
           <WhatsAppIcon className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span className="truncate">Hubungi Admin</span>
-          <ArrowUpRight className="ml-auto size-3.5 text-muted-foreground/50" />
+          <ArrowRightUpIcon className="ml-auto size-3.5 text-muted-foreground/50" />
         </a>
 
         <Link
@@ -350,7 +350,7 @@ function SidebarHelpSection({ collapsed, onItemClick }: SidebarHelpSectionProps)
               ? 'bg-primary text-primary-foreground shadow-xs'
               : 'text-muted-foreground hover:bg-muted hover:text-foreground'
           )}>
-          <HelpCircle className="size-4 shrink-0" />
+          <QuestionCircleIcon className="size-4 shrink-0" />
           <span className="truncate">FAQ & Peraturan</span>
         </Link>
       </div>
@@ -420,7 +420,7 @@ function SidebarLogoutButton({ collapsed, onItemClick }: SidebarLogoutButtonProp
             disabled={logoutMutation.isPending}
             className="flex size-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer mx-auto"
             aria-label="Keluar">
-            <LogOut className="h-5 w-5 shrink-0" />
+            <LogoutIcon className="h-5 w-5 shrink-0" />
             <span className="sr-only">Keluar</span>
           </button>
         </TooltipTrigger>
@@ -437,7 +437,7 @@ function SidebarLogoutButton({ collapsed, onItemClick }: SidebarLogoutButtonProp
       onClick={HandleLogout}
       disabled={logoutMutation.isPending}
       className="flex w-full items-center gap-3.5 rounded-xl px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer text-left">
-      <LogOut className="h-5 w-5 shrink-0" />
+      <LogoutIcon className="h-5 w-5 shrink-0" />
       <span className="truncate">Keluar</span>
     </button>
   );

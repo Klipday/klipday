@@ -1,6 +1,11 @@
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Globe, Info, Loader2, Lock, Save } from 'lucide-react';
+import {
+  DisketteIcon,
+  GlobalIcon,
+  LoaderIcon,
+  LockIcon,
+} from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,6 +50,7 @@ export function BrandProfileInfoForm({ profile }: BrandProfileInfoFormProps) {
     resolver: zodResolver(BrandProfileFormSchema),
     values: {
       companyName: profile.companyName ?? '',
+      phoneNumber: profile.phoneNumber ?? '',
       industry: profile.industry ?? undefined,
       location: profile.location ?? '',
       website: profile.website ?? '',
@@ -60,8 +66,11 @@ export function BrandProfileInfoForm({ profile }: BrandProfileInfoFormProps) {
   const descriptionValue = useWatch({ control, name: 'description' }) ?? '';
 
   const OnSubmit = (values: BrandProfileFormValues) => {
+    const cleanPhoneNumber = values.phoneNumber?.replace(/[\s-]/g, '').trim() ?? '';
+
     updateProfileMutation.mutate({
       companyName: values.companyName.trim(),
+      phoneNumber: cleanPhoneNumber || null,
       industry: values.industry ?? null,
       location: values.location ? values.location.trim() : null,
       website: values.website ? values.website.trim() : null,
@@ -153,7 +162,7 @@ export function BrandProfileInfoForm({ profile }: BrandProfileInfoFormProps) {
               Website Resmi
             </Label>
             <div className="relative">
-              <Globe className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <GlobalIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
                 id="website"
                 type="url"
@@ -310,20 +319,14 @@ export function BrandProfileInfoForm({ profile }: BrandProfileInfoFormProps) {
 
       <hr className="border-border/40" />
 
-      {/* SECTION 3: Akun Kontak Terkunci (Security & Verification Notice) */}
+      {/* SECTION 3: Kontak Utama Akun */}
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold tracking-tight text-foreground">
-              Kontak Utama Akun
-            </h2>
-            <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              <Lock className="size-3" />
-              <span>Terkunci</span>
-            </span>
-          </div>
+          <h2 className="text-sm font-semibold tracking-tight text-foreground">
+            Kontak Utama Akun
+          </h2>
           <p className="text-xs text-muted-foreground">
-            Alamat email dan nomor WhatsApp terikat dengan keamanan kredensial akun Anda.
+            Alamat email dan nomor WhatsApp untuk koordinasi kampanye dan notifikasi akun.
           </p>
         </div>
 
@@ -339,37 +342,34 @@ export function BrandProfileInfoForm({ profile }: BrandProfileInfoFormProps) {
                 type="email"
                 value={profile.email}
                 disabled
-                className="h-10 bg-muted/40 text-xs font-mono text-muted-foreground rounded-xl cursor-not-allowed"
+                className="h-10 pr-9 bg-muted/40 text-xs font-mono text-muted-foreground rounded-xl cursor-not-allowed"
               />
-              <Lock className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/60" />
+              <LockIcon className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/60" />
             </div>
+            <p className="text-[11px] text-muted-foreground">
+              Alamat email terdaftar pada akun Klipday Anda dan tidak dapat diubah.
+            </p>
           </div>
 
-          {/* Readonly Phone Number */}
+          {/* Editable WhatsApp Number */}
           <div className="space-y-1.5">
-            <Label htmlFor="readonly-phone" className="text-xs font-medium text-muted-foreground">
+            <Label htmlFor="phoneNumber" className="text-xs font-medium">
               Nomor WhatsApp
             </Label>
-            <div className="relative">
-              <Input
-                id="readonly-phone"
-                type="text"
-                value={profile.phoneNumber || 'Belum diisi'}
-                disabled
-                className="h-10 bg-muted/40 text-xs font-mono text-muted-foreground rounded-xl cursor-not-allowed"
-              />
-              <Lock className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/60" />
-            </div>
-          </div>
-        </div>
-
-        {/* Calm neutral notice banner */}
-        <div className="rounded-xl border border-border/60 bg-muted/30 p-3.5 text-xs text-muted-foreground">
-          <div className="flex items-start gap-2.5">
-            <Info className="size-4 shrink-0 text-muted-foreground mt-0.5" />
-            <p className="text-[11px] leading-relaxed">
-              Email dan nomor WhatsApp terhubung dengan autentikasi utama akun Anda. Perubahan kontak utama memerlukan verifikasi OTP keamanan (fitur ganti kontak mandiri akan segera tersedia).
-            </p>
+            <Input
+              id="phoneNumber"
+              type="tel"
+              {...register('phoneNumber')}
+              placeholder="Contoh: 628123456789"
+              className="h-10 text-xs rounded-xl"
+            />
+            {errors.phoneNumber ? (
+              <p className="text-[11px] text-destructive">{errors.phoneNumber.message}</p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">
+                Gunakan nomor aktif diawali 62 (contoh: 628123456789).
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -382,9 +382,9 @@ export function BrandProfileInfoForm({ profile }: BrandProfileInfoFormProps) {
           disabled={updateProfileMutation.isPending || !isDirty}
           className="cursor-pointer font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs">
           {updateProfileMutation.isPending ? (
-            <Loader2 className="mr-1.5 size-4 animate-spin" />
+            <LoaderIcon className="mr-1.5 size-4 animate-spin" />
           ) : (
-            <Save className="mr-1.5 size-4" />
+            <DisketteIcon className="mr-1.5 size-4" />
           )}
           <span>Simpan Perubahan</span>
         </Button>

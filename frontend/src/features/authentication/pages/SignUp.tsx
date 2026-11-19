@@ -29,7 +29,7 @@ function SignUp() {
       </CardContent>
       <CardFooter className="justify-center text-sm text-muted-foreground">
         Sudah punya akun?&nbsp;
-        <Link to="/signin" className="text-primary underline-offset-4 hover:underline">
+        <Link to="/signin" className="font-medium text-foreground underline-offset-4 hover:underline">
           Masuk
         </Link>
       </CardFooter>

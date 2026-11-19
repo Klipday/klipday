@@ -60,9 +60,9 @@ export function BrandCampaignsList({ onCardClick, className }: BrandCampaignsLis
   if (isLoading) {
     return (
       <div
-        className={cn('grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5', className)}
+        className={cn('grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6', className)}
         data-testid="brand-campaigns-loading">
-        {Array.from({ length: 8 }).map((_, index) => (
+        {Array.from({ length: 6 }).map((_, index) => (
           <CampaignCardSkeleton key={index} />
         ))}
       </div>
@@ -80,7 +80,7 @@ export function BrandCampaignsList({ onCardClick, className }: BrandCampaignsLis
   }
 
   return (
-    <div className={cn('grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 py-2', className)}>
+    <div className={cn('grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 py-2', className)}>
       {items.map((campaign) => (
         <CampaignCard key={campaign.id} campaign={campaign} onClick={HandleCardClick} />
       ))}

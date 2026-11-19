@@ -1,5 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { Check, ChevronDown, MapPin, Search, X } from 'lucide-react';
+import {
+  AltArrowDownIcon,
+  CheckIcon,
+  CloseIcon,
+  MagnifierIcon,
+  MapPointIcon,
+} from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -83,7 +89,7 @@ export function BrandLocationCombobox({
           !value && 'text-muted-foreground',
         )}>
         <div className="flex items-center gap-2 truncate">
-          <MapPin className="size-4 shrink-0 text-muted-foreground" />
+          <MapPointIcon className="size-4 shrink-0 text-muted-foreground" />
           <span className="truncate">{value || 'Pilih Kota / Kabupaten (cth: Jakarta Selatan)'}</span>
         </div>
 
@@ -96,10 +102,10 @@ export function BrandLocationCombobox({
               onClick={HandleClear}
               className="size-5 rounded-full p-0 text-muted-foreground hover:bg-muted hover:text-foreground"
               aria-label="Hapus lokasi terpilih">
-              <X className="size-3" />
+              <CloseIcon className="size-3" />
             </Button>
           ) : null}
-          <ChevronDown className={cn('size-4 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
+          <AltArrowDownIcon className={cn('size-4 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
         </div>
       </div>
 
@@ -111,7 +117,7 @@ export function BrandLocationCombobox({
           className="absolute z-50 mt-1.5 w-full rounded-xl border border-border/60 bg-popover p-2 text-popover-foreground shadow-xl ring-1 ring-foreground/5 dark:ring-foreground/10 animate-in fade-in-0 zoom-in-95">
           {/* Search Header */}
           <div className="relative mb-2">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+            <MagnifierIcon className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
             <Input
               ref={searchInputRef}
               type="text"
@@ -152,7 +158,7 @@ export function BrandLocationCombobox({
                         : 'text-foreground hover:bg-muted/60',
                     )}>
                     <span>{city}</span>
-                    {isSelected ? <Check className="size-3.5 text-primary" /> : null}
+                    {isSelected ? <CheckIcon className="size-3.5 text-primary" /> : null}
                   </button>
                 );
               })

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, Clock, Loader2 } from 'lucide-react';
+import { ArrowRightIcon, ClockCircleIcon, LoaderIcon } from '@solar-icons/react/linear';
 import { useLocation } from 'react-router';
 import {
   AlertDialog,
@@ -80,7 +80,7 @@ export function WalletPendingWithdrawalBanner({
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <Clock className="size-3.5" />
+                <ClockCircleIcon className="size-3.5" />
                 Permintaan Penarikan Saldo Aktif
               </span>
               {isCancellationRequested && (
@@ -154,7 +154,7 @@ export function WalletPendingWithdrawalBanner({
                           className="w-full sm:w-auto px-5 sm:min-w-[200px] font-medium cursor-pointer">
                           {requestCancelMutation.isPending ? (
                             <>
-                              <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                              <LoaderIcon className="mr-1.5 size-3.5 animate-spin" />
                               Mengajukan...
                             </>
                           ) : (
@@ -173,7 +173,7 @@ export function WalletPendingWithdrawalBanner({
                   className="h-9 px-3 text-xs cursor-pointer border-border/70 hover:bg-muted/40"
                   onClick={() => setIsSheetOpen(true)}>
                   <span>Lihat Detail</span>
-                  <ArrowRight className="ml-1.5 size-3.5" />
+                  <ArrowRightIcon className="ml-1.5 size-3.5" />
                 </Button>
               </>
             ) : (
@@ -184,7 +184,7 @@ export function WalletPendingWithdrawalBanner({
                 className="h-9 px-3 text-xs cursor-pointer border-border/70 hover:bg-muted/40"
                 onClick={() => setIsSheetOpen(true)}>
                 <span>Lihat Semua Penarikan ({count})</span>
-                <ArrowRight className="ml-1.5 size-3.5" />
+                <ArrowRightIcon className="ml-1.5 size-3.5" />
               </Button>
             )}
           </div>

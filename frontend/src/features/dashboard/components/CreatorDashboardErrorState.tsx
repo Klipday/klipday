@@ -1,4 +1,4 @@
-import { AlertCircle, RotateCcw } from 'lucide-react';
+import { DangerCircleIcon, RestartIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { CREATOR_DASHBOARD_MESSAGES } from '../constants';
@@ -23,7 +23,7 @@ export function CreatorDashboardErrorState({
       )}
     >
       <div className="size-12 rounded-full border border-destructive/30 bg-destructive/10 flex items-center justify-center text-destructive mx-auto">
-        <AlertCircle className="size-6" />
+        <DangerCircleIcon className="size-6" />
       </div>
 
       <div className="space-y-1.5">
@@ -41,7 +41,7 @@ export function CreatorDashboardErrorState({
         onClick={onRetry}
         className="h-8 gap-1.5 text-xs font-medium border-border/80 text-foreground hover:bg-muted/60"
       >
-        <RotateCcw className="size-3.5" />
+        <RestartIcon className="size-3.5" />
         <span>{CREATOR_DASHBOARD_MESSAGES.ACTION_RETRY}</span>
       </Button>
     </div>

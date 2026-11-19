@@ -1,4 +1,4 @@
-import { Check, X } from 'lucide-react';
+import { CheckIcon, CloseIcon } from '@solar-icons/react/linear';
 import { cn } from '@/lib/utils';
 import type { BriefDosDontsProps } from '../../types';
 
@@ -27,7 +27,7 @@ export function BriefDosDonts({ dos = [], donts = [], className }: BriefDosDonts
       {/* Do's (Hal yang Dianjurkan) */}
       <div className="rounded-xl border border-border/40 bg-muted/20 p-3.5 space-y-2">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-          <Check className="size-3.5 stroke-[2.5]" />
+          <CheckIcon className="size-3.5 stroke-[2.5]" />
           <span>Hal yang Dianjurkan (Do&apos;s)</span>
         </div>
         {cleanDos.length > 0 ? (
@@ -47,7 +47,7 @@ export function BriefDosDonts({ dos = [], donts = [], className }: BriefDosDonts
       {/* Don'ts (Hal yang Dilarang) */}
       <div className="rounded-xl border border-border/40 bg-muted/20 p-3.5 space-y-2">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-destructive">
-          <X className="size-3.5 stroke-[2.5]" />
+          <CloseIcon className="size-3.5 stroke-[2.5]" />
           <span>Hal yang Dilarang (Don&apos;ts)</span>
         </div>
         {cleanDonts.length > 0 ? (

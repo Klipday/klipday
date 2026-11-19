@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-react';
+import { DangerTriangleIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import type { CampaignReviewCompletenessAlertProps } from '../types';
 
@@ -20,7 +20,7 @@ export function CampaignReviewCompletenessAlert({
   return (
     <div className="rounded-xl border border-destructive/25 bg-destructive/5 p-4 text-sm">
       <div className="flex items-start gap-3">
-        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
+        <DangerTriangleIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
         <div className="space-y-1.5 flex-1 min-w-0">
           <h4 className="text-xs sm:text-sm font-semibold text-destructive tracking-tight">Kampanye Belum Siap Diajukan</h4>
           <p className="text-xs text-muted-foreground">

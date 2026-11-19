@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { CheckIcon, CopyIcon } from '@solar-icons/react/linear';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -73,9 +73,9 @@ export function BriefTags({ hashtags = [], mentionTags = [], className }: BriefT
                   )}>
                   <span>{formatted}</span>
                   {isCopied ? (
-                    <Check className="size-3 text-emerald-500" />
+                    <CheckIcon className="size-3 text-emerald-500" />
                   ) : (
-                    <Copy className="size-3 text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <CopyIcon className="size-3 text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity" />
                   )}
                 </button>
               );
@@ -97,7 +97,7 @@ export function BriefTags({ hashtags = [], mentionTags = [], className }: BriefT
               size="xs"
               onClick={HandleCopyAll}
               className="text-muted-foreground hover:text-foreground h-6 px-2 text-[11px] gap-1 cursor-pointer">
-              <Copy className="size-3" />
+              <CopyIcon className="size-3" />
               <span>Salin Semua</span>
             </Button>
           </div>
@@ -121,9 +121,9 @@ export function BriefTags({ hashtags = [], mentionTags = [], className }: BriefT
                   )}>
                   <span>{formatted}</span>
                   {isCopied ? (
-                    <Check className="size-3 text-emerald-500" />
+                    <CheckIcon className="size-3 text-emerald-500" />
                   ) : (
-                    <Copy className="size-3 text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <CopyIcon className="size-3 text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity" />
                   )}
                 </button>
               );

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus } from 'lucide-react';
+import { AddIcon } from '@solar-icons/react/linear';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -159,7 +159,7 @@ export function CampaignFormStep2() {
         onClick={HandleAddMaterial}
         disabled={isPending}
         className="w-full flex items-center justify-center gap-2 border-dashed h-11 rounded-lg text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted/40 transition-colors">
-        <Plus className="size-4" />
+        <AddIcon className="size-4" />
         <span className="font-medium text-sm">Tambah Materi & Aset Promosi</span>
       </Button>
 

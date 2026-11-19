@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowRight, Loader2, Plus } from 'lucide-react';
+import { AddIcon, ArrowRightIcon, LoaderIcon } from '@solar-icons/react/linear';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -135,7 +135,7 @@ export function CreateCampaignDialog({ children }: CreateCampaignDialogProps) {
                   disabled={!latestDraft}
                 >
                   <span>Lanjutkan Draf Terakhir</span>
-                  <ArrowRight className="size-3.5" />
+                  <ArrowRightIcon className="size-3.5" />
                 </Button>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -156,9 +156,9 @@ export function CreateCampaignDialog({ children }: CreateCampaignDialogProps) {
                     disabled={initializeMutation.isPending}
                   >
                     {initializeMutation.isPending ? (
-                      <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                      <LoaderIcon className="mr-1.5 size-3.5 animate-spin" />
                     ) : (
-                      <Plus className="mr-1.5 size-3.5" />
+                      <AddIcon className="mr-1.5 size-3.5" />
                     )}
                     <span>Tetap Buat Baru</span>
                   </Button>
@@ -193,7 +193,7 @@ export function CreateCampaignDialog({ children }: CreateCampaignDialogProps) {
                   className="flex items-center gap-2"
                 >
                   {initializeMutation.isPending && (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <LoaderIcon className="h-4 w-4 animate-spin" />
                   )}
                   <span>Ya, Buat Kampanye</span>
                 </Button>

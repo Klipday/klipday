@@ -6,9 +6,8 @@ import { Role, Status } from '../../generated/prisma/enums.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
 import { prisma } from '../../utils/prisma.js';
 import {
-  AUTH_CLEAR_COOKIE_OPTIONS,
   AUTH_COOKIE_NAME,
-  AUTH_COOKIE_OPTIONS,
+  AUTH_ERROR_CODES,
   AUTH_MESSAGES,
   AUTH_SALT_ROUNDS,
   AUTH_TOKEN_EXPIRES_IN,
@@ -20,6 +19,7 @@ import {
   BuildInitialWalletCreateData,
   CreateAndSendPasswordResetToken,
   CreateAndSendVerificationOtp,
+  EmailDeliveryError,
   HashTokenOrCode,
 } from './auth.helper.js';
 import type {
@@ -187,7 +187,7 @@ export async function LoginAccount(
         AUTH_MESSAGES.EMAIL_VERIFICATION_REQUIRED,
         403,
         {
-          code: 'EMAIL_NOT_VERIFIED',
+          code: AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED,
           email: account.email,
         },
       );
@@ -257,45 +257,52 @@ export async function VerifyEmail(
       return;
     }
 
+    const jwtSecret = process.env.JWT_SECRET;
+
+    if (!jwtSecret) {
+      SendError(res, AUTH_MESSAGES.CONFIG_MISSING, 500);
+      return;
+    }
+
     const codeHash = HashTokenOrCode(input.code);
     const now = new Date();
 
-    const activeCodeRecord = await prisma.emailVerificationCode.findFirst({
-      where: {
-        accountId: account.id,
-        codeHash,
-        usedAt: null,
-        expiresAt: { gt: now },
-      },
+    // Atomic interactive transaction prevents concurrent OTP replay races
+    const consumed = await prisma.$transaction(async (tx) => {
+      const updateResult = await tx.emailVerificationCode.updateMany({
+        where: {
+          accountId: account.id,
+          codeHash,
+          usedAt: null,
+          expiresAt: { gt: now },
+        },
+        data: { usedAt: now },
+      });
+
+      if (updateResult.count !== 1) {
+        return false;
+      }
+
+      await tx.account.update({
+        where: { id: account.id },
+        data: { isEmailVerified: true },
+      });
+
+      return true;
     });
 
-    if (!activeCodeRecord) {
+    if (!consumed) {
       SendError(res, AUTH_MESSAGES.INVALID_OR_EXPIRED_CODE, 400);
       return;
     }
 
-    // Atomic transaction: mark email verified and consume the OTP code
-    await prisma.$transaction([
-      prisma.account.update({
-        where: { id: account.id },
-        data: { isEmailVerified: true },
-      }),
-      prisma.emailVerificationCode.update({
-        where: { id: activeCodeRecord.id },
-        data: { usedAt: now },
-      }),
-    ]);
-
     // Issue session cookie upon successful verification for seamless onboarding
-    const jwtSecret = process.env.JWT_SECRET;
-    if (jwtSecret) {
-      const tokenPayload = { sub: account.id, role: account.role };
-      const token = jwt.sign(tokenPayload, jwtSecret, {
-        expiresIn: AUTH_TOKEN_EXPIRES_IN,
-      });
-      const cookieOptions = GetAuthCookieOptions();
-      res.cookie(AUTH_COOKIE_NAME, token, cookieOptions);
-    }
+    const tokenPayload = { sub: account.id, role: account.role };
+    const token = jwt.sign(tokenPayload, jwtSecret, {
+      expiresIn: AUTH_TOKEN_EXPIRES_IN,
+    });
+    const cookieOptions = GetAuthCookieOptions();
+    res.cookie(AUTH_COOKIE_NAME, token, cookieOptions);
 
     const verifiedResponseData = {
       id: account.id,
@@ -362,13 +369,28 @@ export async function ResendVerificationEmail(
           res,
           AUTH_MESSAGES.RESEND_COOLDOWN_ACTIVE,
           429,
-          { remainingSeconds },
+          {
+            code: AUTH_ERROR_CODES.RESEND_COOLDOWN_ACTIVE,
+            remainingSeconds,
+          },
         );
         return;
       }
     }
 
-    await CreateAndSendVerificationOtp(account.id, account.email);
+    try {
+      await CreateAndSendVerificationOtp(account.id, account.email);
+    } catch (emailErr) {
+      if (emailErr instanceof EmailDeliveryError) {
+        console.error('Failed to resend verification email:', emailErr.message);
+        SendError(res, AUTH_MESSAGES.EMAIL_DELIVERY_FAILED, 503, {
+          code: AUTH_ERROR_CODES.EMAIL_DELIVERY_FAILED,
+        });
+        return;
+      }
+
+      throw emailErr;
+    }
 
     SendSuccess(res, { email: account.email }, AUTH_MESSAGES.CODE_RESENT_SUCCESS);
   } catch (err) {
@@ -378,7 +400,7 @@ export async function ResendVerificationEmail(
 
 /**
  * Handles `POST /auth/forgot-password`: generates a single-use 1-hour reset token
- * and sends the password reset email with account enumeration defense.
+ * and sends the password reset email with account enumeration defense and cooldown protection.
  *
  * @param req - Express request with `{ email }`.
  * @param res - Express response object.
@@ -403,10 +425,22 @@ export async function ForgotPassword(
     });
 
     if (account) {
-      try {
-        await CreateAndSendPasswordResetToken(account.id, account.email);
-      } catch (emailErr) {
-        console.error('Failed to dispatch password reset email:', emailErr);
+      const latestToken = await prisma.passwordResetToken.findFirst({
+        where: { accountId: account.id },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      });
+
+      const isCoolingDown =
+        latestToken !== null &&
+        Date.now() - latestToken.createdAt.getTime() < RESEND_COOLDOWN_MS;
+
+      if (!isCoolingDown) {
+        try {
+          await CreateAndSendPasswordResetToken(account.id, account.email);
+        } catch (emailErr) {
+          console.error('Failed to dispatch password reset email:', emailErr);
+        }
       }
     }
 
@@ -446,6 +480,7 @@ export async function ResetPassword(
         tokenHash,
         usedAt: null,
         expiresAt: { gt: now },
+        account: { status: Status.ACTIVE },
       },
       select: {
         id: true,
@@ -460,16 +495,33 @@ export async function ResetPassword(
 
     const newPasswordHash = await bcrypt.hash(input.password, AUTH_SALT_ROUNDS);
 
-    await prisma.$transaction([
-      prisma.account.update({
+    // Atomic interactive transaction prevents concurrent reset token replay
+    const consumed = await prisma.$transaction(async (tx) => {
+      const updateResult = await tx.passwordResetToken.updateMany({
+        where: {
+          id: tokenRecord.id,
+          usedAt: null,
+          expiresAt: { gt: now },
+        },
+        data: { usedAt: now },
+      });
+
+      if (updateResult.count !== 1) {
+        return false;
+      }
+
+      await tx.account.update({
         where: { id: tokenRecord.accountId },
         data: { passwordHash: newPasswordHash },
-      }),
-      prisma.passwordResetToken.update({
-        where: { id: tokenRecord.id },
-        data: { usedAt: now },
-      }),
-    ]);
+      });
+
+      return true;
+    });
+
+    if (!consumed) {
+      SendError(res, AUTH_MESSAGES.INVALID_OR_EXPIRED_RESET_TOKEN, 400);
+      return;
+    }
 
     SendSuccess(res, null, AUTH_MESSAGES.PASSWORD_RESET_SUCCESS);
   } catch (err) {

@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
+import { LoaderIcon } from '@solar-icons/react/linear';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Link, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
@@ -245,7 +245,7 @@ export function SignUpForm() {
         <Button type="submit" disabled={mutation.isPending} className="w-full">
           {mutation.isPending ? (
             <span className="flex items-center gap-2">
-              <Loader2 className="size-4 animate-spin" />
+              <LoaderIcon className="size-4 animate-spin" />
               <span>Memproses...</span>
             </span>
           ) : (

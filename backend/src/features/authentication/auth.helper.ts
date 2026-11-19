@@ -18,10 +18,26 @@ export {
 };
 import { prisma } from '../../utils/prisma.js';
 import {
+  AUTH_MESSAGES,
   EMAIL_VERIFICATION_CODE_LENGTH,
   EMAIL_VERIFICATION_EXPIRY_MS,
   PASSWORD_RESET_EXPIRY_MS,
 } from './auth.constants.js';
+
+/**
+ * Error thrown when an outbound authentication email cannot be accepted for delivery.
+ */
+export class EmailDeliveryError extends Error {
+  /**
+   * Creates an EmailDeliveryError instance.
+   *
+   * @param message - Human-readable or provider-supplied delivery failure reason.
+   */
+  constructor(message: string) {
+    super(message);
+    this.name = 'EmailDeliveryError';
+  }
+}
 
 /**
  * Builds the initial nested create payload for a new account's wallet.
@@ -91,8 +107,12 @@ export function HashTokenOrCode(raw: string): string {
  * @returns Resolved origin URL string without trailing slash.
  */
 function ResolveClientBaseUrl(): string {
+  const configuredAppUrl = process.env.APP_URL?.trim();
   const configuredOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
-  const primaryOrigin = configuredOrigin.split(',')[0]?.trim() || 'http://localhost:5173';
+  const primaryOrigin =
+    configuredAppUrl ||
+    configuredOrigin.split(',')[0]?.trim() ||
+    'http://localhost:5173';
   const sanitized = primaryOrigin.replace(/\/+$/, '');
   return sanitized;
 }
@@ -104,6 +124,7 @@ function ResolveClientBaseUrl(): string {
  * @param accountId - Primary key of the account.
  * @param email - Target email address.
  * @returns The raw 6-digit OTP code sent.
+ * @throws {EmailDeliveryError} When the email provider fails to accept the message.
  */
 export async function CreateAndSendVerificationOtp(
   accountId: string,
@@ -126,7 +147,7 @@ export async function CreateAndSendVerificationOtp(
   });
 
   // Persist fresh OTP code record
-  await prisma.emailVerificationCode.create({
+  const createdCode = await prisma.emailVerificationCode.create({
     data: {
       accountId,
       codeHash,
@@ -137,10 +158,26 @@ export async function CreateAndSendVerificationOtp(
   const baseUrl = ResolveClientBaseUrl();
   const verificationUrl = `${baseUrl}/verify-email?email=${encodeURIComponent(email)}&code=${rawOtp}`;
 
-  await SendVerificationOtpEmail(email, {
+  const emailResult = await SendVerificationOtpEmail(email, {
     otpCode: rawOtp,
     verificationUrl,
   });
+
+  if (!emailResult.success) {
+    // Best-effort rollback so failed delivery does not burn the user's resend cooldown
+    try {
+      if (createdCode?.id) {
+        await prisma.emailVerificationCode.delete({
+          where: { id: createdCode.id },
+        });
+      }
+    } catch (cleanupErr) {
+      console.error('Failed to clean up unsent verification code:', cleanupErr);
+    }
+
+    const errorMessage = emailResult.error ?? AUTH_MESSAGES.EMAIL_DELIVERY_FAILED;
+    throw new EmailDeliveryError(errorMessage);
+  }
 
   return rawOtp;
 }
@@ -152,6 +189,7 @@ export async function CreateAndSendVerificationOtp(
  * @param accountId - Primary key of the account.
  * @param email - Target email address.
  * @returns The raw secret hex token sent.
+ * @throws {EmailDeliveryError} When the email provider fails to accept the message.
  */
 export async function CreateAndSendPasswordResetToken(
   accountId: string,
@@ -174,7 +212,7 @@ export async function CreateAndSendPasswordResetToken(
   });
 
   // Persist fresh reset token record
-  await prisma.passwordResetToken.create({
+  const createdToken = await prisma.passwordResetToken.create({
     data: {
       accountId,
       tokenHash,
@@ -185,9 +223,25 @@ export async function CreateAndSendPasswordResetToken(
   const baseUrl = ResolveClientBaseUrl();
   const resetUrl = `${baseUrl}/reset-password?token=${rawToken}`;
 
-  await SendPasswordResetEmail(email, {
+  const emailResult = await SendPasswordResetEmail(email, {
     resetUrl,
   });
+
+  if (!emailResult.success) {
+    // Best-effort rollback so failed delivery does not lock the user out of requesting again
+    try {
+      if (createdToken?.id) {
+        await prisma.passwordResetToken.delete({
+          where: { id: createdToken.id },
+        });
+      }
+    } catch (cleanupErr) {
+      console.error('Failed to clean up unsent password reset token:', cleanupErr);
+    }
+
+    const errorMessage = emailResult.error ?? AUTH_MESSAGES.EMAIL_DELIVERY_FAILED;
+    throw new EmailDeliveryError(errorMessage);
+  }
 
   return rawToken;
 }

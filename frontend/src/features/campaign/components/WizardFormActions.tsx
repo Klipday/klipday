@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowLeftIcon, ArrowRightIcon, LoaderIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { WizardFormActionsProps } from '../types';
@@ -24,18 +24,18 @@ export function WizardFormActions({
     <div className={containerClasses}>
       {onBack && (
         <Button type="button" variant="outline" onClick={onBack} disabled={isPending} className="flex items-center gap-2">
-          <ArrowLeft className="size-4" />
+          <ArrowLeftIcon className="size-4" />
           <span>{backText}</span>
         </Button>
       )}
 
       <Button type="submit" disabled={isPending} className="flex items-center justify-center gap-2 min-w-180px">
         {isPending ? (
-          <Loader2 className="size-4 animate-spin" />
+          <LoaderIcon className="size-4 animate-spin" />
         ) : (
           <>
             <span>{submitText}</span>
-            <ArrowRight className="size-4" />
+            <ArrowRightIcon className="size-4" />
           </>
         )}
       </Button>

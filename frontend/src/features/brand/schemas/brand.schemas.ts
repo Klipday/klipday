@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   BRAND_LIMITS,
   BRAND_MESSAGES,
+  INDONESIAN_PHONE_REGEX,
 } from '../constants';
 
 export const BrandProfileFormSchema = z.object({
@@ -10,6 +11,14 @@ export const BrandProfileFormSchema = z.object({
     .trim()
     .min(BRAND_LIMITS.MIN_COMPANY_NAME_LENGTH, BRAND_MESSAGES.COMPANY_NAME_MIN)
     .max(BRAND_LIMITS.MAX_COMPANY_NAME_LENGTH, BRAND_MESSAGES.COMPANY_NAME_MAX),
+  phoneNumber: z
+    .string()
+    .trim()
+    .refine((val) => !val || INDONESIAN_PHONE_REGEX.test(val.replace(/[\s-]/g, '')), {
+      message: BRAND_MESSAGES.INVALID_PHONE_NUMBER,
+    })
+    .nullable()
+    .optional(),
   industry: z
     .enum([
       'E_COMMERCE',

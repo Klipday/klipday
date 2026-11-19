@@ -1,4 +1,4 @@
-import { RotateCcw, Search, X } from 'lucide-react';
+import { CloseIcon, MagnifierIcon, RestartIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -65,10 +65,10 @@ export function CampaignFiltersToolbar({
   };
 
   return (
-    <div className={cn('flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between w-full', className)}>
+    <div className={cn('flex flex-col gap-3 md:flex-row md:items-center md:justify-between w-full', className)}>
       {/* Search Bar with Leading Icon and Clear Button */}
-      <div className="relative w-full sm:w-64 md:w-72 sm:shrink-0">
-        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+      <div className="relative w-full md:w-72 md:shrink-0">
+        <MagnifierIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
         <Input
           type="text"
           value={searchTerm}
@@ -83,13 +83,13 @@ export function CampaignFiltersToolbar({
             onClick={ClearSearch}
             aria-label="Hapus pencarian"
             className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 cursor-pointer transition-colors">
-            <X className="size-3.5" />
+            <CloseIcon className="size-3.5" />
           </button>
         ) : null}
       </div>
 
       {/* Filter and Sort Dropdowns */}
-      <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+      <div className="flex flex-wrap items-center gap-2 md:shrink-0">
         <CampaignFilterSelect
           value={category}
           placeholder="Kategori"
@@ -124,7 +124,7 @@ export function CampaignFiltersToolbar({
             size="sm"
             onClick={ResetFilters}
             className="h-9 gap-1.5 px-3 rounded-xl bg-zinc-900/70 hover:bg-zinc-800 border border-border/40 hover:border-border/60 text-xs font-medium text-zinc-300 hover:text-white cursor-pointer transition-colors shadow-none">
-            <RotateCcw className="size-3.5" />
+            <RestartIcon className="size-3.5" />
             <span>Reset</span>
           </Button>
         ) : null}

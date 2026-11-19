@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { AlertCircle, CheckCircle2, ExternalLink, Loader2, XCircle } from 'lucide-react';
+import {
+  CheckCircleIcon,
+  CloseCircleIcon,
+  DangerCircleIcon,
+  LoaderIcon,
+  SquareTopDownIcon,
+} from '@solar-icons/react/linear';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -164,7 +170,7 @@ function SubmissionReviewDialogInner({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-border/60 bg-background text-foreground hover:bg-muted transition-colors shrink-0">
               <span>Tonton di TikTok</span>
-              <ExternalLink className="size-3" />
+              <SquareTopDownIcon className="size-3" />
             </a>
           )}
         </div>
@@ -199,7 +205,7 @@ function SubmissionReviewDialogInner({
                   ? 'bg-emerald-500 text-white'
                   : 'border border-border/80 text-transparent',
               )}>
-              <CheckCircle2 className="size-3.5" />
+              <CheckCircleIcon className="size-3.5" />
             </div>
             <div className="space-y-0.5 min-w-0">
               <p className="text-xs font-semibold text-foreground">Setujui Video</p>
@@ -227,7 +233,7 @@ function SubmissionReviewDialogInner({
                   ? 'bg-orange-500 text-white'
                   : 'border border-border/80 text-transparent',
               )}>
-              <AlertCircle className="size-3.5" />
+              <DangerCircleIcon className="size-3.5" />
             </div>
             <div className="space-y-0.5 min-w-0">
               <p className="text-xs font-semibold text-foreground">Minta Revisi</p>
@@ -255,7 +261,7 @@ function SubmissionReviewDialogInner({
                   ? 'bg-destructive text-white'
                   : 'border border-border/80 text-transparent',
               )}>
-              <XCircle className="size-3.5" />
+              <CloseCircleIcon className="size-3.5" />
             </div>
             <div className="space-y-0.5 min-w-0">
               <p className="text-xs font-semibold text-foreground">Tolak Pengajuan</p>
@@ -350,7 +356,7 @@ function SubmissionReviewDialogInner({
             decision === 'REVISION' && 'bg-orange-600 hover:bg-orange-700 text-white',
             decision === 'REJECT' && 'bg-destructive hover:bg-destructive/90 text-destructive-foreground',
           )}>
-          {isSubmitting && <Loader2 className="size-3.5 animate-spin" />}
+          {isSubmitting && <LoaderIcon className="size-3.5 animate-spin" />}
           <span>
             {decision === 'ACCEPT' && 'Setujui Video'}
             {decision === 'REVISION' && 'Kirim Revisi'}

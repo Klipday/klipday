@@ -7,6 +7,7 @@ import {
   AUTH_CLEAR_COOKIE_OPTIONS,
   AUTH_COOKIE_NAME,
   AUTH_COOKIE_OPTIONS,
+  AUTH_ERROR_CODES,
   AUTH_MESSAGES,
   AUTH_SALT_ROUNDS,
   AUTH_TOKEN_EXPIRES_IN,
@@ -31,6 +32,7 @@ import {
 import { Prisma } from '../src/generated/prisma/client.js';
 import { Industry, Role, Status } from '../src/generated/prisma/enums.js';
 import { RequireAuth } from '../src/middleware/auth.middleware.js';
+import { VerifyCsrfOrigin } from '../src/middleware/csrf.middleware.js';
 import { prisma } from '../src/utils/prisma.js';
 import {
   CreateMockNext,
@@ -1018,6 +1020,11 @@ describe('Authentication Feature Module', () => {
 
         process.env.COOKIE_SAME_SITE = 'lax';
         expect(ResolveCookieSameSite()).toBe('lax');
+
+        // SameSite=none without Secure=true must safely downgrade to lax
+        process.env.COOKIE_SECURE = 'false';
+        process.env.COOKIE_SAME_SITE = 'none';
+        expect(ResolveCookieSameSite()).toBe('lax');
       });
 
       it('constructs complete secure cookie options with path and optional domain', () => {
@@ -1055,6 +1062,96 @@ describe('Authentication Feature Module', () => {
         expect(options.path).toBe('/');
         expect(options.secure).toBe(false);
         expect(options.sameSite).toBe('lax');
+      });
+    });
+
+    describe('VerifyCsrfOrigin Middleware', () => {
+      it('allows safe HTTP methods (GET, HEAD, OPTIONS) without Origin header', () => {
+        for (const method of ['GET', 'HEAD', 'OPTIONS']) {
+          const req = CreateMockRequest({ method, headers: {} });
+          const { res, statusMock } = CreateMockResponse();
+          const next = CreateMockNext();
+
+          VerifyCsrfOrigin(req, res, next);
+
+          expect(next).toHaveBeenCalledTimes(1);
+          expect(statusMock).not.toHaveBeenCalled();
+        }
+      });
+
+      it('allows state-changing requests from a trusted CORS_ORIGIN', () => {
+        process.env.CORS_ORIGIN = 'https://klipday.com, https://app.klipday.com';
+        const req = CreateMockRequest({
+          method: 'POST',
+          headers: { origin: 'https://app.klipday.com' },
+        });
+        const { res, statusMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        VerifyCsrfOrigin(req, res, next);
+
+        expect(next).toHaveBeenCalledTimes(1);
+        expect(statusMock).not.toHaveBeenCalled();
+      });
+
+      it('blocks state-changing requests from an untrusted Origin with 403', () => {
+        process.env.CORS_ORIGIN = 'https://klipday.com';
+        const req = CreateMockRequest({
+          method: 'POST',
+          headers: { origin: 'https://evil.example.com' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        VerifyCsrfOrigin(req, res, next);
+
+        expect(next).not.toHaveBeenCalled();
+        expect(statusMock).toHaveBeenCalledWith(403);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: { code: AUTH_ERROR_CODES.CSRF_FORBIDDEN },
+          message: AUTH_MESSAGES.CSRF_FORBIDDEN,
+        });
+      });
+
+      it('blocks state-changing requests from an untrusted Referer when Origin is absent', () => {
+        process.env.CORS_ORIGIN = 'https://klipday.com';
+        const req = CreateMockRequest({
+          method: 'POST',
+          headers: { referer: 'https://attacker.site/csrf-form' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        VerifyCsrfOrigin(req, res, next);
+
+        expect(next).not.toHaveBeenCalled();
+        expect(statusMock).toHaveBeenCalledWith(403);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: { code: AUTH_ERROR_CODES.CSRF_FORBIDDEN },
+          message: AUTH_MESSAGES.CSRF_FORBIDDEN,
+        });
+      });
+
+      it('blocks state-changing requests with Sec-Fetch-Site: cross-site when Origin and Referer are absent', () => {
+        process.env.CORS_ORIGIN = 'https://klipday.com';
+        const req = CreateMockRequest({
+          method: 'POST',
+          headers: { 'sec-fetch-site': 'cross-site' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        VerifyCsrfOrigin(req, res, next);
+
+        expect(next).not.toHaveBeenCalled();
+        expect(statusMock).toHaveBeenCalledWith(403);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: { code: AUTH_ERROR_CODES.CSRF_FORBIDDEN },
+          message: AUTH_MESSAGES.CSRF_FORBIDDEN,
+        });
       });
     });
   });

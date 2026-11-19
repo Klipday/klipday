@@ -1,4 +1,9 @@
-import { Check, CheckCircle2, Copy, Loader2 } from 'lucide-react';
+import {
+  CheckCircleIcon,
+  CheckIcon,
+  CopyIcon,
+  LoaderIcon,
+} from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { SocialVerificationCodeCardProps } from '../types';
@@ -70,12 +75,12 @@ export function SocialVerificationCodeCard({
               className="h-8 gap-1.5 text-xs rounded-lg cursor-pointer">
               {hasCopiedCode ? (
                 <>
-                  <Check className="size-3.5 text-emerald-500" />
+                  <CheckIcon className="size-3.5 text-emerald-500" />
                   <span>Tersalin</span>
                 </>
               ) : (
                 <>
-                  <Copy className="size-3.5" />
+                  <CopyIcon className="size-3.5" />
                   <span>Salin</span>
                 </>
               )}
@@ -90,14 +95,14 @@ export function SocialVerificationCodeCard({
             className="w-full h-10 rounded-xl text-xs font-semibold gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer">
             {isChecking ? (
               <>
-                <Loader2 className="size-4 animate-spin" />
+                <LoaderIcon className="size-4 animate-spin" />
                 <span>Memeriksa Bio {platformDisplayName}...</span>
               </>
             ) : cooldownSeconds > 0 ? (
               <span>Tunggu sebentar ({cooldownSeconds}s)...</span>
             ) : (
               <>
-                <CheckCircle2 className="size-4" />
+                <CheckCircleIcon className="size-4" />
                 <span>Periksa Verifikasi Bio</span>
               </>
             )}

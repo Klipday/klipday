@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Select as SelectPrimitive } from 'radix-ui';
 
 import { cn } from '@/lib/utils';
-import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from 'lucide-react';
+import { AltArrowDownIcon, AltArrowUpIcon, CheckIcon } from '@solar-icons/react/linear';
 
 function Select({ ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
   return <SelectPrimitive.Root data-slot="select" {...props} />;
@@ -35,7 +35,7 @@ function SelectTrigger({
       {...props}>
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground" />
+        <AltArrowDownIcon className="pointer-events-none size-4 text-muted-foreground" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
@@ -116,7 +116,7 @@ function SelectScrollUpButton({ className, ...props }: React.ComponentProps<type
       data-slot="select-scroll-up-button"
       className={cn("z-10 flex cursor-default items-center justify-center bg-popover py-1 [&_svg:not([class*='size-'])]:size-4", className)}
       {...props}>
-      <ChevronUpIcon />
+      <AltArrowUpIcon />
     </SelectPrimitive.ScrollUpButton>
   );
 }
@@ -127,7 +127,7 @@ function SelectScrollDownButton({ className, ...props }: React.ComponentProps<ty
       data-slot="select-scroll-down-button"
       className={cn("z-10 flex cursor-default items-center justify-center bg-popover py-1 [&_svg:not([class*='size-'])]:size-4", className)}
       {...props}>
-      <ChevronDownIcon />
+      <AltArrowDownIcon />
     </SelectPrimitive.ScrollDownButton>
   );
 }

@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { CheckCircle2, Clock, Eye, MessageSquare, Video } from 'lucide-react';
+import {
+  ChatSquareIcon,
+  CheckCircleIcon,
+  ClockCircleIcon,
+  EyeIcon,
+  VideocameraIcon,
+} from '@solar-icons/react/linear';
 import { Link } from 'react-router';
 import { cn } from '@/lib/utils';
 import { FormatRupiah } from '@/features/wallet/utils/wallet-format';
@@ -54,7 +60,7 @@ export function CreatorSubmissionRowCard({
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-muted-foreground/50">
-              <Video className="size-6" />
+              <VideocameraIcon className="size-6" />
             </div>
           )}
         </div>
@@ -73,13 +79,13 @@ export function CreatorSubmissionRowCard({
             <div className="shrink-0">
               {isPending && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-                  <Clock className="size-3" />
+                  <ClockCircleIcon className="size-3" />
                   <span>Menunggu Review</span>
                 </span>
               )}
               {isApproved && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                  <CheckCircle2 className="size-3" />
+                  <CheckCircleIcon className="size-3" />
                   <span>Disetujui</span>
                 </span>
               )}
@@ -109,7 +115,7 @@ export function CreatorSubmissionRowCard({
           {/* Contextual Revision Note (if brand requested changes) */}
           {isRevision && submission.reviewNote && (
             <div className="flex items-start gap-1.5 rounded-xl border border-orange-500/25 bg-orange-500/5 px-3 py-2 text-xs text-orange-600 dark:text-orange-300">
-              <MessageSquare className="size-3.5 shrink-0 mt-0.5" />
+              <ChatSquareIcon className="size-3.5 shrink-0 mt-0.5" />
               <span className="leading-relaxed">
                 <strong className="font-semibold">Catatan Brand:</strong> {submission.reviewNote}
               </span>
@@ -119,7 +125,7 @@ export function CreatorSubmissionRowCard({
           {/* Bottom Financial Metrics Row (Clean, no divider line, no dot circles, no buka link) */}
           <div className="flex flex-wrap items-center gap-x-6 gap-y-1 pt-1 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
-              <Eye className="size-3.5 text-muted-foreground/70" />
+              <EyeIcon className="size-3.5 text-muted-foreground/70" />
               <span>Views:</span>
               <strong className="text-foreground font-semibold">{formattedViews}</strong>
             </span>

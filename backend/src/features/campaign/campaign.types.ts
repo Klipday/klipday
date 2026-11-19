@@ -224,6 +224,8 @@ export interface ExecuteVerifyCampaignPaymentParams {
   rejectionReason?: string;
   latestPayment: {
     id: string;
+    amount?: Prisma.Decimal | number | null;
+    uniqueCode?: number | null;
     totalPayable: Prisma.Decimal | number;
   };
   brandWallet?: {

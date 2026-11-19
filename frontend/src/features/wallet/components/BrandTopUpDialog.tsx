@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Check, Copy, ExternalLink, Loader2, Upload } from 'lucide-react';
+import {
+  ArrowRightIcon,
+  CheckIcon,
+  CopyIcon,
+  LoaderIcon,
+  SquareTopDownIcon,
+  UploadIcon,
+} from '@solar-icons/react/linear';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -304,9 +311,9 @@ export function BrandTopUpDialog({
                 disabled={!isFormValid || createTopUpMutation.isPending}
                 className="cursor-pointer font-medium">
                 {createTopUpMutation.isPending ? (
-                  <Loader2 className="mr-1.5 size-4 animate-spin" />
+                  <LoaderIcon className="mr-1.5 size-4 animate-spin" />
                 ) : (
-                  <ArrowRight className="mr-1.5 size-4" />
+                  <ArrowRightIcon className="mr-1.5 size-4" />
                 )}
                 Lanjutkan Pembayaran
               </Button>
@@ -333,9 +340,9 @@ export function BrandTopUpDialog({
                 onClick={() => HandleCopyText(String(activeTopUp.totalPayable), 'total')}
                 className="self-start sm:self-center cursor-pointer text-xs h-8">
                 {copiedField === 'total' ? (
-                  <Check className="mr-1.5 size-3.5 text-emerald-600" />
+                  <CheckIcon className="mr-1.5 size-3.5 text-emerald-600" />
                 ) : (
-                  <Copy className="mr-1.5 size-3.5" />
+                  <CopyIcon className="mr-1.5 size-3.5" />
                 )}
                 Salin Nominal
               </Button>
@@ -363,9 +370,9 @@ export function BrandTopUpDialog({
                     onClick={() => HandleCopyText(activeTopUp.destinationAccount, 'account')}
                     className="h-7 cursor-pointer px-2 text-xs text-muted-foreground hover:text-foreground">
                     {copiedField === 'account' ? (
-                      <Check className="size-3.5 text-emerald-600" />
+                      <CheckIcon className="size-3.5 text-emerald-600" />
                     ) : (
-                      <Copy className="size-3.5" />
+                      <CopyIcon className="size-3.5" />
                     )}
                     <span className="ml-1 sr-only sm:not-sr-only">Salin</span>
                   </Button>
@@ -397,7 +404,7 @@ export function BrandTopUpDialog({
                 </Label>
                 {activeTopUp.transferProofUrl && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                    <Check className="size-3" />
+                    <CheckIcon className="size-3" />
                     Tersimpan
                   </span>
                 )}
@@ -406,7 +413,7 @@ export function BrandTopUpDialog({
               {isReadOnly ? (
                 <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-4 py-3 text-xs">
                   <div className="flex items-center gap-2">
-                    <Check className="size-4 text-emerald-600 dark:text-emerald-400" />
+                    <CheckIcon className="size-4 text-emerald-600 dark:text-emerald-400" />
                     <span className="font-medium text-foreground">
                       {activeTopUp.transferProofUrl
                         ? 'Bukti transfer berhasil diunggah'
@@ -420,7 +427,7 @@ export function BrandTopUpDialog({
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 font-medium text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors cursor-pointer">
                       Lihat Berkas
-                      <ExternalLink className="size-3" />
+                      <SquareTopDownIcon className="size-3" />
                     </a>
                   )}
                 </div>
@@ -433,11 +440,11 @@ export function BrandTopUpDialog({
                       uploadProofMutation.isPending && 'pointer-events-none opacity-60',
                     )}>
                     {uploadProofMutation.isPending ? (
-                      <Loader2 className="size-4 animate-spin" />
+                      <LoaderIcon className="size-4 animate-spin" />
                     ) : activeTopUp.transferProofUrl ? (
-                      <Check className="size-4 text-emerald-600 dark:text-emerald-400" />
+                      <CheckIcon className="size-4 text-emerald-600 dark:text-emerald-400" />
                     ) : (
-                      <Upload className="size-4 text-muted-foreground" />
+                      <UploadIcon className="size-4 text-muted-foreground" />
                     )}
                     <span>
                       {uploadProofMutation.isPending
@@ -498,13 +505,13 @@ export function BrandTopUpDialog({
                   disabled={
                     submitProofMutation.isPending ||
                     uploadProofMutation.isPending ||
-                    (activeTopUp.status === 'REJECTED' && !activeTopUp.transferProofUrl)
+                    !activeTopUp.transferProofUrl
                   }
                   className="cursor-pointer font-medium text-xs">
                   {submitProofMutation.isPending ? (
-                    <Loader2 className="mr-1.5 size-4 animate-spin" />
+                    <LoaderIcon className="mr-1.5 size-4 animate-spin" />
                   ) : (
-                    <Check className="mr-1.5 size-4" />
+                    <CheckIcon className="mr-1.5 size-4" />
                   )}
                   {activeTopUp.status === 'REJECTED' ? 'Kirim Ulang Bukti' : 'Saya Sudah Transfer'}
                 </Button>

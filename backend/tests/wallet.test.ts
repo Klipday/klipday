@@ -319,6 +319,7 @@ describe('Brand Wallet Feature Module', () => {
       const next = CreateMockNext();
 
       jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as never);
+      jest.spyOn(prisma.topUpRequest, 'findMany').mockResolvedValue([] as never);
 
       const createdDate = new Date();
       (jest.spyOn(prisma.topUpRequest, 'create') as unknown as jest.Mock).mockImplementation(
@@ -386,6 +387,60 @@ describe('Brand Wallet Feature Module', () => {
         data: null,
         message: WALLET_MESSAGES.WALLET_NOT_FOUND,
       });
+    });
+
+    it('returns existing PENDING top-up request idempotently (200) within 60-second window', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, role: Role.BRAND },
+        body: {
+          amount: 1000000,
+          senderBank: 'BCA',
+          senderAccountName: 'John Doe',
+        },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      const now = new Date();
+      const existingPending = {
+        id: 'tu-idempotent-1',
+        referenceCode: 'TU-EXIST-1111',
+        walletId: mockWallet.id,
+        amount: new Prisma.Decimal(1000000),
+        uniqueCode: 321,
+        totalPayable: new Prisma.Decimal(1000321),
+        destinationBank: KLIPDAY_DESTINATION_BANK.bankName,
+        destinationAccount: KLIPDAY_DESTINATION_BANK.accountNumber,
+        destinationHolderName: KLIPDAY_DESTINATION_BANK.accountHolderName,
+        senderBank: 'BCA',
+        senderAccountName: 'John Doe',
+        transferProofUrl: null,
+        status: PaymentStatus.PENDING,
+        rejectionReason: null,
+        createdAt: new Date(now.getTime() - 10_000),
+        updatedAt: new Date(now.getTime() - 10_000),
+      };
+
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as never);
+      jest
+        .spyOn(prisma.topUpRequest, 'findMany')
+        .mockResolvedValue([existingPending] as never);
+      const createSpy = jest.spyOn(prisma.topUpRequest, 'create');
+
+      await CreateTopUpRequest(req, res, next);
+
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(statusMock).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'success',
+          message: WALLET_MESSAGES.TOP_UP_CREATED_SUCCESS,
+          data: expect.objectContaining({
+            id: 'tu-idempotent-1',
+            uniqueCode: 321,
+          }),
+        }),
+      );
     });
   });
 
@@ -789,6 +844,82 @@ describe('Brand Wallet Feature Module', () => {
       });
     });
 
+    it('returns 400 when neither payload nor existing record has transferProofUrl', async () => {
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, role: Role.BRAND },
+        params: { id: 'topup-1' },
+        body: {},
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      const existingTopUp = {
+        id: 'topup-1',
+        walletId: mockWallet.id,
+        status: PaymentStatus.PENDING,
+        transferProofUrl: null,
+        recordStatus: Status.ACTIVE,
+      };
+
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as never);
+      jest.spyOn(prisma.topUpRequest, 'findFirst').mockResolvedValue(existingTopUp as never);
+
+      await SubmitTopUpProof(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        data: null,
+        message: WALLET_MESSAGES.TOP_UP_PROOF_REQUIRED,
+      });
+    });
+
+    it('returns 200 idempotently without re-updating when already SUBMITTED with same proof', async () => {
+      const proofUrl = 'https://supabase.co/storage/v1/object/public/proofs/test.jpg';
+      const req = CreateMockRequest({
+        account: { sub: mockAccountId, role: Role.BRAND },
+        params: { id: 'topup-1' },
+        body: { transferProofUrl: proofUrl },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      const existingSubmitted = {
+        id: 'topup-1',
+        referenceCode: 'TU-TEST-1001',
+        walletId: mockWallet.id,
+        amount: new Prisma.Decimal(500000),
+        uniqueCode: 123,
+        totalPayable: new Prisma.Decimal(500123),
+        destinationBank: 'BCA',
+        destinationAccount: '1234567890',
+        destinationHolderName: 'PT Klipday Media Kreasi',
+        senderBank: 'BCA',
+        senderAccountName: 'Budi Santoso',
+        transferProofUrl: proofUrl,
+        status: PaymentStatus.SUBMITTED,
+        rejectionReason: null,
+        recordStatus: Status.ACTIVE,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as never);
+      jest.spyOn(prisma.topUpRequest, 'findFirst').mockResolvedValue(existingSubmitted as never);
+      const updateSpy = jest.spyOn(prisma.topUpRequest, 'update');
+
+      await SubmitTopUpProof(req, res, next);
+
+      expect(updateSpy).not.toHaveBeenCalled();
+      expect(statusMock).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'success',
+          message: WALLET_MESSAGES.TOP_UP_SUBMIT_SUCCESS,
+        }),
+      );
+    });
+
     it('successfully updates top-up to SUBMITTED status with proof URL', async () => {
       const proofUrl = 'https://supabase.co/storage/v1/object/public/proofs/test.jpg';
       const req = CreateMockRequest({
@@ -1070,14 +1201,23 @@ describe('Brand Wallet Feature Module', () => {
   // 10. CreateWithdrawalRequest
   // ===========================================================================
   describe('CreateWithdrawalRequest Handler', () => {
+    const validPayoutAccountId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+    const verifiedBrandPayoutAccount = {
+      id: validPayoutAccountId,
+      walletId: mockWallet.id,
+      provider: 'BCA',
+      accountNumber: '1234567890',
+      accountHolderName: 'Brand Test',
+      verificationStatus: 'VERIFIED',
+      status: Status.ACTIVE,
+    };
+
     it('rejects withdrawal if balance is insufficient', async () => {
       const req = CreateMockRequest({
         account: { sub: mockAccountId, role: Role.BRAND },
         body: {
           amount: 5000000, // wallet has 2.500.000
-          accountProvider: 'BCA',
-          accountNumber: '1234567890',
-          accountHolderName: 'Brand Test',
+          payoutAccountId: validPayoutAccountId,
         },
       });
       const { res, statusMock, jsonMock } = CreateMockResponse();
@@ -1100,9 +1240,7 @@ describe('Brand Wallet Feature Module', () => {
         account: { sub: mockAccountId, role: Role.BRAND },
         body: {
           amount: 10000, // below 50.000
-          accountProvider: 'BCA',
-          accountNumber: '1234567890',
-          accountHolderName: 'Brand Test',
+          payoutAccountId: validPayoutAccountId,
         },
       });
       const { res, statusMock, jsonMock } = CreateMockResponse();
@@ -1119,14 +1257,12 @@ describe('Brand Wallet Feature Module', () => {
       );
     });
 
-    it('creates withdrawal request and deducts wallet balance immediately', async () => {
+    it('creates withdrawal request and deducts wallet balance atomically', async () => {
       const req = CreateMockRequest({
         account: { sub: mockAccountId, role: Role.BRAND },
         body: {
           amount: 500000,
-          accountProvider: 'BCA',
-          accountNumber: '1234567890',
-          accountHolderName: 'Brand Test',
+          payoutAccountId: validPayoutAccountId,
         },
       });
       const { res, statusMock, jsonMock } = CreateMockResponse();
@@ -1136,6 +1272,7 @@ describe('Brand Wallet Feature Module', () => {
         id: 'wd-created-1',
         referenceCode: 'WD-TEST-0001',
         walletId: mockWallet.id,
+        payoutAccountId: validPayoutAccountId,
         amount: new Prisma.Decimal(500000),
         accountProvider: 'BCA',
         accountNumber: '1234567890',
@@ -1144,14 +1281,19 @@ describe('Brand Wallet Feature Module', () => {
         rejectionReason: null,
         transferProofUrl: null,
         adminNote: null,
+        cancellationRequestedAt: null,
+        cancellationReason: null,
         createdAt: new Date('2026-03-01T00:00:00Z'),
         updatedAt: new Date('2026-03-01T00:00:00Z'),
       };
 
       jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as never);
+      jest
+        .spyOn(prisma.brandPayoutAccount, 'findFirst')
+        .mockResolvedValue(verifiedBrandPayoutAccount as never);
       jest.spyOn(prisma, '$transaction').mockImplementation(async (callback: never) => {
         const tx = {
-          wallet: { update: jest.fn() },
+          wallet: { updateMany: jest.fn().mockResolvedValue({ count: 1 } as never) },
           payoutRequest: { create: jest.fn().mockResolvedValue(createdPayout as never) },
         };
         return (callback as (txMock: typeof tx) => Promise<unknown>)(tx);
@@ -1233,14 +1375,25 @@ describe('Brand Wallet Feature Module', () => {
       };
 
       jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as never);
-      jest.spyOn(prisma.payoutRequest, 'findFirst').mockResolvedValue(pendingPayout as never);
-      const updatePayoutSpy = jest.spyOn(prisma.payoutRequest, 'update').mockResolvedValue(updatedPayout as never);
+      jest
+        .spyOn(prisma.payoutRequest, 'findFirst')
+        .mockResolvedValueOnce(pendingPayout as never)
+        .mockResolvedValueOnce(updatedPayout as never);
+      const updatePayoutSpy = jest
+        .spyOn(prisma.payoutRequest, 'updateMany')
+        .mockResolvedValue({ count: 1 } as never);
       const updateWalletSpy = jest.spyOn(prisma.wallet, 'update');
 
       await RequestWithdrawalCancellation(req, res, next);
 
       expect(updatePayoutSpy).toHaveBeenCalledWith({
-        where: { id: 'wd-1' },
+        where: {
+          id: 'wd-1',
+          walletId: mockWallet.id,
+          status: Status.ACTIVE,
+          payoutStatus: PayoutStatus.PENDING,
+          cancellationRequestedAt: null,
+        },
         data: {
           cancellationRequestedAt: expect.any(Date),
           cancellationReason: 'Salah masukkan nomor rekening',

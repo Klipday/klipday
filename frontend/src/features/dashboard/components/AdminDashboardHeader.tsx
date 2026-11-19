@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshIcon } from '@solar-icons/react/linear';
 import { cn } from '@/lib/utils';
 import { ADMIN_DASHBOARD_MESSAGES } from '../constants';
 import type { AdminDashboardHeaderProps } from '../types';
@@ -72,7 +72,7 @@ export function AdminDashboardHeader({
           aria-label={ADMIN_DASHBOARD_MESSAGES.ACTION_REFRESH}
           className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border/80 bg-muted/40 px-3 text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer disabled:opacity-50"
         >
-          <RefreshCw
+          <RefreshIcon
             className={cn(
               'size-3.5 text-muted-foreground transition-transform duration-500',
               (isRotating || isRefreshing) && 'animate-spin',

@@ -3,12 +3,19 @@
  */
 
 export const MIN_PASSWORD_LENGTH = 8;
+export const OTP_CODE_LENGTH = 6;
+export const RESEND_COOLDOWN_SECONDS = 60;
 
 /**
  * Regex for validating Indonesian mobile phone numbers starting with 62.
  * Validates prefix 628 followed by a non-zero digit and 7-11 trailing digits (total 11-15 digits).
  */
 export const INDONESIAN_PHONE_REGEX = /^628[1-9][0-9]{7,11}$/;
+
+/**
+ * Regex for validating 6-digit numeric OTP codes.
+ */
+export const SIX_DIGIT_OTP_REGEX = /^[0-9]{6}$/;
 
 export const INDUSTRY_OPTIONS = [
   'E_COMMERCE',
@@ -39,4 +46,6 @@ export const AUTH_VALIDATION_MESSAGES = {
   PHONE_INVALID: 'Nomor telepon harus diawali dengan 62 (contoh: 628123456789).',
   INDUSTRY_REQUIRED: 'Industri wajib dipilih.',
   INDUSTRY_INVALID: 'Pilih industri yang valid dari daftar.',
+  OTP_REQUIRED: 'Kode verifikasi wajib diisi.',
+  OTP_INVALID: 'Kode verifikasi harus terdiri dari 6 angka.',
 } as const;

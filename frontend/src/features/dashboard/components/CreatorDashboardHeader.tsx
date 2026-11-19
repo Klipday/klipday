@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowRightUpIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { CREATOR_DASHBOARD_MESSAGES } from '../constants';
@@ -60,7 +60,7 @@ export function CreatorDashboardHeader({
           >
             <Link to="/creator-dashboard/profile?tab=social-accounts">
               <span>{CREATOR_DASHBOARD_MESSAGES.CONNECT_TIKTOK_ACTION}</span>
-              <ArrowUpRight className="size-3.5" />
+              <ArrowRightUpIcon className="size-3.5" />
             </Link>
           </Button>
         )}

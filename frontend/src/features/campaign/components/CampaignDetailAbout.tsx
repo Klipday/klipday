@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { AltArrowDownIcon, AltArrowUpIcon } from '@solar-icons/react/linear';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import type { CampaignDetailAboutProps } from '../types';
@@ -48,7 +48,7 @@ export function CampaignDetailAbout({ description, className }: CampaignDetailAb
               onClick={ToggleExpanded}
               className="h-7 px-0 text-xs font-medium text-primary hover:text-primary/80 hover:bg-transparent inline-flex items-center gap-1 cursor-pointer">
               <span>{isExpanded ? 'Sembunyikan' : 'Lihat selengkapnya'}</span>
-              {isExpanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+              {isExpanded ? <AltArrowUpIcon className="size-3.5" /> : <AltArrowDownIcon className="size-3.5" />}
             </Button>
           </div>
         )}

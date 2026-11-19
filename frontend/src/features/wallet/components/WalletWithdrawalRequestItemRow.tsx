@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { LoaderIcon } from '@solar-icons/react/linear';
 import { useLocation } from 'react-router';
 import {
   AlertDialog,
@@ -139,7 +139,7 @@ export function WalletWithdrawalRequestItemRow({
                     className="w-full sm:w-auto px-5 sm:min-w-[200px] font-medium cursor-pointer">
                     {requestCancelMutation.isPending ? (
                       <>
-                        <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                        <LoaderIcon className="mr-1.5 size-3.5 animate-spin" />
                         Mengajukan...
                       </>
                     ) : (

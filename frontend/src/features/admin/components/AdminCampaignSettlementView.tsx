@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, RotateCw } from 'lucide-react';
+import { DangerTriangleIcon, RestartIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -230,7 +230,7 @@ export function AdminCampaignSettlementView({
       {/* Flagged Deleted/Private Videos Warning Banner */}
       {Boolean(summary.flaggedSubmissionsCount && summary.flaggedSubmissionsCount > 0 && !isSettled) && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-200">
-          <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-500" />
+          <DangerTriangleIcon className="size-4 shrink-0 mt-0.5 text-amber-500" />
           <div className="space-y-1">
             <p className="font-semibold text-amber-400">
               Perhatian: Terdapat {summary.flaggedSubmissionsCount} Video Terindikasi Dihapus atau Privat
@@ -270,7 +270,7 @@ export function AdminCampaignSettlementView({
               onClick={() => syncMutation.mutate(campaignId)}
               className="h-8 shrink-0 gap-1.5 rounded-lg border-border/60 bg-card text-xs font-medium text-foreground hover:bg-muted/40 cursor-pointer"
             >
-              <RotateCw className={cn('size-3.5', syncMutation.isPending && 'animate-spin')} />
+              <RestartIcon className={cn('size-3.5', syncMutation.isPending && 'animate-spin')} />
               <span>{syncMutation.isPending ? 'Menyinkronkan...' : 'Sinkronkan Views'}</span>
             </Button>
           )}

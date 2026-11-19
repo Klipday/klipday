@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { AlertCircle, ArrowLeft, Building2, Clock, Wallet } from 'lucide-react';
+import {
+  ArrowLeftIcon,
+  Buildings2Icon,
+  ClockCircleIcon,
+  DangerCircleIcon,
+  WalletIcon,
+} from '@solar-icons/react/linear';
 import { useNavigate, useParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -52,7 +58,7 @@ export function CampaignFormStep6({ className }: CampaignFormStep6Props) {
   if (isError || !paymentDetails) {
     return (
       <div className="flex flex-col items-center justify-center p-8 rounded-2xl border border-dashed border-border/60 text-center space-y-3">
-        <AlertCircle className="size-8 text-destructive opacity-80" />
+        <DangerCircleIcon className="size-8 text-destructive opacity-80" />
         <h4 className="text-sm font-semibold text-foreground">Gagal Memuat Data Pembayaran</h4>
         <p className="text-xs text-muted-foreground max-w-sm">
           Terjadi kesalahan saat memuat rincian pembayaran dan saldo dompet Anda. Silakan coba muat ulang.
@@ -76,7 +82,7 @@ export function CampaignFormStep6({ className }: CampaignFormStep6Props) {
       {/* REJECTION ALERT BANNER */}
       {isRejected && payment?.rejectionReason && (
         <div className="flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-xs text-destructive">
-          <AlertCircle className="size-5 shrink-0 mt-0.5" />
+          <DangerCircleIcon className="size-5 shrink-0 mt-0.5" />
           <div className="space-y-1">
             <h4 className="font-semibold text-foreground">Pembayaran Sebelumnya Ditolak</h4>
             <p className="text-muted-foreground leading-relaxed">
@@ -92,7 +98,7 @@ export function CampaignFormStep6({ className }: CampaignFormStep6Props) {
       {/* AWAITING VERIFICATION ALERT BANNER */}
       {isSubmitted && !isRejected && (
         <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 text-xs text-muted-foreground">
-          <Clock className="size-5 text-amber-500 shrink-0 mt-0.5" />
+          <ClockCircleIcon className="size-5 text-amber-500 shrink-0 mt-0.5" />
           <div className="space-y-1">
             <h4 className="font-semibold text-foreground">Bukti Pembayaran Sedang Diverifikasi</h4>
             <p className="leading-relaxed">
@@ -113,7 +119,7 @@ export function CampaignFormStep6({ className }: CampaignFormStep6Props) {
                 'first:rounded-l-[11px]',
                 'data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:font-semibold data-[state=active]:shadow-xs'
               )}>
-              <Building2 className="size-4 shrink-0" />
+              <Buildings2Icon className="size-4 shrink-0" />
               <span>Transfer Bank Manual</span>
             </TabsTrigger>
 
@@ -124,7 +130,7 @@ export function CampaignFormStep6({ className }: CampaignFormStep6Props) {
                 'last:rounded-r-[11px]',
                 'data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:font-semibold data-[state=active]:shadow-xs'
               )}>
-              <Wallet className="size-4 shrink-0" />
+              <WalletIcon className="size-4 shrink-0" />
               <span>Saldo Dompet</span>
               {paymentDetails.canPayWithWallet && (
                 <span className="size-2 rounded-full bg-emerald-500 inline-block shrink-0" title="Saldo cukup" />
@@ -157,7 +163,7 @@ export function CampaignFormStep6({ className }: CampaignFormStep6Props) {
       {/* FOOTER ACTIONS */}
       <div className="flex items-center justify-between pt-4 border-t border-border/60">
         <Button type="button" variant="outline" onClick={HandleBackToReview} className="gap-2 text-xs sm:text-sm">
-          <ArrowLeft className="size-4" />
+          <ArrowLeftIcon className="size-4" />
           Kembali ke Review Kampanye
         </Button>
       </div>

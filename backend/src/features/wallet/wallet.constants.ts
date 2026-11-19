@@ -15,6 +15,7 @@ export const TOP_UP_LIMITS = {
   UNIQUE_CODE_MIN: 100,
   UNIQUE_CODE_MAX: 999,
   EXPIRATION_HOURS: 24,
+  IDEMPOTENCY_WINDOW_MS: 60_000,
 } as const;
 
 export const ALLOWED_PROOF_MIME_TYPES: Record<string, string> = {
@@ -37,6 +38,7 @@ export const WALLET_MESSAGES = {
   ACTIVE_TOP_UPS_FETCH_SUCCESS: 'Daftar antrean transaksi top-up aktif berhasil diambil.',
   TOP_UP_CREATED_SUCCESS: 'Permintaan top-up berhasil dibuat. Silakan transfer sesuai nominal total.',
   TOP_UP_SUBMIT_SUCCESS: 'Bukti pembayaran top-up berhasil dikirim. Menunggu verifikasi admin.',
+  TOP_UP_PROOF_REQUIRED: 'Bukti transfer wajib diunggah sebelum mengirim konfirmasi pembayaran.',
   TOP_UP_CANCEL_SUCCESS: 'Permintaan top-up berhasil dibatalkan.',
   TOP_UP_CANNOT_BE_CANCELLED: 'Permintaan top-up yang sudah disetujui tidak dapat dibatalkan.',
   PROOF_UPLOAD_SUCCESS: 'Bukti transfer top-up berhasil diunggah.',

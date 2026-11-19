@@ -95,6 +95,8 @@ import {
   PAYOUT_ACCOUNT_MESSAGES,
 } from '@/features/wallet/constants';
 
+export const INDONESIAN_PHONE_REGEX = /^628[1-9][0-9]{7,11}$/;
+
 export const BRAND_LIMITS = {
   ...PAYOUT_ACCOUNT_LIMITS,
   MIN_COMPANY_NAME_LENGTH: 2,
@@ -122,6 +124,7 @@ export const BRAND_MESSAGES = {
   COMPANY_NAME_MAX: 'Nama brand maksimal 100 karakter.',
   LOCATION_MAX: 'Lokasi maksimal 100 karakter.',
   INVALID_WEBSITE_FORMAT: 'Format website tidak valid (contoh: https://brandanda.com).',
+  INVALID_PHONE_NUMBER: 'Nomor WhatsApp harus diawali dengan 62 (contoh: 628123456789).',
   DESCRIPTION_MAX: 'Deskripsi maksimal 500 karakter.',
   INSTAGRAM_HANDLE_MAX: 'Username Instagram maksimal 50 karakter.',
   TIKTOK_HANDLE_MAX: 'Username TikTok maksimal 50 karakter.',

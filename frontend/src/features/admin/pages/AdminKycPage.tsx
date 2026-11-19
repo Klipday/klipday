@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import {
+  AltArrowLeftIcon,
+  AltArrowRightIcon,
+  CloseIcon,
+  MagnifierIcon,
+} from '@solar-icons/react/linear';
 import { useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -364,7 +369,7 @@ export function AdminKycPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative w-full sm:w-80 md:w-96">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <MagnifierIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
               type="text"
               value={searchInput}
@@ -379,7 +384,7 @@ export function AdminKycPage() {
                 aria-label="Hapus pencarian"
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
               >
-                <X className="size-3.5" />
+                <CloseIcon className="size-3.5" />
               </button>
             )}
           </div>
@@ -450,7 +455,7 @@ export function AdminKycPage() {
                   onClick={() => HandlePageChange(page - 1)}
                   className="h-8 gap-1 text-xs cursor-pointer"
                 >
-                  <ChevronLeft className="size-3.5" />
+                  <AltArrowLeftIcon className="size-3.5" />
                   <span>Sebelumnya</span>
                 </Button>
                 <Button
@@ -462,7 +467,7 @@ export function AdminKycPage() {
                   className="h-8 gap-1 text-xs cursor-pointer"
                 >
                   <span>Berikutnya</span>
-                  <ChevronRight className="size-3.5" />
+                  <AltArrowRightIcon className="size-3.5" />
                 </Button>
               </div>
             </div>

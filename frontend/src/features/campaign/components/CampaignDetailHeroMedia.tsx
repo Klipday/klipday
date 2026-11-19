@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ImageOff } from 'lucide-react';
+import { GalleryOffIcon } from '@solar-icons/react/linear';
 import { cn } from '@/lib/utils';
 import type { CampaignDetailHeroMediaProps } from '../types';
 
@@ -37,7 +37,7 @@ export function CampaignDetailHeroMedia({
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-muted/40 text-muted-foreground">
-          <ImageOff className="size-10 opacity-40" />
+          <GalleryOffIcon className="size-10 opacity-40" />
         </div>
       )}
 

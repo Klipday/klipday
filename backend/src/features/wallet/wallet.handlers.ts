@@ -28,6 +28,8 @@ import {
   GenerateTopUpUniqueCode,
   GenerateWalletTransactionReferenceCode,
   GenerateWithdrawalReferenceCode,
+  MapPayoutRequestToRecord,
+  MapTopUpRequestToRecord,
 } from './wallet.helper.js';
 import {
   CreateTopUpSchema,
@@ -205,13 +207,60 @@ export async function CreateTopUpRequest(
       return;
     }
 
+    const now = new Date();
+    const expiryCutoff = new Date(
+      now.getTime() - TOP_UP_LIMITS.EXPIRATION_HOURS * 60 * 60 * 1000,
+    );
+    const idempotencyCutoff = new Date(
+      now.getTime() - TOP_UP_LIMITS.IDEMPOTENCY_WINDOW_MS,
+    );
+
+    const activeRequestsForAmountQuery = {
+      where: {
+        amount: new Prisma.Decimal(payload.amount),
+        recordStatus: Status.ACTIVE,
+        OR: [
+          {
+            status: PaymentStatus.PENDING,
+            createdAt: { gte: expiryCutoff },
+          },
+          {
+            status: PaymentStatus.SUBMITTED,
+          },
+        ],
+      },
+    };
+    const activeRequestsForAmount = await prisma.topUpRequest.findMany(
+      activeRequestsForAmountQuery,
+    );
+
+    const existingIdempotent = activeRequestsForAmount.find(
+      (item) =>
+        item.walletId === wallet.id &&
+        item.status === PaymentStatus.PENDING &&
+        item.senderBank === payload.senderBank &&
+        item.senderAccountName === payload.senderAccountName &&
+        item.createdAt >= idempotencyCutoff,
+    );
+
+    if (existingIdempotent) {
+      const existingRecord: TopUpRequestRecord = MapTopUpRequestToRecord(existingIdempotent);
+      SendSuccess(res, existingRecord, WALLET_MESSAGES.TOP_UP_CREATED_SUCCESS);
+      return;
+    }
+
+    const usedUniqueCodes = new Set(activeRequestsForAmount.map((item) => item.uniqueCode));
+    let uniqueCode = GenerateTopUpUniqueCode();
+    for (let attempt = 0; attempt < 20 && usedUniqueCodes.has(uniqueCode); attempt += 1) {
+      uniqueCode = GenerateTopUpUniqueCode();
+    }
+
     const referenceCode = GenerateTopUpReferenceCode();
-    const uniqueCode = GenerateTopUpUniqueCode();
     const totalPayable = payload.amount + uniqueCode;
 
     const initialStatus = payload.transferProofUrl ? PaymentStatus.SUBMITTED : PaymentStatus.PENDING;
 
-    const createdTopUp = await prisma.topUpRequest.create({
+    const createTopUpPayload = {
       data: {
         referenceCode,
         walletId: wallet.id,
@@ -227,26 +276,20 @@ export async function CreateTopUpRequest(
         status: initialStatus,
         recordStatus: Status.ACTIVE,
       },
-    });
-
-    const record: TopUpRequestRecord = {
-      id: createdTopUp.id,
-      referenceCode: createdTopUp.referenceCode,
-      walletId: createdTopUp.walletId,
-      amount: Number(createdTopUp.amount),
-      uniqueCode: createdTopUp.uniqueCode,
-      totalPayable: Number(createdTopUp.totalPayable),
-      destinationBank: createdTopUp.destinationBank,
-      destinationAccount: createdTopUp.destinationAccount,
-      destinationHolderName: createdTopUp.destinationHolderName,
-      senderBank: createdTopUp.senderBank,
-      senderAccountName: createdTopUp.senderAccountName,
-      transferProofUrl: createdTopUp.transferProofUrl,
-      status: createdTopUp.status,
-      rejectionReason: createdTopUp.rejectionReason,
-      createdAt: createdTopUp.createdAt,
-      updatedAt: createdTopUp.updatedAt,
     };
+    const createdTopUp = await prisma.topUpRequest.create(createTopUpPayload);
+
+    const record: TopUpRequestRecord = MapTopUpRequestToRecord(createdTopUp);
+
+    if (initialStatus === PaymentStatus.SUBMITTED) {
+      void NotifyAdminPendingItem({
+        type: NotificationType.ADMIN_NEW_TOPUP,
+        title: 'Deposit Top-Up Menunggu Verifikasi',
+        message: `Deposit baru sebesar Rp ${Number(createdTopUp.totalPayable).toLocaleString('id-ID')} menunggu pemeriksaan.`,
+        actionUrl: '/admin-dashboard/topups',
+        metadata: { topUpId: createdTopUp.id, amount: Number(createdTopUp.totalPayable) },
+      });
+    }
 
     SendSuccess(res, record, WALLET_MESSAGES.TOP_UP_CREATED_SUCCESS, 201);
   } catch (err) {
@@ -615,40 +658,36 @@ export async function SubmitTopUpProof(
       return;
     }
 
-    const updateData: Prisma.TopUpRequestUncheckedUpdateInput = {
-      status: PaymentStatus.SUBMITTED,
-      rejectionReason: null,
-      verifiedByAdminId: null,
-      verifiedAt: null,
-    };
+    const incomingProofUrl = validationResult.data.transferProofUrl;
+    const resolvedProofUrl = incomingProofUrl ?? topUp.transferProofUrl;
 
-    if (validationResult.data.transferProofUrl) {
-      updateData.transferProofUrl = validationResult.data.transferProofUrl;
+    if (!resolvedProofUrl) {
+      SendError(res, WALLET_MESSAGES.TOP_UP_PROOF_REQUIRED, 400);
+      return;
     }
 
-    const updatedTopUp = await prisma.topUpRequest.update({
-      where: { id: topUp.id },
-      data: updateData,
-    });
+    if (
+      topUp.status === PaymentStatus.SUBMITTED &&
+      (!incomingProofUrl || incomingProofUrl === topUp.transferProofUrl)
+    ) {
+      const existingRecord: TopUpRequestRecord = MapTopUpRequestToRecord(topUp);
+      SendSuccess(res, existingRecord, WALLET_MESSAGES.TOP_UP_SUBMIT_SUCCESS);
+      return;
+    }
 
-    const record: TopUpRequestRecord = {
-      id: updatedTopUp.id,
-      referenceCode: updatedTopUp.referenceCode,
-      walletId: updatedTopUp.walletId,
-      amount: Number(updatedTopUp.amount),
-      uniqueCode: updatedTopUp.uniqueCode,
-      totalPayable: Number(updatedTopUp.totalPayable),
-      destinationBank: updatedTopUp.destinationBank,
-      destinationAccount: updatedTopUp.destinationAccount,
-      destinationHolderName: updatedTopUp.destinationHolderName,
-      senderBank: updatedTopUp.senderBank,
-      senderAccountName: updatedTopUp.senderAccountName,
-      transferProofUrl: updatedTopUp.transferProofUrl,
-      status: updatedTopUp.status,
-      rejectionReason: updatedTopUp.rejectionReason,
-      createdAt: updatedTopUp.createdAt,
-      updatedAt: updatedTopUp.updatedAt,
+    const updateTopUpPayload = {
+      where: { id: topUp.id },
+      data: {
+        status: PaymentStatus.SUBMITTED,
+        rejectionReason: null,
+        verifiedByAdminId: null,
+        verifiedAt: null,
+        transferProofUrl: resolvedProofUrl,
+      },
     };
+    const updatedTopUp = await prisma.topUpRequest.update(updateTopUpPayload);
+
+    const record: TopUpRequestRecord = MapTopUpRequestToRecord(updatedTopUp);
 
     void NotifyAdminPendingItem({
       type: NotificationType.ADMIN_NEW_TOPUP,
@@ -863,97 +902,71 @@ export async function CreateWithdrawalRequest(
       return;
     }
 
-    let resolvedProvider = payload.accountProvider?.trim() ?? '';
-    let resolvedNumber = payload.accountNumber?.trim() ?? '';
-    let resolvedHolder = payload.accountHolderName?.trim() ?? '';
-    let resolvedPayoutAccountId: string | null = null;
+    const findPayoutAccountQuery = {
+      where: {
+        id: payload.payoutAccountId,
+        walletId: wallet.id,
+        status: Status.ACTIVE,
+      },
+    };
+    const payoutAccount = await prisma.brandPayoutAccount.findFirst(findPayoutAccountQuery);
 
-    if (payload.payoutAccountId) {
-      const payoutAccount = await prisma.brandPayoutAccount.findFirst({
-        where: {
-          id: payload.payoutAccountId,
-          walletId: wallet.id,
-          status: Status.ACTIVE,
-        },
-      });
-
-      if (!payoutAccount) {
-        SendError(res, WALLET_MESSAGES.PAYOUT_ACCOUNT_NOT_FOUND, 404);
-        return;
-      }
-
-      if (payoutAccount.verificationStatus !== VerificationStatus.VERIFIED) {
-        SendError(res, WALLET_MESSAGES.PAYOUT_ACCOUNT_NOT_VERIFIED, 400);
-        return;
-      }
-
-      resolvedProvider = payoutAccount.provider;
-      resolvedNumber = payoutAccount.accountNumber;
-      resolvedHolder = payoutAccount.accountHolderName;
-      resolvedPayoutAccountId = payoutAccount.id;
-    } else {
-      if (!resolvedProvider || resolvedProvider.length < 2) {
-        SendError(res, WALLET_MESSAGES.ACCOUNT_PROVIDER_REQUIRED, 400);
-        return;
-      }
-      if (!resolvedNumber || resolvedNumber.length < 3) {
-        SendError(res, WALLET_MESSAGES.ACCOUNT_NUMBER_REQUIRED, 400);
-        return;
-      }
-      if (!resolvedHolder || resolvedHolder.length < 2) {
-        SendError(res, WALLET_MESSAGES.ACCOUNT_HOLDER_REQUIRED, 400);
-        return;
-      }
+    if (!payoutAccount) {
+      SendError(res, WALLET_MESSAGES.PAYOUT_ACCOUNT_NOT_FOUND, 404);
+      return;
     }
 
+    if (payoutAccount.verificationStatus !== VerificationStatus.VERIFIED) {
+      SendError(res, WALLET_MESSAGES.PAYOUT_ACCOUNT_NOT_VERIFIED, 400);
+      return;
+    }
+
+    const resolvedProvider = payoutAccount.provider;
+    const resolvedNumber = payoutAccount.accountNumber;
+    const resolvedHolder = payoutAccount.accountHolderName;
+    const resolvedPayoutAccountId = payoutAccount.id;
     const referenceCode = GenerateWithdrawalReferenceCode();
-    const newBalance = currentBalance - payload.amount;
+    const withdrawalAmountDecimal = new Prisma.Decimal(payload.amount);
 
     const createdPayout = await prisma.$transaction(async (tx) => {
-      // Deduct active balance immediately upon request to prevent double-spending
-      await tx.wallet.update({
-        where: { id: wallet.id },
+      // Atomic conditional decrement prevents concurrent double-spending on the same wallet balance
+      const walletDeductPayload = {
+        where: {
+          id: wallet.id,
+          status: Status.ACTIVE,
+          balance: { gte: withdrawalAmountDecimal },
+        },
         data: {
-          balance: new Prisma.Decimal(newBalance),
+          balance: { decrement: withdrawalAmountDecimal },
           accountProvider: resolvedProvider,
           accountNumber: resolvedNumber,
           accountHolderName: resolvedHolder,
         },
-      });
+      };
+      const deductResult = await tx.wallet.updateMany(walletDeductPayload);
 
-      return tx.payoutRequest.create({
+      if (deductResult.count === 0) {
+        throw new Error('INSUFFICIENT_BALANCE');
+      }
+
+      const createPayoutPayload = {
         data: {
           referenceCode,
           walletId: wallet.id,
           payoutAccountId: resolvedPayoutAccountId,
-          amount: new Prisma.Decimal(payload.amount),
+          amount: withdrawalAmountDecimal,
           accountProvider: resolvedProvider,
           accountNumber: resolvedNumber,
           accountHolderName: resolvedHolder,
           payoutStatus: PayoutStatus.PENDING,
           status: Status.ACTIVE,
         },
-      });
+      };
+      const payout = await tx.payoutRequest.create(createPayoutPayload);
+      return payout;
     });
 
-    const record: PayoutRequestRecord = {
-      id: createdPayout.id,
-      referenceCode: createdPayout.referenceCode,
-      walletId: createdPayout.walletId,
-      amount: Number(createdPayout.amount),
-      accountProvider: createdPayout.accountProvider,
-      accountNumber: createdPayout.accountNumber,
-      accountHolderName: createdPayout.accountHolderName,
-      payoutStatus: createdPayout.payoutStatus,
-      payoutAccountId: createdPayout.payoutAccountId,
-      rejectionReason: createdPayout.rejectionReason,
-      transferProofUrl: createdPayout.transferProofUrl,
-      adminNote: createdPayout.adminNote,
-      cancellationRequestedAt: createdPayout.cancellationRequestedAt,
-      cancellationReason: createdPayout.cancellationReason,
-      createdAt: createdPayout.createdAt,
-      updatedAt: createdPayout.updatedAt,
-    };
+    const record: PayoutRequestRecord = MapPayoutRequestToRecord(createdPayout);
 
     void NotifyAdminPendingItem({
       type: NotificationType.ADMIN_NEW_WITHDRAWAL,
@@ -965,6 +978,10 @@ export async function CreateWithdrawalRequest(
 
     SendSuccess(res, record, WALLET_MESSAGES.WITHDRAWAL_CREATED_SUCCESS, 201);
   } catch (err) {
+    if (err instanceof Error && err.message === 'INSUFFICIENT_BALANCE') {
+      SendError(res, WALLET_MESSAGES.INSUFFICIENT_BALANCE, 400);
+      return;
+    }
     next(err);
   }
 }
@@ -1036,31 +1053,41 @@ export async function RequestWithdrawalCancellation(
       return;
     }
 
-    const updatedPayout = await prisma.payoutRequest.update({
-      where: { id: payout.id },
+    const cancelUpdatePayload = {
+      where: {
+        id: payout.id,
+        walletId: wallet.id,
+        status: Status.ACTIVE,
+        payoutStatus: PayoutStatus.PENDING,
+        cancellationRequestedAt: null,
+      },
       data: {
         cancellationRequestedAt: new Date(),
         cancellationReason: parsedBody.data.reason ?? null,
       },
-    });
-
-    const record: PayoutRequestRecord = {
-      id: updatedPayout.id,
-      referenceCode: updatedPayout.referenceCode,
-      walletId: updatedPayout.walletId,
-      amount: Number(updatedPayout.amount),
-      accountProvider: updatedPayout.accountProvider,
-      accountNumber: updatedPayout.accountNumber,
-      accountHolderName: updatedPayout.accountHolderName,
-      payoutStatus: updatedPayout.payoutStatus,
-      rejectionReason: updatedPayout.rejectionReason,
-      transferProofUrl: updatedPayout.transferProofUrl,
-      adminNote: updatedPayout.adminNote,
-      cancellationRequestedAt: updatedPayout.cancellationRequestedAt,
-      cancellationReason: updatedPayout.cancellationReason,
-      createdAt: updatedPayout.createdAt,
-      updatedAt: updatedPayout.updatedAt,
     };
+    const cancelResult = await prisma.payoutRequest.updateMany(cancelUpdatePayload);
+
+    if (cancelResult.count === 0) {
+      SendError(res, WALLET_MESSAGES.WITHDRAWAL_ALREADY_PROCESSED, 400);
+      return;
+    }
+
+    const refreshedPayoutQuery = {
+      where: {
+        id: payout.id,
+        walletId: wallet.id,
+        status: Status.ACTIVE,
+      },
+    };
+    const updatedPayout = await prisma.payoutRequest.findFirst(refreshedPayoutQuery);
+
+    if (!updatedPayout) {
+      SendError(res, WALLET_MESSAGES.WITHDRAWAL_NOT_FOUND, 404);
+      return;
+    }
+
+    const record: PayoutRequestRecord = MapPayoutRequestToRecord(updatedPayout);
 
     SendSuccess(res, record, WALLET_MESSAGES.WITHDRAWAL_CANCELLATION_REQUESTED_SUCCESS);
   } catch (err) {

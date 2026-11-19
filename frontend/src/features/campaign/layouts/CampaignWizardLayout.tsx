@@ -1,6 +1,6 @@
 import { Suspense, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle } from 'lucide-react';
+import { DangerTriangleIcon } from '@solar-icons/react/linear';
 import { Navigate, Outlet, useLocation, useParams } from 'react-router';
 import { toast } from 'sonner';
 import {
@@ -110,7 +110,7 @@ function CampaignWizardLayout() {
       {campaign?.campaignStatus === 'REVISION' && campaign.adminNote && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-1.5">
           <div className="flex items-center gap-2 text-xs font-semibold text-amber-500">
-            <AlertTriangle className="size-4" />
+            <DangerTriangleIcon className="size-4" />
             <span>Catatan Revisi dari Admin Klipday</span>
           </div>
           <p className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed">

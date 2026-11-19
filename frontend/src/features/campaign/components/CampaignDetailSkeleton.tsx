@@ -55,8 +55,8 @@ export function CampaignDetailSkeleton({ className }: CampaignDetailSkeletonProp
 
       {/* 2-Column Content Skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-2">
-        {/* Left Column (8 cols) */}
-        <div className="lg:col-span-8 space-y-6">
+        {/* Left Column (7 cols on xl) */}
+        <div className="lg:col-span-6 xl:col-span-7 space-y-6">
           {/* About */}
           <div className="space-y-3">
             <Skeleton className="h-6 w-40 rounded-md" />
@@ -85,8 +85,8 @@ export function CampaignDetailSkeleton({ className }: CampaignDetailSkeletonProp
           </div>
         </div>
 
-        {/* Right Column (4 cols) */}
-        <div className="lg:col-span-4 space-y-4">
+        {/* Right Column (5 cols on xl) */}
+        <div className="lg:col-span-6 xl:col-span-5 space-y-4">
           <Skeleton className="h-80 w-full rounded-2xl" />
         </div>
       </div>

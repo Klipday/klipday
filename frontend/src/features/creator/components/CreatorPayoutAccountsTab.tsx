@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import {
-  AlertCircle,
-  Building2,
-  CheckCircle2,
-  Clock,
-  Info,
-  Plus,
-  Star,
-  Trash2,
-  Wallet,
-  XCircle,
-} from 'lucide-react';
+  AddIcon,
+  Buildings2Icon,
+  CheckCircleIcon,
+  ClockCircleIcon,
+  CloseCircleIcon,
+  DangerCircleIcon,
+  SquareTopDownIcon,
+  StarIcon,
+  TrashBinTrashIcon,
+  WalletIcon,
+} from '@solar-icons/react/linear';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,22 +48,33 @@ export function CreatorPayoutAccountsTab({ className }: CreatorPayoutAccountsTab
   const setPrimaryMutation = UseSetPrimaryCreatorPayoutAccountMutation();
   const deleteAccountMutation = UseDeleteCreatorPayoutAccountMutation();
 
+  const deletingAccount = accounts.find((item) => item.id === deletingAccountId) ?? null;
+  const isDeletingPending = deletingAccount?.verificationStatus === 'PENDING';
+
   const HandleConfirmDelete = () => {
     if (deletingAccountId) {
-      deleteAccountMutation.mutate(deletingAccountId);
+      deleteAccountMutation.mutate({
+        id: deletingAccountId,
+        isPendingCancel: isDeletingPending,
+      });
       setDeletingAccountId(null);
     }
   };
 
   return (
-    <div className={cn('space-y-6', className)}>
+    <div className={cn('space-y-5 sm:space-y-6', className)}>
       {/* Tab Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1.5">
-          <h2 className="text-sm font-semibold tracking-tight text-foreground">
-            Rekening & E-Wallet Penarikan Saldo
-          </h2>
-          <p className="text-xs text-muted-foreground">
+      <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2">
+            <h2 className="text-base font-semibold tracking-tight text-foreground">
+              Rekening & E-Wallet Penarikan Saldo
+            </h2>
+            <span className="inline-flex shrink-0 items-center rounded-full bg-muted/60 px-2.5 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground whitespace-nowrap">
+              {accounts.length} / 5 Akun
+            </span>
+          </div>
+          <p className="text-xs leading-relaxed text-muted-foreground">
             Daftarkan rekening bank atau e-wallet (DANA, GoPay, OVO) untuk menerima pencairan upah video.
           </p>
         </div>
@@ -73,23 +84,20 @@ export function CreatorPayoutAccountsTab({ className }: CreatorPayoutAccountsTab
           size="sm"
           onClick={() => setIsAddAccountDialogOpen(true)}
           disabled={accounts.length >= 5}
-          className="cursor-pointer text-xs shrink-0">
-          <Plus className="mr-1.5 size-3.5" />
+          className="w-full sm:w-auto cursor-pointer text-xs shrink-0">
+          <AddIcon className="mr-1.5 size-3.5" />
           <span>Tambah Akun</span>
         </Button>
       </div>
 
-      {/* Neutral KYC Notice (Anti-AI Slop: calm, muted neutral background) */}
-      <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 text-xs text-muted-foreground">
-        <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-        <div className="space-y-1">
-          <p className="font-medium text-foreground">
-            Ketentuan Pencairan & Verifikasi Rekening
-          </p>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            Sesuai regulasi perbankan Indonesia, nama pemilik rekening atau e-wallet harus sama dengan nama lengkap pada identitas KTP Anda. Akun baru akan ditinjau oleh tim Klipday dalam 1×24 jam kerja.
-          </p>
-        </div>
+      {/* Neutral KYC Notice (Anti-AI Slop: calm, muted neutral background, no left icon gutter) */}
+      <div className="rounded-xl border border-border/60 bg-muted/30 p-3.5 sm:p-4 text-xs space-y-1">
+        <p className="font-semibold text-foreground">
+          Ketentuan Pencairan & Verifikasi Rekening
+        </p>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Sesuai regulasi perbankan Indonesia, nama pemilik rekening atau e-wallet harus sama dengan nama lengkap pada identitas KTP Anda. Akun baru akan ditinjau oleh tim Klipday dalam 1×24 jam kerja.
+        </p>
       </div>
 
       {/* Payout Accounts List */}
@@ -108,15 +116,12 @@ export function CreatorPayoutAccountsTab({ className }: CreatorPayoutAccountsTab
           ))}
         </div>
       ) : accounts.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/70 p-8 text-center space-y-3">
-          <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-muted/40 text-muted-foreground border border-border/50">
-            <Wallet className="size-5" />
-          </div>
-          <div className="space-y-1">
+        <div className="rounded-2xl border border-dashed border-border/70 px-4 py-8 sm:p-10 text-center space-y-3">
+          <div className="space-y-1.5">
             <h3 className="text-sm font-semibold text-foreground">
-              Belum ada akun penarikan
+              Belum Ada Akun Penarikan Terdaftar
             </h3>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
               Daftarkan rekening bank atau e-wallet Anda agar dapat mencairkan saldo hasil penayangan video.
             </p>
           </div>
@@ -126,7 +131,7 @@ export function CreatorPayoutAccountsTab({ className }: CreatorPayoutAccountsTab
             size="sm"
             onClick={() => setIsAddAccountDialogOpen(true)}
             className="cursor-pointer text-xs">
-            <Plus className="mr-1.5 size-3.5" />
+            <AddIcon className="mr-1.5 size-3.5" />
             <span>Tambah Rekening Baru</span>
           </Button>
         </div>
@@ -149,7 +154,7 @@ export function CreatorPayoutAccountsTab({ className }: CreatorPayoutAccountsTab
                 )}>
                 <div className="flex items-start gap-3.5 min-w-0">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/40 text-muted-foreground">
-                    {isBank ? <Building2 className="size-5" /> : <Wallet className="size-5" />}
+                    {isBank ? <Buildings2Icon className="size-5" /> : <WalletIcon className="size-5" />}
                   </div>
 
                   <div className="min-w-0 space-y-1">
@@ -164,7 +169,7 @@ export function CreatorPayoutAccountsTab({ className }: CreatorPayoutAccountsTab
                       {/* Primary Badge */}
                       {acc.isPrimary ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary border border-primary/20">
-                          <Star className="size-3 fill-primary" />
+                          <StarIcon className="size-3 fill-primary" />
                           <span>Utama</span>
                         </span>
                       ) : null}
@@ -172,17 +177,17 @@ export function CreatorPayoutAccountsTab({ className }: CreatorPayoutAccountsTab
                       {/* Verification Status Badge */}
                       {isVerified ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                          <CheckCircle2 className="size-3" />
+                          <CheckCircleIcon className="size-3" />
                           <span>Terverifikasi</span>
                         </span>
                       ) : isPending ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                          <Clock className="size-3" />
+                          <ClockCircleIcon className="size-3" />
                           <span>Menunggu Verifikasi</span>
                         </span>
                       ) : isRejected ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive border border-destructive/20">
-                          <XCircle className="size-3" />
+                          <CloseCircleIcon className="size-3" />
                           <span>Ditolak</span>
                         </span>
                       ) : null}
@@ -195,9 +200,21 @@ export function CreatorPayoutAccountsTab({ className }: CreatorPayoutAccountsTab
                     {/* Rejection Note */}
                     {isRejected && acc.rejectionReason ? (
                       <p className="flex items-center gap-1 text-[11px] text-destructive pt-0.5">
-                        <AlertCircle className="size-3 shrink-0" />
+                        <DangerCircleIcon className="size-3 shrink-0" />
                         <span>Alasan: {acc.rejectionReason}</span>
                       </p>
+                    ) : null}
+
+                    {/* Proof Photo Link */}
+                    {acc.proofUrl ? (
+                      <a
+                        href={acc.proofUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 pt-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4">
+                        <span>Lihat Foto Bukti Rekening</span>
+                        <SquareTopDownIcon className="size-3" />
+                      </a>
                     ) : null}
                   </div>
                 </div>
@@ -216,17 +233,29 @@ export function CreatorPayoutAccountsTab({ className }: CreatorPayoutAccountsTab
                     </Button>
                   ) : null}
 
-                  {/* Delete Action Button */}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDeletingAccountId(acc.id)}
-                    disabled={deleteAccountMutation.isPending}
-                    className="size-8 p-0 text-muted-foreground hover:text-destructive cursor-pointer"
-                    aria-label="Hapus rekening">
-                    <Trash2 className="size-4" />
-                  </Button>
+                  {/* Cancel Pending or Delete Action Button */}
+                  {isPending ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDeletingAccountId(acc.id)}
+                      disabled={deleteAccountMutation.isPending}
+                      className="cursor-pointer text-xs h-8 text-muted-foreground hover:text-foreground">
+                      <span>Batalkan Pengajuan</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeletingAccountId(acc.id)}
+                      disabled={deleteAccountMutation.isPending}
+                      className="size-8 p-0 text-muted-foreground hover:text-destructive cursor-pointer"
+                      aria-label="Hapus rekening">
+                      <TrashBinTrashIcon className="size-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             );
@@ -234,17 +263,19 @@ export function CreatorPayoutAccountsTab({ className }: CreatorPayoutAccountsTab
         </div>
       )}
 
-      {/* Delete Confirmation Alert Dialog */}
+      {/* Delete / Cancel Confirmation Alert Dialog */}
       <AlertDialog
         open={Boolean(deletingAccountId)}
         onOpenChange={(open) => !open && setDeletingAccountId(null)}>
         <AlertDialogContent className="rounded-2xl border-border/80 bg-card p-6 shadow-xl max-w-md">
           <AlertDialogHeader className="space-y-2">
             <AlertDialogTitle className="text-base font-semibold text-foreground">
-              Hapus Akun Penarikan?
+              {isDeletingPending ? 'Batalkan Pengajuan Akun?' : 'Hapus Akun Penarikan?'}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
-              Akun penarikan ini akan dihapus dari daftar tujuan pencairan saldo Anda. Anda dapat mendaftarkannya kembali kapan saja bila diperlukan.
+              {isDeletingPending
+                ? 'Pengajuan verifikasi akun ini akan dibatalkan dan ditarik dari antrean verifikasi admin.'
+                : 'Akun penarikan ini akan dihapus dari daftar tujuan pencairan saldo Anda. Anda dapat mendaftarkannya kembali kapan saja bila diperlukan.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="pt-2">
@@ -254,7 +285,7 @@ export function CreatorPayoutAccountsTab({ className }: CreatorPayoutAccountsTab
             <AlertDialogAction
               onClick={HandleConfirmDelete}
               className="cursor-pointer text-xs rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Hapus Akun
+              {isDeletingPending ? 'Ya, Batalkan Pengajuan' : 'Hapus Akun'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

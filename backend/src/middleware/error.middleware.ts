@@ -11,11 +11,23 @@ import { prisma } from '../utils/prisma.js';
  */
 function ExtractSafeMetadata(req: Request): Record<string, unknown> {
   const rawBody = req.body && typeof req.body === 'object' ? (req.body as Record<string, unknown>) : {};
-  const { password, token, confirmPassword, secret, ...safeBody } = rawBody;
+  const { password, token, confirmPassword, secret, code, otp, ...safeBody } = rawBody;
+
+  const rawQuery = req.query && typeof req.query === 'object' ? (req.query as Record<string, unknown>) : {};
+  const { token: queryToken, code: queryCode, otp: queryOtp, ...safeQuery } = rawQuery;
+  void password;
+  void token;
+  void confirmPassword;
+  void secret;
+  void code;
+  void otp;
+  void queryToken;
+  void queryCode;
+  void queryOtp;
 
   const metadata: Record<string, unknown> = {
     params: req.params,
-    query: req.query,
+    query: safeQuery,
     body: safeBody,
     ip: req.ip,
   };
@@ -38,7 +50,11 @@ export const ErrorHandler: ErrorRequestHandler = async (err, req, res, _next) =>
   console.error(err);
 
   const status = typeof err?.status === 'number' ? err.status : 500;
-  const message = err instanceof Error ? err.message : 'Internal Server Error';
+  const rawMessage = err instanceof Error ? err.message : 'Internal Server Error';
+  const clientMessage =
+    status >= 500 && process.env.NODE_ENV === 'production'
+      ? 'Internal Server Error'
+      : rawMessage;
 
   // Only persist internal server errors (500+) to DB to prevent log table bloat from client 4xx validation errors
   if (status >= 500) {
@@ -51,7 +67,7 @@ export const ErrorHandler: ErrorRequestHandler = async (err, req, res, _next) =>
       await prisma.errorLog.create({
         data: {
           statusCode: status,
-          message,
+          message: rawMessage,
           stackTrace,
           endpoint,
           accountId,
@@ -64,5 +80,5 @@ export const ErrorHandler: ErrorRequestHandler = async (err, req, res, _next) =>
     }
   }
 
-  SendError(res, message, status);
+  SendError(res, clientMessage, status);
 };

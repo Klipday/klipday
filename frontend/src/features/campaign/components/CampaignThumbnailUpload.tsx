@@ -1,5 +1,12 @@
 import { useRef, useState } from 'react';
-import { ExternalLink, ImagePlus, Loader2, RefreshCw, Trash2, UploadCloud } from 'lucide-react';
+import {
+  CloudUploadIcon,
+  GalleryAddIcon,
+  LoaderIcon,
+  RefreshIcon,
+  SquareTopDownIcon,
+  TrashBinTrashIcon,
+} from '@solar-icons/react/linear';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { cn, SanitizeHttpUrl } from '@/lib/utils';
@@ -161,7 +168,7 @@ export function CampaignThumbnailUpload({ value, onChange, campaignId, disabled 
       {/* Uploading State */}
       {isUploading ? (
         <div className="flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-primary/50 rounded-xl bg-primary/5 min-h-[180px]">
-          <Loader2 className="size-8 animate-spin text-primary" />
+          <LoaderIcon className="size-8 animate-spin text-primary" />
           <div className="text-center space-y-1">
             <p className="text-sm font-medium text-foreground">Mengunggah gambar... {uploadProgress}%</p>
             <p className="text-xs text-muted-foreground">Mengalirkan file langsung ke penyimpanan cloud</p>
@@ -194,7 +201,7 @@ export function CampaignThumbnailUpload({ value, onChange, campaignId, disabled 
                 onClick={TriggerFilePicker}
                 disabled={!isInteractive}
                 className="gap-1.5 shadow-sm font-medium">
-                <RefreshCw className="size-3.5" />
+                <RefreshIcon className="size-3.5" />
                 <span>Ganti Gambar</span>
               </Button>
               <Button
@@ -204,7 +211,7 @@ export function CampaignThumbnailUpload({ value, onChange, campaignId, disabled 
                 onClick={HandleRemove}
                 disabled={!isInteractive}
                 className="gap-1.5 shadow-sm font-medium">
-                <Trash2 className="size-3.5" />
+                <TrashBinTrashIcon className="size-3.5" />
                 <span>Hapus Thumbnail</span>
               </Button>
             </div>
@@ -220,7 +227,7 @@ export function CampaignThumbnailUpload({ value, onChange, campaignId, disabled 
                 onClick={TriggerFilePicker}
                 disabled={!isInteractive}
                 className="h-7 text-xs gap-1.5">
-                <RefreshCw className="size-3" />
+                <RefreshIcon className="size-3" />
                 <span>Ganti Gambar</span>
               </Button>
               <Button
@@ -230,7 +237,7 @@ export function CampaignThumbnailUpload({ value, onChange, campaignId, disabled 
                 onClick={HandleRemove}
                 disabled={!isInteractive}
                 className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
-                <Trash2 className="size-3" />
+                <TrashBinTrashIcon className="size-3" />
                 <span>Hapus</span>
               </Button>
             </div>
@@ -242,7 +249,7 @@ export function CampaignThumbnailUpload({ value, onChange, campaignId, disabled 
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline font-medium transition-colors">
                 <span>Lihat Ukuran Penuh</span>
-                <ExternalLink className="size-3" />
+                <SquareTopDownIcon className="size-3" />
               </a>
             ) : null}
           </div>
@@ -270,7 +277,7 @@ export function CampaignThumbnailUpload({ value, onChange, campaignId, disabled 
             disabled && 'opacity-60 cursor-not-allowed hover:border-border/80 hover:bg-muted/10'
           )}>
           <div className="size-11 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground">
-            {isDragging ? <ImagePlus className="size-5 text-primary animate-pulse" /> : <UploadCloud className="size-5" />}
+            {isDragging ? <GalleryAddIcon className="size-5 text-primary animate-pulse" /> : <CloudUploadIcon className="size-5" />}
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">

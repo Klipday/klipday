@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, X } from 'lucide-react';
+import { CloseIcon, DangerCircleIcon } from '@solar-icons/react/linear';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -327,7 +327,7 @@ export function SubmissionDialog({
                 size="icon-sm"
                 onClick={HandleRequestClose}
                 className="rounded-full text-muted-foreground hover:text-foreground cursor-pointer shrink-0">
-                <X className="size-4" />
+                <CloseIcon className="size-4" />
                 <span className="sr-only">Tutup</span>
               </Button>
             </div>
@@ -336,7 +336,7 @@ export function SubmissionDialog({
           {existingSubmission?.submissionStatus === 'REVISION_REQUESTED' && existingSubmission.reviewNote && (
             <div className="mx-6 mt-4 -mb-1 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 space-y-1 shrink-0">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                <AlertCircle className="size-3.5" />
+                <DangerCircleIcon className="size-3.5" />
                 <span>Catatan Revisi dari Brand:</span>
               </div>
               <p className="text-xs text-foreground/90 leading-relaxed">

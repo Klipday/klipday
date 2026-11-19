@@ -1,4 +1,4 @@
-import { Video } from 'lucide-react';
+import { VideocameraIcon } from '@solar-icons/react/linear';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -48,7 +48,7 @@ export function CreatorSubmissionsEmptyState({
         className,
       )}>
       <div className="flex size-10 items-center justify-center rounded-xl bg-muted/50 text-muted-foreground border border-border/40">
-        <Video className="size-5 text-muted-foreground/70" />
+        <VideocameraIcon className="size-5 text-muted-foreground/70" />
       </div>
       <div className="max-w-md space-y-1">
         <h3 className="text-sm font-semibold text-foreground">

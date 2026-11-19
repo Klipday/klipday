@@ -1,4 +1,4 @@
-import { BellOff } from 'lucide-react';
+import { BellOffIcon } from '@solar-icons/react/linear';
 import type { NotificationEmptyStateProps } from '../types';
 
 /**
@@ -12,7 +12,7 @@ export function NotificationEmptyState({ unreadOnly, className = '' }: Notificat
   return (
     <div className={`flex flex-col items-center justify-center py-10 px-4 text-center ${className}`}>
       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/60 text-muted-foreground mb-2.5">
-        <BellOff className="h-4 w-4" />
+        <BellOffIcon className="h-4 w-4" />
       </div>
       <p className="text-sm font-medium text-foreground">
         {unreadOnly ? 'Tidak ada notifikasi belum dibaca' : 'Belum ada notifikasi'}

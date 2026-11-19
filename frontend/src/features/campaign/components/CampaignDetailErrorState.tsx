@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, RotateCw } from 'lucide-react';
+import { ArrowLeftIcon, DangerTriangleIcon, RestartIcon } from '@solar-icons/react/linear';
 import { useNavigate } from 'react-router';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ export function CampaignDetailErrorState({
       <Card className="w-full max-w-md border-destructive/30 bg-destructive/5 text-center shadow-sm">
         <CardContent className="space-y-4 p-6">
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-            <AlertTriangle className="size-6" />
+            <DangerTriangleIcon className="size-6" />
           </div>
 
           <div className="space-y-1">
@@ -43,7 +43,7 @@ export function CampaignDetailErrorState({
               size="sm"
               onClick={() => navigate('/brand-dashboard/brand-campaigns')}
               className="gap-1.5 text-xs">
-              <ArrowLeft className="size-3.5" />
+              <ArrowLeftIcon className="size-3.5" />
               Kembali ke Kampanye
             </Button>
 
@@ -54,7 +54,7 @@ export function CampaignDetailErrorState({
                 size="sm"
                 onClick={onRetry}
                 className="gap-1.5 text-xs font-semibold">
-                <RotateCw className="size-3.5" />
+                <RestartIcon className="size-3.5" />
                 Coba Lagi
               </Button>
             )}

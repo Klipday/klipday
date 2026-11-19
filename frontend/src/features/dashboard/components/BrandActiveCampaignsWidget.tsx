@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { ArrowUpRight, Megaphone, Plus } from 'lucide-react';
+import { AddIcon, ArrowRightUpIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { CreateCampaignDialog } from '@/features/campaign/components';
 import { FormatCompactCount } from '@/features/submission/utils/submission-utils';
@@ -10,9 +10,9 @@ import type { BrandActiveCampaignsWidgetProps } from '../types';
 import { GetDashboardCategoryLabel } from '../utils/dashboard-format';
 
 /**
- * Visual monitor widget for active running campaigns.
- * Displays real-time CPM, verified view performance, and spent budget progress.
- * Built with native Tailwind CSS primitives without external progress bar dependencies.
+ * Minimalist monitor widget for active running campaigns.
+ * Displays flat hairline-divided campaign rows with whole-row navigation,
+ * real-time CPM, verified views, and actual spent budget progress.
  *
  * @param props - Active campaigns list and optional styling className.
  * @returns Rendered active campaigns widget.
@@ -26,134 +26,117 @@ export function BrandActiveCampaignsWidget({
   return (
     <div
       className={cn(
-        'rounded-xl border border-border/60 bg-card p-5 flex flex-col',
+        'rounded-xl border border-border/60 bg-card flex flex-col overflow-hidden',
         className,
       )}
     >
-      <div className="flex items-center justify-between pb-4 border-b border-border/40">
+      <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold tracking-tight text-foreground">
+          <h2 className="text-sm font-medium text-foreground">
             {DASHBOARD_MESSAGES.ACTIVE_CAMPAIGNS_TITLE}
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {hasCampaigns
-              ? `${campaigns.length} kampanye aktif berjalan`
-              : 'Pantau penggunaan anggaran dan performa konten'}
-          </p>
+          {hasCampaigns && (
+            <p className="text-xs text-muted-foreground tabular-nums mt-0.5">
+              {campaigns.length} kampanye berjalan
+            </p>
+          )}
         </div>
 
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground gap-1"
+        <Link
+          to="/brand-dashboard/brand-campaigns"
+          className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 shrink-0"
         >
-          <Link to="/brand-dashboard/brand-campaigns">
-            <span>Lihat Semua</span>
-            <ArrowUpRight className="size-3.5" />
-          </Link>
-        </Button>
+          <span>Lihat semua</span>
+          <ArrowRightUpIcon className="size-3.5" aria-hidden="true" />
+        </Link>
       </div>
 
-      <div className="flex-1 mt-4">
+      <div className="flex-1 flex flex-col">
         {!hasCampaigns ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="size-10 rounded-full border border-border/60 bg-muted/30 flex items-center justify-center text-muted-foreground mb-3">
-              <Megaphone className="size-5" />
-            </div>
+          <div className="flex-1 flex flex-col items-center justify-center py-12 px-5 text-center">
             <p className="text-sm font-medium text-foreground">
               {DASHBOARD_MESSAGES.ACTIVE_CAMPAIGNS_EMPTY}
             </p>
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mb-4">
-              Luncurkan kampanye baru agar para kreator TikTok dapat mulai membuat klip promosi.
+              Luncurkan kampanye baru agar kreator TikTok mulai membuat klip promosi.
             </p>
             <CreateCampaignDialog>
               <Button
                 size="sm"
                 className="h-8 gap-1.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                <Plus className="size-3.5" />
-                <span>Buat Kampanye</span>
+                <AddIcon className="size-3.5" aria-hidden="true" />
+                <span>{DASHBOARD_MESSAGES.ACTION_CREATE_CAMPAIGN}</span>
               </Button>
             </CreateCampaignDialog>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-border/40">
             {campaigns.map((camp) => {
-              const remainingBudget = Math.max(0, camp.budget - camp.spent);
-              const remainingPercent =
+              const spentPercent =
                 camp.budget > 0
                   ? Math.min(
                       100,
-                      Math.max(
-                        0,
-                        Math.round((remainingBudget / camp.budget) * 100),
-                      ),
+                      Math.max(0, Math.round((camp.spent / camp.budget) * 100)),
                     )
-                  : 100;
+                  : 0;
+              const campaignHref = `/brand-dashboard/brand-campaigns/${camp.id}`;
               const categoryLabel = GetDashboardCategoryLabel(camp.category);
+              const formattedCpm = FormatRupiah(camp.cpm);
+              const formattedViews = FormatCompactCount(camp.verifiedViews);
+              const formattedSpent = FormatRupiah(camp.spent);
+              const formattedBudget = FormatRupiah(camp.budget);
 
               return (
-                <div
+                <Link
                   key={camp.id}
-                  className="p-4 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/30 transition-colors space-y-3"
+                  to={campaignHref}
+                  className="block px-5 py-4 hover:bg-muted/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset space-y-3"
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <Link
-                        to={`/brand-dashboard/brand-campaigns/${camp.id}`}
-                        className="text-sm font-semibold text-foreground hover:text-primary transition-colors line-clamp-1"
-                      >
+                      <p className="text-sm font-medium text-foreground truncate">
                         {camp.title || DASHBOARD_MESSAGES.DEFAULT_CAMPAIGN_TITLE}
-                      </Link>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className="inline-flex items-center rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                          {categoryLabel}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-x-3 gap-y-1 flex-wrap tabular-nums">
+                        <span>{categoryLabel}</span>
+                        <span>CPM {formattedCpm}</span>
+                        <span>
+                          {formattedViews} {DASHBOARD_MESSAGES.VIEWS_LABEL}
                         </span>
-                        <span className="text-[11px] text-muted-foreground">
-                          CPM {FormatRupiah(camp.cpm)}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">
-                          • {FormatCompactCount(camp.verifiedViews)} {DASHBOARD_MESSAGES.VIEWS_LABEL}
-                        </span>
-                      </div>
+                      </p>
                     </div>
 
-                    <div className="text-right shrink-0">
-                      <p className="text-xs font-semibold text-foreground">
-                        {FormatRupiah(camp.spent)}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {DASHBOARD_MESSAGES.BUDGET_SPENT_OF} {FormatRupiah(camp.budget)}
+                    <div className="text-right shrink-0 tabular-nums">
+                      <p className="text-sm font-medium text-foreground">
+                        {formattedSpent}{' '}
+                        <span className="text-xs font-normal text-muted-foreground">
+                          / {formattedBudget}
+                        </span>
                       </p>
                     </div>
                   </div>
 
-                  {/* Native Tailwind Progress Bar */}
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
                       <span>
-                        {DASHBOARD_MESSAGES.BUDGET_REMAINING_LABEL} ({remainingPercent}%)
+                        {DASHBOARD_MESSAGES.BUDGET_SPENT_LABEL} ({spentPercent}%)
                       </span>
-                      <div className="flex items-center gap-2">
-                        {camp.pendingSubmissionsCount > 0 && (
-                          <span className="text-amber-600 dark:text-amber-400 font-medium">
-                            {camp.pendingSubmissionsCount} {DASHBOARD_MESSAGES.SUBMISSIONS_NEED_REVIEW}
-                          </span>
-                        )}
-                        <span>
-                          {camp.totalSubmissionsCount} {DASHBOARD_MESSAGES.SUBMISSIONS_CLIPS}
+                      {camp.pendingSubmissionsCount > 0 && (
+                        <span className="text-amber-500 font-medium">
+                          {camp.pendingSubmissionsCount}{' '}
+                          {DASHBOARD_MESSAGES.SUBMISSIONS_NEED_REVIEW}
                         </span>
-                      </div>
+                      )}
                     </div>
-                    <div className="h-2 w-full rounded-full bg-muted/60 overflow-hidden">
+                    <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
                       <div
                         className="h-full bg-primary rounded-full transition-all duration-300"
-                        style={{ width: `${remainingPercent}%` }}
+                        style={{ width: `${spentPercent}%` }}
                       />
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

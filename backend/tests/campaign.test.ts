@@ -41,6 +41,7 @@ import {
   Status,
   WalletTransactionType,
 } from '../src/generated/prisma/enums.js';
+import { Prisma } from '../src/generated/prisma/client.js';
 import { prisma } from '../src/utils/prisma.js';
 import {
   CreateMockNext,
@@ -1648,6 +1649,7 @@ describe('Campaign Feature Module', () => {
             updateMany: jest.fn().mockResolvedValue({ count: 1 }),
           },
           campaignPayment: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+          wallet: { update: jest.fn().mockResolvedValue({ id: 'wall-1', balance: new Prisma.Decimal(142) }) },
           walletTransaction: { create: jest.fn().mockResolvedValue({ id: 'txn-1' }) },
         };
 
@@ -1658,6 +1660,20 @@ describe('Campaign Feature Module', () => {
         await VerifyCampaignPayment(req, res, next);
 
         expect(statusMock).toHaveBeenCalledWith(200);
+        expect(mockTx.wallet.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { id: 'wall-1' },
+            data: { balance: { increment: new Prisma.Decimal(142) } },
+          }),
+        );
+        expect(mockTx.walletTransaction.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              type: WalletTransactionType.CAMPAIGN_PAYMENT,
+              amount: new Prisma.Decimal(500000),
+            }),
+          }),
+        );
         expect(jsonMock).toHaveBeenCalledWith({
           status: 'success',
           data: activeCampaign,

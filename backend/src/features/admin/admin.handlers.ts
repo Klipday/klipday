@@ -159,11 +159,12 @@ async function ClaimInReviewCampaignInTx(
 }
 
 /**
- * Atomically approves a SUBMITTED manual bank transfer payment inside a transaction
- * and records the corresponding CAMPAIGN_PAYMENT ledger entry on the brand wallet.
+ * Atomically approves a SUBMITTED manual bank transfer payment inside a transaction,
+ * credits any transfer unique-code surplus to the brand wallet's active balance,
+ * and records the corresponding CAMPAIGN_PAYMENT ledger entry.
  *
  * @param tx - Active Prisma transaction client.
- * @param params - Payment, campaign, admin, and ledger description metadata.
+ * @param params - Payment, campaign, admin, ledger description, and unique-code credit options.
  * @returns Provisioned/active brand wallet record if found.
  */
 async function ApproveSubmittedPaymentInTx(
@@ -172,8 +173,14 @@ async function ApproveSubmittedPaymentInTx(
     campaignId: string;
     brandAccountId: string;
     adminId: string;
-    payment: { id: string; totalPayable: Prisma.Decimal | number };
+    payment: {
+      id: string;
+      amount?: Prisma.Decimal | number | null;
+      uniqueCode?: number | null;
+      totalPayable: Prisma.Decimal | number;
+    };
     description: string;
+    creditUniqueCodeToWallet?: boolean;
   },
 ) {
   const claimedPayment = await tx.campaignPayment.updateMany({
@@ -196,17 +203,37 @@ async function ApproveSubmittedPaymentInTx(
 
   const brandWallet = await ProvisionAccountWallet(params.brandAccountId, Role.BRAND, tx);
   const totalPayable = Number(params.payment.totalPayable);
+  const rawAmount =
+    params.payment.amount !== undefined && params.payment.amount !== null
+      ? Number(params.payment.amount)
+      : totalPayable - Number(params.payment.uniqueCode ?? 0);
+  const campaignAmount = rawAmount > 0 ? rawAmount : totalPayable;
+  const shouldCreditSurplus = params.creditUniqueCodeToWallet !== false;
+  const uniqueCodeCredit = shouldCreditSurplus ? Math.max(0, totalPayable - campaignAmount) : 0;
 
   if (brandWallet) {
+    const balanceBefore = Number(brandWallet.balance);
+    let balanceAfter = balanceBefore;
+
+    if (uniqueCodeCredit > 0) {
+      const updatedWallet = await tx.wallet.update({
+        where: { id: brandWallet.id },
+        data: { balance: { increment: new Prisma.Decimal(uniqueCodeCredit) } },
+        select: { balance: true },
+      });
+      balanceAfter = Number(updatedWallet?.balance ?? balanceBefore + uniqueCodeCredit);
+    }
+
+    const ledgerAmount = shouldCreditSurplus ? campaignAmount : totalPayable;
     const refCode = GenerateSettlementTransactionRefCode();
     await tx.walletTransaction.create({
       data: {
         referenceCode: refCode,
         walletId: brandWallet.id,
         type: WalletTransactionType.CAMPAIGN_PAYMENT,
-        amount: new Prisma.Decimal(totalPayable),
-        balanceBefore: brandWallet.balance,
-        balanceAfter: brandWallet.balance,
+        amount: new Prisma.Decimal(ledgerAmount),
+        balanceBefore: new Prisma.Decimal(balanceBefore),
+        balanceAfter: new Prisma.Decimal(balanceAfter),
         description: params.description,
         campaignId: params.campaignId,
         transactionDate: new Date(),
@@ -1126,16 +1153,20 @@ export async function FinalizeCampaignSettlement(
           );
 
           if (creatorWallet) {
-            const balanceBefore = Number(creatorWallet.balance);
-            const balanceAfter = balanceBefore + finalReward;
-
+            const fallbackCreatorBalanceBefore = Number(creatorWallet.balance);
             const updateCreatorWalletPayload = {
               where: { id: creatorWallet.id },
               data: {
-                balance: new Prisma.Decimal(balanceAfter),
+                balance: { increment: new Prisma.Decimal(finalReward) },
               },
+              select: { balance: true },
             };
-            await tx.wallet.update(updateCreatorWalletPayload);
+            const updatedCreatorWallet = await tx.wallet.update(updateCreatorWalletPayload);
+            const balanceAfter =
+              updatedCreatorWallet && updatedCreatorWallet.balance !== undefined
+                ? Number(updatedCreatorWallet.balance)
+                : fallbackCreatorBalanceBefore + finalReward;
+            const balanceBefore = balanceAfter - finalReward;
 
             const earningRefCode = GenerateSettlementTransactionRefCode(txSequence);
             txSequence += 1;
@@ -1191,16 +1222,20 @@ export async function FinalizeCampaignSettlement(
         );
 
         if (brandWallet) {
-          const brandBalanceBefore = Number(brandWallet.balance);
-          const brandBalanceAfter = brandBalanceBefore + brandRefundAmount;
-
+          const fallbackBrandBalanceBefore = Number(brandWallet.balance);
           const updateBrandWalletPayload = {
             where: { id: brandWallet.id },
             data: {
-              balance: new Prisma.Decimal(brandBalanceAfter),
+              balance: { increment: new Prisma.Decimal(brandRefundAmount) },
             },
+            select: { balance: true },
           };
-          await tx.wallet.update(updateBrandWalletPayload);
+          const updatedBrandWallet = await tx.wallet.update(updateBrandWalletPayload);
+          const brandBalanceAfter =
+            updatedBrandWallet && updatedBrandWallet.balance !== undefined
+              ? Number(updatedBrandWallet.balance)
+              : fallbackBrandBalanceBefore + brandRefundAmount;
+          const brandBalanceBefore = brandBalanceAfter - brandRefundAmount;
 
           const refundRefCode = GenerateSettlementTransactionRefCode(txSequence);
           txSequence += 1;
@@ -1698,7 +1733,7 @@ export async function ModerateCampaign(
             Role.BRAND,
             tx,
           );
-          const refundAmount = Number(latestPayment.totalPayable ?? budgetAmount);
+          const refundAmount = Number(latestPayment.amount ?? latestPayment.totalPayable ?? budgetAmount);
           if (brandWallet) {
             await CreditBrandWalletRefundInTx(tx, {
               wallet: brandWallet,
@@ -1716,6 +1751,7 @@ export async function ModerateCampaign(
               adminId: admin.id,
               payment: latestPayment,
               description: `Penerimaan transfer manual kampanye "${campaign.title ?? 'Klipday'}" sebelum penolakan`,
+              creditUniqueCodeToWallet: false,
             });
 
             if (brandWallet) {
@@ -2140,21 +2176,22 @@ export async function ReviewBrandTopUpRequest(
           throw new Error('TOP_UP_NOT_SUBMITTED');
         }
 
-        const currentWallet = await tx.wallet.findUniqueOrThrow({
-          where: { id: topUp.walletId },
-        });
-
-        const balanceBefore = Number(currentWallet.balance);
         const creditedAmount = Number(topUp.totalPayable);
-        const balanceAfter = balanceBefore + creditedAmount;
+        const fallbackBalanceBefore = Number(topUp.wallet?.balance ?? 0);
 
         const walletUpdatePayload = {
           where: { id: topUp.walletId },
           data: {
-            balance: new Prisma.Decimal(balanceAfter),
+            balance: { increment: new Prisma.Decimal(creditedAmount) },
           },
+          select: { balance: true },
         };
-        await tx.wallet.update(walletUpdatePayload);
+        const updatedWallet = await tx.wallet.update(walletUpdatePayload);
+        const balanceAfter =
+          updatedWallet && updatedWallet.balance !== undefined
+            ? Number(updatedWallet.balance)
+            : fallbackBalanceBefore + creditedAmount;
+        const balanceBefore = balanceAfter - creditedAmount;
 
         const transactionReference = GenerateWalletTransactionReferenceCode();
 
@@ -3148,11 +3185,13 @@ export async function ReviewKycRequest(
       if (input.decision === KYC_REVIEW_ACTION.APPROVE) {
         void NotifyKycApproved({
           creatorAccountId: targetKyc.wallet.accountId,
+          role: result.user.role,
         });
       } else {
         void NotifyKycRejected({
           creatorAccountId: targetKyc.wallet.accountId,
           rejectionReason: input.rejectionReason ?? 'Dokumen belum memenuhi kriteria.',
+          role: result.user.role,
         });
       }
     }

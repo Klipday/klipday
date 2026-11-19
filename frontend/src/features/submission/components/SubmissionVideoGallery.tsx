@@ -1,4 +1,4 @@
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { DangerCircleIcon, RefreshIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { SubmissionVideoGalleryProps } from '../types';
@@ -43,7 +43,7 @@ export function SubmissionVideoGallery({
       {isError ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center space-y-3">
           <div className="size-10 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
-            <AlertCircle className="size-5" />
+            <DangerCircleIcon className="size-5" />
           </div>
           <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">
@@ -62,7 +62,7 @@ export function SubmissionVideoGallery({
               onClick={onRefetch}
               disabled={isFetching}
               className="text-xs gap-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer">
-              <RefreshCw className={cn('size-3.5', isFetching && 'animate-spin')} />
+              <RefreshIcon className={cn('size-3.5', isFetching && 'animate-spin')} />
               <span>Coba Lagi</span>
             </Button>
             <Button
@@ -111,7 +111,7 @@ export function SubmissionVideoGallery({
               onClick={onRefetch}
               disabled={isFetching}
               className="text-xs rounded-lg gap-1.5 cursor-pointer">
-              <RefreshCw className={cn('size-3.5', isFetching && 'animate-spin')} />
+              <RefreshIcon className={cn('size-3.5', isFetching && 'animate-spin')} />
               <span>Segarkan Galeri</span>
             </Button>
             <Button

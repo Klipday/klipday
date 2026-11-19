@@ -108,3 +108,23 @@ export interface EmailNotVerifiedErrorDetails {
   email: string;
 }
 
+export interface AlreadyVerifiedResponse {
+  alreadyVerified: true;
+}
+
+export type VerifyEmailResponse = LoggedInAccount | AlreadyVerifiedResponse;
+
+export interface AuthLocationState {
+  from?: {
+    pathname: string;
+    search?: string;
+    hash?: string;
+  };
+  otpJustSent?: boolean;
+}
+
+export interface ResendCooldownErrorDetails {
+  code?: string;
+  remainingSeconds?: number;
+}
+

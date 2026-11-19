@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import {
   ForgotPasswordApi,
+  GetCurrentAccount,
   LoginAccount,
   LogoutAccount,
   RegisterAccount,
@@ -17,13 +18,15 @@ import {
   type ResetPasswordPayload,
   type ResendVerificationPayload,
   type VerifyEmailPayload,
+  type VerifyEmailResponse,
 } from '../api';
-import { GetDashboardRouteByRole } from '../utils';
+import type { AuthLocationState } from '../types';
+import { GetDashboardRouteByRole, ResolveSafeRedirectPath } from '../utils';
 
 export type RegisterMutationOptions = Omit<UseMutationOptions<RegisteredAccount, Error, RegisterInput>, 'mutationFn'>;
 export type LoginMutationOptions = Omit<UseMutationOptions<LoggedInAccount, Error, LoginInput>, 'mutationFn'>;
 export type LogoutMutationOptions = Omit<UseMutationOptions<void, Error, void>, 'mutationFn'>;
-export type VerifyEmailMutationOptions = Omit<UseMutationOptions<LoggedInAccount, Error, VerifyEmailPayload>, 'mutationFn'>;
+export type VerifyEmailMutationOptions = Omit<UseMutationOptions<VerifyEmailResponse, Error, VerifyEmailPayload>, 'mutationFn'>;
 export type ResendVerificationMutationOptions = Omit<UseMutationOptions<void, Error, ResendVerificationPayload>, 'mutationFn'>;
 export type ForgotPasswordMutationOptions = Omit<UseMutationOptions<void, Error, ForgotPasswordPayload>, 'mutationFn'>;
 export type ResetPasswordMutationOptions = Omit<UseMutationOptions<void, Error, ResetPasswordPayload>, 'mutationFn'>;
@@ -44,7 +47,8 @@ export function UseRegisterMutation(options?: RegisterMutationOptions): UseMutat
     mutationFn: RegisterAccount,
     onSuccess: (data, variables, onMutateResult, context) => {
       toast.success('Pendaftaran berhasil! Silakan masukkan kode verifikasi email Anda.');
-      navigate(`/verify-email?email=${encodeURIComponent(variables.email)}`);
+      const targetUrl = `/verify-email?email=${encodeURIComponent(variables.email)}`;
+      navigate(targetUrl, { state: { otpJustSent: true } satisfies AuthLocationState });
 
       onSuccess?.(data, variables, onMutateResult, context);
     },
@@ -55,26 +59,42 @@ export function UseRegisterMutation(options?: RegisterMutationOptions): UseMutat
 
 /**
  * Custom TanStack Query mutation hook for logging into an existing account.
- * Automatically displays a success toast and redirects to the dashboard page upon success,
- * while supporting custom mutation callbacks if provided.
+ * Clears any stale tenant cache, fetches the fresh account profile before navigating,
+ * and redirects to the safe deep link or role-specific dashboard.
  *
  * @param options - Optional mutation options to override or extend behavior.
  * @returns The TanStack Query mutation object for logging in.
  */
 export function UseLoginMutation(options?: LoginMutationOptions): UseMutationResult<LoggedInAccount, Error, LoginInput> {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { onSuccess, ...mutationOptions } = options ?? {};
 
   const mutation = useMutation({
     ...mutationOptions,
     mutationFn: LoginAccount,
-    onSuccess: (data, variables, onMutateResult, context) => {
-      queryClient.invalidateQueries({ queryKey: ['current-account'] });
+    onSuccess: async (data, variables, onMutateResult, context) => {
+      queryClient.clear();
+
+      try {
+        await queryClient.fetchQuery({
+          queryKey: ['current-account'],
+          queryFn: GetCurrentAccount,
+        });
+      } catch {
+        // ProtectedRoute will handle retry or redirect if profile bootstrap transiently fails
+      }
+
+      const queryRedirect = ResolveSafeRedirectPath(searchParams.get('redirect'));
+      const locationState = location.state as AuthLocationState | null;
+      const stateRedirect = ResolveSafeRedirectPath(locationState?.from);
+      const fallbackDashboard = GetDashboardRouteByRole(data.role);
+      const redirectPath = queryRedirect ?? stateRedirect ?? fallbackDashboard;
 
       toast.success('Berhasil masuk!');
-      const redirectPath = GetDashboardRouteByRole(data.role);
-      navigate(redirectPath);
+      navigate(redirectPath, { replace: true });
 
       onSuccess?.(data, variables, onMutateResult, context);
     },
@@ -85,7 +105,8 @@ export function UseLoginMutation(options?: LoginMutationOptions): UseMutationRes
 
 /**
  * Custom TanStack Query mutation hook for logging out of the current account.
- * Clears cached user state, shows a toast notification, and redirects to the sign-in page.
+ * Cancels active queries, clears cached user state, shows a toast notification,
+ * and redirects to the sign-in page.
  *
  * @param options - Optional mutation options to override or extend behavior.
  * @returns The TanStack Query mutation object for logging out.
@@ -93,18 +114,25 @@ export function UseLoginMutation(options?: LoginMutationOptions): UseMutationRes
 export function UseLogoutMutation(options?: LogoutMutationOptions): UseMutationResult<void, Error, void> {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { onSuccess, ...mutationOptions } = options ?? {};
+  const { onSuccess, onError, ...mutationOptions } = options ?? {};
 
   const mutation = useMutation({
     ...mutationOptions,
     mutationFn: LogoutAccount,
-    onSuccess: (data, variables, onMutateResult, context) => {
+    onSuccess: async (data, variables, onMutateResult, context) => {
+      await queryClient.cancelQueries();
       queryClient.clear();
 
       toast.success('Berhasil keluar.');
-      navigate('/signin');
+      navigate('/signin', { replace: true });
 
       onSuccess?.(data, variables, onMutateResult, context);
+    },
+    onError: (error, variables, onMutateResult, context) => {
+      const message = error.message || 'Gagal keluar. Silakan coba lagi.';
+      toast.error(message);
+
+      onError?.(error, variables, onMutateResult, context);
     },
   });
 
@@ -113,12 +141,13 @@ export function UseLogoutMutation(options?: LogoutMutationOptions): UseMutationR
 
 /**
  * Custom TanStack Query mutation hook for verifying email via 6-digit OTP code.
- * Upon success, automatically invalidates session query, displays a toast, and redirects to dashboard.
+ * Handles both initial verification (hydrating profile cache and redirecting to dashboard)
+ * and already-verified links (routing cleanly to sign-in).
  *
  * @param options - Optional mutation options to override or extend behavior.
  * @returns TanStack Query mutation object for verifying email.
  */
-export function UseVerifyEmailMutation(options?: VerifyEmailMutationOptions): UseMutationResult<LoggedInAccount, Error, VerifyEmailPayload> {
+export function UseVerifyEmailMutation(options?: VerifyEmailMutationOptions): UseMutationResult<VerifyEmailResponse, Error, VerifyEmailPayload> {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { onSuccess, ...mutationOptions } = options ?? {};
@@ -126,12 +155,29 @@ export function UseVerifyEmailMutation(options?: VerifyEmailMutationOptions): Us
   const mutation = useMutation({
     ...mutationOptions,
     mutationFn: VerifyEmailApi,
-    onSuccess: (data, variables, onMutateResult, context) => {
-      queryClient.invalidateQueries({ queryKey: ['current-account'] });
+    onSuccess: async (data, variables, onMutateResult, context) => {
+      if ('alreadyVerified' in data) {
+        toast.info('Email Anda sudah terverifikasi. Silakan masuk.');
+        navigate('/signin', { replace: true });
+        onSuccess?.(data, variables, onMutateResult, context);
+        return;
+      }
+
+      queryClient.clear();
+
+      try {
+        await queryClient.fetchQuery({
+          queryKey: ['current-account'],
+          queryFn: GetCurrentAccount,
+        });
+      } catch {
+        // ProtectedRoute will handle retry or redirect if profile bootstrap transiently fails
+      }
+
       toast.success('Email berhasil diverifikasi! Selamat datang di Klipday.');
 
       const redirectPath = GetDashboardRouteByRole(data.role);
-      navigate(redirectPath);
+      navigate(redirectPath, { replace: true });
 
       onSuccess?.(data, variables, onMutateResult, context);
     },
@@ -197,7 +243,7 @@ export function UseResetPasswordMutation(options?: ResetPasswordMutationOptions)
     mutationFn: ResetPasswordApi,
     onSuccess: (data, variables, onMutateResult, context) => {
       toast.success('Kata sandi berhasil diperbarui! Silakan masuk kembali.');
-      navigate('/signin');
+      navigate('/signin', { replace: true });
 
       onSuccess?.(data, variables, onMutateResult, context);
     },
@@ -205,4 +251,3 @@ export function UseResetPasswordMutation(options?: ResetPasswordMutationOptions)
 
   return mutation;
 }
-

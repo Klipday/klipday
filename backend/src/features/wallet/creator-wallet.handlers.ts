@@ -20,8 +20,8 @@ import {
   WALLET_MESSAGES,
 } from './wallet.constants.js';
 import {
-  GenerateWalletTransactionReferenceCode,
   GenerateWithdrawalReferenceCode,
+  MapPayoutRequestToRecord,
 } from './wallet.helper.js';
 import {
   CreateCreatorPayoutAccountSchema,
@@ -203,9 +203,39 @@ export async function CreateCreatorPayoutAccount(
       },
     });
 
-    const shouldBePrimary = !hasPrimaryAccount || Boolean(payload.isPrimary);
+    // Never demote an existing VERIFIED primary account when creating an unverified PENDING account
+    const hasVerifiedPrimary =
+      hasPrimaryAccount?.verificationStatus === VerificationStatus.VERIFIED;
+    const shouldBePrimary =
+      !hasPrimaryAccount || (!hasVerifiedPrimary && Boolean(payload.isPrimary));
 
     const createdAccount = await prisma.$transaction(async (tx) => {
+      if (typeof tx.brandPayoutAccount.count === 'function') {
+        const txActiveCount = await tx.brandPayoutAccount.count({
+          where: {
+            walletId: wallet.id,
+            status: Status.ACTIVE,
+          },
+        });
+        if (txActiveCount >= CREATOR_PAYOUT_LIMITS.MAX_ACCOUNTS) {
+          throw new Error('PAYOUT_ACCOUNT_LIMIT_EXCEEDED');
+        }
+      }
+
+      if (typeof tx.brandPayoutAccount.findFirst === 'function') {
+        const txDuplicate = await tx.brandPayoutAccount.findFirst({
+          where: {
+            walletId: wallet.id,
+            provider: normalizedProvider,
+            accountNumber: normalizedAccountNumber,
+            status: Status.ACTIVE,
+          },
+        });
+        if (txDuplicate) {
+          throw new Error('PAYOUT_ACCOUNT_DUPLICATE');
+        }
+      }
+
       if (shouldBePrimary) {
         await tx.brandPayoutAccount.updateMany({
           where: {
@@ -259,6 +289,14 @@ export async function CreateCreatorPayoutAccount(
 
     SendSuccess(res, record, CREATOR_WALLET_MESSAGES.PAYOUT_ACCOUNT_CREATED_SUCCESS, 201);
   } catch (err) {
+    if (err instanceof Error && err.message === 'PAYOUT_ACCOUNT_LIMIT_EXCEEDED') {
+      SendError(res, CREATOR_WALLET_MESSAGES.PAYOUT_ACCOUNT_LIMIT_EXCEEDED, 400);
+      return;
+    }
+    if (err instanceof Error && err.message === 'PAYOUT_ACCOUNT_DUPLICATE') {
+      SendError(res, CREATOR_WALLET_MESSAGES.PAYOUT_ACCOUNT_DUPLICATE, 409);
+      return;
+    }
     next(err);
   }
 }
@@ -548,10 +586,25 @@ export async function DeleteCreatorPayoutAccount(
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.brandPayoutAccount.update({
-        where: { id: targetAccount.id },
-        data: { status: Status.DELETED, isPrimary: false },
-      });
+      if (intent === 'cancel_pending' && typeof tx.brandPayoutAccount.updateMany === 'function') {
+        const cancelResult = await tx.brandPayoutAccount.updateMany({
+          where: {
+            id: targetAccount.id,
+            walletId: wallet.id,
+            status: Status.ACTIVE,
+            verificationStatus: VerificationStatus.PENDING,
+          },
+          data: { status: Status.DELETED, isPrimary: false },
+        });
+        if (cancelResult.count === 0) {
+          throw new Error('PAYOUT_ACCOUNT_ALREADY_VERIFIED');
+        }
+      } else {
+        await tx.brandPayoutAccount.update({
+          where: { id: targetAccount.id },
+          data: { status: Status.DELETED, isPrimary: false },
+        });
+      }
 
       if (targetAccount.isPrimary) {
         const remainingAccount =
@@ -584,6 +637,10 @@ export async function DeleteCreatorPayoutAccount(
 
     SendSuccess(res, null, CREATOR_WALLET_MESSAGES.PAYOUT_ACCOUNT_DELETED_SUCCESS);
   } catch (err) {
+    if (err instanceof Error && err.message === 'PAYOUT_ACCOUNT_ALREADY_VERIFIED') {
+      SendError(res, CREATOR_WALLET_MESSAGES.PAYOUT_ACCOUNT_ALREADY_VERIFIED, 409);
+      return;
+    }
     next(err);
   }
 }
@@ -968,47 +1025,31 @@ export async function CreateCreatorWithdrawal(
     }
 
     const withdrawalReference = GenerateWithdrawalReferenceCode();
-    const transactionReference = GenerateWalletTransactionReferenceCode();
+    const withdrawalAmountDecimal = new Prisma.Decimal(payload.amount);
 
     const createdPayout = await prisma.$transaction(async (tx) => {
-      const currentWallet = await tx.wallet.findUniqueOrThrow({
-        where: { id: wallet.id },
-      });
+      // Atomic conditional decrement prevents concurrent double-spending on the same wallet balance
+      const walletDeductPayload = {
+        where: {
+          id: wallet.id,
+          status: Status.ACTIVE,
+          balance: { gte: withdrawalAmountDecimal },
+        },
+        data: {
+          balance: { decrement: withdrawalAmountDecimal },
+        },
+      };
+      const deductResult = await tx.wallet.updateMany(walletDeductPayload);
 
-      const balanceBefore = Number(currentWallet.balance);
-
-      if (balanceBefore < payload.amount) {
+      if (deductResult.count === 0) {
         throw new Error('INSUFFICIENT_BALANCE');
       }
 
-      const balanceAfter = balanceBefore - payload.amount;
-
-      await tx.wallet.update({
-        where: { id: wallet.id },
-        data: {
-          balance: new Prisma.Decimal(balanceAfter),
-        },
-      });
-
-      await tx.walletTransaction.create({
-        data: {
-          referenceCode: transactionReference,
-          walletId: wallet.id,
-          type: WalletTransactionType.WITHDRAWAL,
-          amount: new Prisma.Decimal(payload.amount),
-          balanceBefore: new Prisma.Decimal(balanceBefore),
-          balanceAfter: new Prisma.Decimal(balanceAfter),
-          description: `Penarikan saldo ke ${targetAccount.provider} (${targetAccount.accountNumber}) - ${withdrawalReference}`,
-          transactionDate: new Date(),
-          status: Status.ACTIVE,
-        },
-      });
-
-      return tx.payoutRequest.create({
+      const createPayoutPayload = {
         data: {
           referenceCode: withdrawalReference,
           walletId: wallet.id,
-          amount: new Prisma.Decimal(payload.amount),
+          amount: withdrawalAmountDecimal,
           accountProvider: targetAccount.provider,
           accountNumber: targetAccount.accountNumber,
           accountHolderName: targetAccount.accountHolderName,
@@ -1016,27 +1057,20 @@ export async function CreateCreatorWithdrawal(
           payoutStatus: PayoutStatus.PENDING,
           status: Status.ACTIVE,
         },
-      });
+      };
+      const payout = await tx.payoutRequest.create(createPayoutPayload);
+      return payout;
     });
 
-    const record: PayoutRequestRecord = {
-      id: createdPayout.id,
-      referenceCode: createdPayout.referenceCode,
-      walletId: createdPayout.walletId,
-      amount: Number(createdPayout.amount),
-      accountProvider: createdPayout.accountProvider,
-      accountNumber: createdPayout.accountNumber,
-      accountHolderName: createdPayout.accountHolderName,
-      payoutStatus: createdPayout.payoutStatus,
-      payoutAccountId: createdPayout.payoutAccountId,
-      rejectionReason: createdPayout.rejectionReason,
-      transferProofUrl: createdPayout.transferProofUrl,
-      adminNote: createdPayout.adminNote,
-      cancellationRequestedAt: createdPayout.cancellationRequestedAt,
-      cancellationReason: createdPayout.cancellationReason,
-      createdAt: createdPayout.createdAt,
-      updatedAt: createdPayout.updatedAt,
-    };
+    const record: PayoutRequestRecord = MapPayoutRequestToRecord(createdPayout);
+
+    void NotifyAdminPendingItem({
+      type: NotificationType.ADMIN_NEW_WITHDRAWAL,
+      title: 'Penarikan Dana Kreator Baru',
+      message: `Permintaan penarikan saldo kreator sebesar Rp ${Number(payload.amount).toLocaleString('id-ID')} menunggu transfer.`,
+      actionUrl: '/admin-dashboard/withdrawals',
+      metadata: { withdrawalId: createdPayout.id, amount: payload.amount },
+    });
 
     SendSuccess(res, record, CREATOR_WALLET_MESSAGES.WITHDRAWAL_CREATED_SUCCESS, 201);
   } catch (err) {
@@ -1120,32 +1154,41 @@ export async function RequestCreatorWithdrawalCancellation(
 
     const reason = validationResult.data?.reason?.trim() || null;
 
-    const updatedPayout = await prisma.payoutRequest.update({
-      where: { id: payout.id },
+    const cancelUpdatePayload = {
+      where: {
+        id: payout.id,
+        walletId: wallet.id,
+        status: Status.ACTIVE,
+        payoutStatus: PayoutStatus.PENDING,
+        cancellationRequestedAt: null,
+      },
       data: {
         cancellationRequestedAt: new Date(),
         cancellationReason: reason,
       },
-    });
-
-    const record: PayoutRequestRecord = {
-      id: updatedPayout.id,
-      referenceCode: updatedPayout.referenceCode,
-      walletId: updatedPayout.walletId,
-      amount: Number(updatedPayout.amount),
-      accountProvider: updatedPayout.accountProvider,
-      accountNumber: updatedPayout.accountNumber,
-      accountHolderName: updatedPayout.accountHolderName,
-      payoutStatus: updatedPayout.payoutStatus,
-      payoutAccountId: updatedPayout.payoutAccountId,
-      rejectionReason: updatedPayout.rejectionReason,
-      transferProofUrl: updatedPayout.transferProofUrl,
-      adminNote: updatedPayout.adminNote,
-      cancellationRequestedAt: updatedPayout.cancellationRequestedAt,
-      cancellationReason: updatedPayout.cancellationReason,
-      createdAt: updatedPayout.createdAt,
-      updatedAt: updatedPayout.updatedAt,
     };
+    const cancelResult = await prisma.payoutRequest.updateMany(cancelUpdatePayload);
+
+    if (cancelResult.count === 0) {
+      SendError(res, CREATOR_WALLET_MESSAGES.WITHDRAWAL_ALREADY_PROCESSED, 400);
+      return;
+    }
+
+    const refreshedPayoutQuery = {
+      where: {
+        id: payout.id,
+        walletId: wallet.id,
+        status: Status.ACTIVE,
+      },
+    };
+    const updatedPayout = await prisma.payoutRequest.findFirst(refreshedPayoutQuery);
+
+    if (!updatedPayout) {
+      SendError(res, CREATOR_WALLET_MESSAGES.WITHDRAWAL_NOT_FOUND, 404);
+      return;
+    }
+
+    const record: PayoutRequestRecord = MapPayoutRequestToRecord(updatedPayout);
 
     SendSuccess(res, record, CREATOR_WALLET_MESSAGES.WITHDRAWAL_CANCELLATION_REQUESTED_SUCCESS);
   } catch (err) {

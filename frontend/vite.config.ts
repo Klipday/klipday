@@ -43,7 +43,7 @@ export default defineConfig({
             if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) {
               return 'vendor-forms';
             }
-            if (id.includes('radix-ui') || id.includes('lucide-react')) {
+            if (id.includes('radix-ui') || id.includes('@solar-icons/react')) {
               return 'vendor-ui';
             }
           }

@@ -1,4 +1,4 @@
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { DangerTriangleIcon, RefreshIcon } from '@solar-icons/react/linear';
 import { isRouteErrorResponse, useRouteError } from 'react-router';
 import { Button } from '@/components/ui/button';
 
@@ -36,7 +36,7 @@ export function RootErrorBoundary() {
     <div className="flex min-h-svh flex-col items-center justify-center bg-background p-6 text-center text-foreground">
       <div className="mx-auto max-w-md space-y-4">
         <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
-          <AlertTriangle className="size-6" />
+          <DangerTriangleIcon className="size-6" />
         </div>
         <h1 className="text-xl font-semibold tracking-tight">
           {isChunkError ? 'Pembaruan Aplikasi Tersedia' : 'Terjadi Gangguan Sistem'}
@@ -50,7 +50,7 @@ export function RootErrorBoundary() {
         </p>
         <div className="pt-2 flex flex-col sm:flex-row justify-center gap-3">
           <Button onClick={HandleReload} className="gap-2 font-medium">
-            <RefreshCw className="size-4" />
+            <RefreshIcon className="size-4" />
             <span>Muat Ulang Halaman</span>
           </Button>
           <Button variant="outline" onClick={HandleGoHome} className="font-medium">

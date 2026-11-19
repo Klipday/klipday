@@ -15,6 +15,8 @@ export const BRAND_LIMITS = {
   MAX_ACCOUNT_HOLDER_LENGTH: 100,
 } as const;
 
+export const INDONESIAN_PHONE_REGEX = /^628[1-9][0-9]{7,11}$/;
+
 export const ALLOWED_IMAGE_MIME_TYPES: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/jpg': 'jpg',
@@ -137,6 +139,7 @@ export const BRAND_MESSAGES = {
   PAYOUT_ACCOUNT_DUPLICATE: 'Nomor rekening atau e-wallet tersebut sudah terdaftar.',
   PAYOUT_ACCOUNT_HAS_PENDING_WITHDRAWAL: 'Rekening ini tidak dapat dihapus karena masih terikat pada permintaan penarikan saldo yang sedang diproses admin.',
   PAYOUT_ACCOUNT_ALREADY_VERIFIED: 'Pengajuan tidak dapat dibatalkan karena rekening sudah disetujui oleh admin.',
+  PAYOUT_ACCOUNT_MUST_BE_VERIFIED: 'Hanya akun penarikan yang sudah terverifikasi yang dapat dijadikan akun utama.',
   FILE_SIZE_EXCEEDED: 'Ukuran file melebihi batas maksimal 5 MB.',
   UNSUPPORTED_FILE_TYPE: 'Format file tidak didukung. Harap unggah gambar JPG, PNG, atau WEBP.',
   CONTENT_LENGTH_REQUIRED: 'Header Content-Length diperlukan untuk unggahan berkas.',
@@ -147,6 +150,7 @@ export const BRAND_MESSAGES = {
   COMPANY_NAME_MAX_LENGTH: 'Nama brand maksimal 100 karakter.',
   LOCATION_MAX_LENGTH: 'Lokasi maksimal 100 karakter.',
   INVALID_WEBSITE_URL: 'URL website tidak valid (contoh: https://brandanda.com).',
+  INVALID_PHONE_NUMBER: 'Nomor telepon harus diawali dengan 62 (contoh: 628123456789).',
   DESCRIPTION_MAX_LENGTH: 'Deskripsi maksimal 500 karakter.',
   INSTAGRAM_HANDLE_MAX_LENGTH: 'Username Instagram maksimal 50 karakter.',
   TIKTOK_HANDLE_MAX_LENGTH: 'Username TikTok maksimal 50 karakter.',

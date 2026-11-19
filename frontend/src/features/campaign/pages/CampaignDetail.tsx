@@ -122,14 +122,14 @@ function CampaignDetailPage({ className }: CampaignDetailPageProps) {
         {/* Active Tab View */}
         {activeTab === 'detail' ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-1">
-            {/* Main Left Column (8 cols): About, Collapsible Brief & Materials Sections */}
-            <div className="lg:col-span-8 space-y-6 min-w-0">
+            {/* Main Left Column (7 cols on xl): About, Collapsible Brief & Materials Sections */}
+            <div className="lg:col-span-6 xl:col-span-7 space-y-6 min-w-0">
               <CampaignDetailAbout description={campaign.description} />
               <CampaignDetailBriefSections brief={campaign.brief} materials={campaign.materials} />
             </div>
 
-            {/* Sticky Right Sidebar (4 cols): Budget burn, 2x2 rate grid, schedule */}
-            <div className="lg:col-span-4 min-w-0">
+            {/* Sticky Right Sidebar (5 cols on xl): Budget burn, 2x2 rate grid, schedule */}
+            <div className="lg:col-span-6 xl:col-span-5 min-w-0">
               <CampaignDetailRewardSidebar campaign={campaign} />
             </div>
           </div>

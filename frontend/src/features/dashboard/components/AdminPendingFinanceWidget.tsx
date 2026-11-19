@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { Check } from 'lucide-react';
+import { CheckIcon } from '@solar-icons/react/linear';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { FormatRupiah } from '@/features/wallet/utils/wallet-format';
 import { cn } from '@/lib/utils';
@@ -76,7 +76,7 @@ export function AdminPendingFinanceWidget({
         {currentListLength === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <div className="size-9 rounded-full border border-border bg-muted/40 flex items-center justify-center text-emerald-400 mb-2.5">
-              <Check className="size-4" />
+              <CheckIcon className="size-4" />
             </div>
             <p className="text-sm font-medium text-foreground">
               {ADMIN_DASHBOARD_MESSAGES.FINANCE_EMPTY_TITLE}

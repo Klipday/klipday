@@ -1,4 +1,4 @@
-import { Calendar } from 'lucide-react';
+import { CalendarIcon } from '@solar-icons/react/linear';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import type { CampaignDetailRewardSidebarProps } from '../types';
@@ -34,91 +34,79 @@ export function CampaignDetailRewardSidebar({ campaign, className }: CampaignDet
 
   return (
     <aside className={cn('space-y-4 lg:sticky lg:top-6', className)}>
-      <Card className="border-border/60 bg-card shadow-sm rounded-2xl overflow-hidden">
-        <CardContent className="p-5 sm:p-6 space-y-5">
+      <Card className="border-border/60 bg-card shadow-sm rounded-2xl overflow-hidden p-0 py-0">
+        <CardContent className="p-4 sm:p-6 space-y-5 sm:space-y-6">
           {/* Budget Progress Section */}
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between text-xs sm:text-sm">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
               <span className="font-semibold text-foreground">Budget Tersisa</span>
-              <span className="font-bold text-foreground">{budgetPercent}%</span>
+              <span className="font-bold text-foreground tabular-nums">{budgetPercent}%</span>
             </div>
 
             {/* Progress track */}
-            <div className="h-2 w-full rounded-full bg-muted/60 overflow-hidden">
+            <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
               <div
                 className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
                 style={{ width: `${budgetPercent}%` }}
               />
             </div>
 
-            <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5">
-              <span>Anggaran Terpakai</span>
-              <span className="font-medium text-foreground">
-                {FormatRupiah(Number(campaign.allocatedBudget) || 0)} dari {totalBudgetDisplay}
+            <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between text-xs text-muted-foreground pt-0.5">
+              <span className="shrink-0">Anggaran Terpakai</span>
+              <span className="font-medium text-foreground tabular-nums">
+                {FormatRupiah(Number(campaign.allocatedBudget) || 0)} / {totalBudgetDisplay}
               </span>
             </div>
           </div>
 
           {/* 2x2 Reward Breakdown Grid */}
-          <div className="grid grid-cols-2 gap-2.5 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
             {/* Top Left: Mulai Dibayar (Ambang Min Views) */}
-            <div className="rounded-xl border border-border/40 bg-muted/20 p-3 space-y-1">
-              <span className="text-[11px] text-muted-foreground font-medium block">Mulai Dibayar</span>
-              <p className="text-xs sm:text-sm font-bold text-foreground truncate">
-                {minViewsDisplay} Views
-              </p>
+            <div className="space-y-2 min-w-0">
+              <span className="text-xs text-muted-foreground font-medium block">Mulai Dibayar</span>
+              <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
+                <p className="text-sm sm:text-base font-semibold text-foreground truncate tabular-nums">
+                  {minViewsDisplay} Views
+                </p>
+              </div>
             </div>
 
             {/* Top Right: Batas Maks. Views */}
-            <div className="rounded-xl border border-border/40 bg-muted/20 p-3 space-y-1">
-              <span className="text-[11px] text-muted-foreground font-medium block">Batas Maksimum</span>
-              <p className="text-xs sm:text-sm font-bold text-foreground truncate">
-                {maxViewsDisplay} Views
-              </p>
+            <div className="space-y-2 min-w-0">
+              <span className="text-xs text-muted-foreground font-medium block">Batas Maksimum</span>
+              <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
+                <p className="text-sm sm:text-base font-semibold text-foreground truncate tabular-nums">
+                  {maxViewsDisplay} Views
+                </p>
+              </div>
             </div>
 
             {/* Bottom Left: CPM Rate */}
-            <div className="rounded-xl border border-border/40 bg-muted/20 p-3 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground font-medium block">
-                  Tarif CPM
-                </span>
-                <span className="text-[10px] text-muted-foreground font-medium">/ 1K Views</span>
+            <div className="space-y-2 min-w-0">
+              <span className="text-xs text-muted-foreground font-medium block">Tarif CPM (/1K Views)</span>
+              <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
+                <p className="text-sm sm:text-base font-semibold text-foreground truncate tabular-nums">
+                  {cpmDisplay}
+                </p>
               </div>
-              <p className="text-xs sm:text-sm font-bold text-foreground truncate">
-                {cpmDisplay}
-              </p>
             </div>
 
             {/* Bottom Right: Maks. per Klip */}
-            <div className="rounded-xl border border-border/40 bg-muted/20 p-3 space-y-1">
-              <span className="text-[11px] text-muted-foreground font-medium block">
-                Maks. per Klip
-              </span>
-              <p className="text-xs sm:text-sm font-bold text-foreground truncate">
-                {maxEarningsDisplay}
-              </p>
+            <div className="space-y-2 min-w-0">
+              <span className="text-xs text-muted-foreground font-medium block">Maks. per Klip</span>
+              <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
+                <p className="text-sm sm:text-base font-semibold text-foreground truncate tabular-nums">
+                  {maxEarningsDisplay}
+                </p>
+              </div>
             </div>
-          </div>
-
-          {/* Max reward callout - neutral styling without red background */}
-          <div className="rounded-xl border border-border/40 bg-muted/20 p-3.5 flex items-center justify-between gap-2">
-            <div className="space-y-0.5">
-              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
-                Maksimal per Klip
-              </span>
-              <p className="text-xs text-muted-foreground">Potensi reward tertinggi per video</p>
-            </div>
-            <span className="text-sm sm:text-base font-bold text-foreground shrink-0">
-              {maxEarningsDisplay}
-            </span>
           </div>
 
           {/* Campaign Schedule & Timeline */}
-          <div className="rounded-xl border border-border/40 bg-muted/20 p-3.5 space-y-2">
-            <div className="flex items-center justify-between text-xs">
+          <div className="border-t border-border/40 pt-5 space-y-1.5">
+            <div className="flex items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-1.5 text-muted-foreground font-medium">
-                <Calendar className="size-3.5 text-muted-foreground" />
+                <CalendarIcon className="size-3.5 text-muted-foreground shrink-0" />
                 <span>Periode Kampanye</span>
               </div>
               <span className="font-semibold text-foreground">{daysRemaining.label}</span>

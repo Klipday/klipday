@@ -1,4 +1,4 @@
-import { ExternalLink, Pencil } from 'lucide-react';
+import { PenIcon, SquareTopDownIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SanitizeHttpUrl } from '@/lib/utils';
@@ -48,7 +48,7 @@ export function CampaignReviewBasicInfo({ campaign, onEdit }: CampaignReviewBasi
           size="sm"
           onClick={onEdit}
           className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-          <Pencil className="size-3.5" />
+          <PenIcon className="size-3.5" />
           Ubah
         </Button>
       </CardHeader>
@@ -87,7 +87,7 @@ export function CampaignReviewBasicInfo({ campaign, onEdit }: CampaignReviewBasi
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors">
-                  Buka Tautan <ExternalLink className="h-3 w-3" />
+                  Buka Tautan <SquareTopDownIcon className="h-3 w-3" />
                 </a>
               </div>
             ) : null}

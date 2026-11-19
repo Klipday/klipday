@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import {
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  ExternalLink,
-  Loader2,
-  Star,
-  Trash2,
-} from 'lucide-react';
+  CheckCircleIcon,
+  ClockCircleIcon,
+  DangerCircleIcon,
+  LoaderIcon,
+  SquareTopDownIcon,
+  StarIcon,
+  TrashBinTrashIcon,
+} from '@solar-icons/react/linear';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,21 +48,21 @@ export function PayoutAccountCard({
       case 'VERIFIED':
         return (
           <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-            <CheckCircle2 className="size-3" />
+            <CheckCircleIcon className="size-3" />
             <span>Terverifikasi</span>
           </span>
         );
       case 'PENDING':
         return (
           <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
-            <Clock className="size-3" />
+            <ClockCircleIcon className="size-3" />
             <span>Menunggu Verifikasi</span>
           </span>
         );
       case 'REJECTED':
         return (
           <span className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-[11px] font-medium text-destructive">
-            <AlertCircle className="size-3" />
+            <DangerCircleIcon className="size-3" />
             <span>Verifikasi Ditolak</span>
           </span>
         );
@@ -77,7 +77,7 @@ export function PayoutAccountCard({
     <>
       <div
         className={cn(
-          'flex flex-col justify-between rounded-2xl border bg-card p-5 shadow-xs transition-colors',
+          'flex flex-col justify-between rounded-2xl border bg-card p-4 sm:p-5 shadow-xs transition-colors',
           account.isPrimary
             ? 'border-primary/50 ring-1 ring-primary/20'
             : 'border-border/60 hover:border-border',
@@ -97,7 +97,7 @@ export function PayoutAccountCard({
             <div className="flex flex-wrap items-center gap-2">
               {account.isPrimary ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
-                  <Star className="size-3 fill-primary text-primary" />
+                  <StarIcon className="size-3 fill-primary text-primary" />
                   <span>Utama</span>
                 </span>
               ) : null}
@@ -107,7 +107,7 @@ export function PayoutAccountCard({
 
           {/* Account credentials */}
           <div className="rounded-xl border border-border/40 bg-muted/20 p-3.5 space-y-1">
-            <span className="font-mono text-base font-semibold tracking-wider tabular-nums text-foreground">
+            <span className="font-mono text-sm sm:text-base font-semibold tracking-wider tabular-nums text-foreground break-all">
               {account.accountNumber}
             </span>
             <p className="text-xs font-medium text-muted-foreground">
@@ -140,13 +140,13 @@ export function PayoutAccountCard({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4">
               <span>Lihat Foto Bukti Rekening</span>
-              <ExternalLink className="size-3" />
+              <SquareTopDownIcon className="size-3" />
             </a>
           ) : null}
         </div>
 
         {/* Action buttons row */}
-        <div className="flex items-center justify-between border-t border-border/40 pt-4 mt-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/40 pt-4 mt-4">
           {isVerified && !account.isPrimary ? (
             <Button
               type="button"
@@ -156,9 +156,9 @@ export function PayoutAccountCard({
               disabled={isSettingPrimary || isDeleting}
               className="cursor-pointer text-xs h-8">
               {isSettingPrimary ? (
-                <Loader2 className="mr-1.5 size-3 animate-spin" />
+                <LoaderIcon className="mr-1.5 size-3 animate-spin" />
               ) : (
-                <Star className="mr-1.5 size-3 text-muted-foreground" />
+                <StarIcon className="mr-1.5 size-3 text-muted-foreground" />
               )}
               <span>Jadikan Utama</span>
             </Button>
@@ -184,7 +184,7 @@ export function PayoutAccountCard({
               onClick={() => setIsAlertOpen(true)}
               disabled={isDeleting || isSettingPrimary}
               className="cursor-pointer text-xs h-8 text-destructive hover:bg-destructive/10 hover:text-destructive">
-              <Trash2 className="mr-1.5 size-3.5" />
+              <TrashBinTrashIcon className="mr-1.5 size-3.5" />
               <span>Hapus</span>
             </Button>
           )}

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, Film } from 'lucide-react';
+import { ArrowRightIcon, ClapperboardIcon } from '@solar-icons/react/linear';
 import type { BrandCreateCampaignVisualProps } from '../types';
 
 /**
@@ -27,7 +27,7 @@ export function BrandCreateCampaignVisual({ className = '' }: BrandCreateCampaig
         <div className="p-2.5 rounded-xl bg-zinc-950/80 border border-dashed border-white/15 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <div className="size-6 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
-              <Film className="size-3 text-rose-400" />
+              <ClapperboardIcon className="size-3 text-rose-400" />
             </div>
             <span className="text-[11px] font-medium text-zinc-200 truncate">
               footage-produk.mp4
@@ -102,7 +102,7 @@ export function BrandCreateCampaignVisual({ className = '' }: BrandCreateCampaig
             className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-rose-600 text-white text-[10px] font-semibold whitespace-nowrap shadow-sm"
           >
             <span>Tayangkan Campaign</span>
-            <ArrowRight className="size-2.5" />
+            <ArrowRightIcon className="size-2.5" />
           </motion.div>
         </div>
       </div>

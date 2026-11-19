@@ -1013,15 +1013,35 @@ export async function ExecuteVerifyCampaignPaymentInTx(
   }
 
   if (isApprove && params.brandWallet) {
+    const totalPayable = Number(params.latestPayment.totalPayable);
+    const rawAmount =
+      params.latestPayment.amount !== undefined && params.latestPayment.amount !== null
+        ? Number(params.latestPayment.amount)
+        : totalPayable - Number(params.latestPayment.uniqueCode ?? 0);
+    const campaignAmount = rawAmount > 0 ? rawAmount : totalPayable;
+    const uniqueCodeCredit = Math.max(0, totalPayable - campaignAmount);
+
+    const balanceBefore = Number(params.brandWallet.balance);
+    let balanceAfter = balanceBefore;
+
+    if (uniqueCodeCredit > 0) {
+      const updatedWallet = await tx.wallet.update({
+        where: { id: params.brandWallet.id },
+        data: { balance: { increment: new Prisma.Decimal(uniqueCodeCredit) } },
+        select: { balance: true },
+      });
+      balanceAfter = Number(updatedWallet?.balance ?? balanceBefore + uniqueCodeCredit);
+    }
+
     const refCode = GenerateWalletTransactionReferenceCode();
     await tx.walletTransaction.create({
       data: {
         referenceCode: refCode,
         walletId: params.brandWallet.id,
         type: WalletTransactionType.CAMPAIGN_PAYMENT,
-        amount: params.latestPayment.totalPayable,
-        balanceBefore: params.brandWallet.balance,
-        balanceAfter: params.brandWallet.balance,
+        amount: new Prisma.Decimal(campaignAmount),
+        balanceBefore: new Prisma.Decimal(balanceBefore),
+        balanceAfter: new Prisma.Decimal(balanceAfter),
         description: `Pembayaran kampanye "${params.campaignTitle ?? 'Klipday'}" via transfer manual terverifikasi admin`,
         campaignId: params.campaignId,
         status: Status.ACTIVE,

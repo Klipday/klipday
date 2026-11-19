@@ -1,4 +1,4 @@
-import { RotateCcw, Search, X } from 'lucide-react';
+import { CloseIcon, MagnifierIcon, RestartIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -66,7 +66,7 @@ export function BrandSubmissionsToolbar({
     <div className={cn('flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between w-full', className)}>
       {/* Search Input with Leading Icon and Clear Action */}
       <div className="relative w-full sm:w-72 md:w-80 sm:shrink-0">
-        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <MagnifierIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <Input
           type="text"
           value={searchTerm}
@@ -80,7 +80,7 @@ export function BrandSubmissionsToolbar({
             onClick={HandleClearSearch}
             aria-label="Hapus pencarian"
             className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer transition-colors">
-            <X className="size-3.5" />
+            <CloseIcon className="size-3.5" />
           </button>
         ) : null}
       </div>
@@ -129,7 +129,7 @@ export function BrandSubmissionsToolbar({
             size="sm"
             onClick={onResetFilters}
             className="h-9 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer rounded-xl">
-            <RotateCcw className="size-3.5" />
+            <RestartIcon className="size-3.5" />
             <span>Reset</span>
           </Button>
         )}

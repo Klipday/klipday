@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Camera, CheckCircle2, Loader2 } from 'lucide-react';
+import { CameraIcon, CheckCircleIcon, LoaderIcon } from '@solar-icons/react/linear';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -65,7 +65,7 @@ export function BrandProfileHeader({
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-xs">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 min-w-0">
           {/* Logo with upload overlay */}
           <div className="group relative size-20 shrink-0 rounded-full overflow-hidden">
             <Avatar className="size-20 rounded-full after:border-0">
@@ -85,10 +85,10 @@ export function BrandProfileHeader({
               aria-label="Ubah logo brand"
               title="Ubah logo brand">
               {isUploadingLogo ? (
-                <Loader2 className="size-5 animate-spin text-white" />
+                <LoaderIcon className="size-5 animate-spin text-white" />
               ) : (
                 <>
-                  <Camera className="size-5 text-white" />
+                  <CameraIcon className="size-5 text-white" />
                   <span className="mt-1 text-[10px] font-medium text-white">Ubah</span>
                 </>
               )}
@@ -104,18 +104,18 @@ export function BrandProfileHeader({
           </div>
 
           {/* Company details */}
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
                 {profile.companyName}
               </h1>
               <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-                <CheckCircle2 className="size-3" />
+                <CheckCircleIcon className="size-3" />
                 <span>Akun Brand</span>
               </span>
             </div>
 
-            <p className="text-xs text-muted-foreground">{profile.email}</p>
+            <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
 
             <div className="flex flex-wrap items-center gap-2 pt-0.5">
               <span className="inline-flex items-center rounded-md bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground">
@@ -139,9 +139,9 @@ export function BrandProfileHeader({
             disabled={isUploadingLogo}
             className="cursor-pointer text-xs">
             {isUploadingLogo ? (
-              <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+              <LoaderIcon className="mr-1.5 size-3.5 animate-spin" />
             ) : (
-              <Camera className="mr-1.5 size-3.5" />
+              <CameraIcon className="mr-1.5 size-3.5" />
             )}
             <span>Unggah Logo</span>
           </Button>

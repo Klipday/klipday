@@ -1,4 +1,4 @@
-import { AlertCircle, RotateCcw } from 'lucide-react';
+import { DangerCircleIcon, RestartIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { ExtractApiError } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
@@ -28,12 +28,12 @@ export function BrandCampaignsErrorState({
         className
       )}
       data-testid="brand-campaigns-error">
-      <AlertCircle className="size-10 text-destructive/80 mb-3" />
+      <DangerCircleIcon className="size-10 text-destructive/80 mb-3" />
       <h3 className="font-heading text-base font-semibold text-foreground">Gagal Memuat Kampanye</h3>
       <p className="mt-1 text-sm text-muted-foreground max-w-md">{errorMessage}</p>
       {onRetry && (
         <Button variant="outline" size="sm" onClick={onRetry} className="mt-4 gap-2 cursor-pointer">
-          <RotateCcw className="size-4" />
+          <RestartIcon className="size-4" />
           <span>Coba Lagi</span>
         </Button>
       )}

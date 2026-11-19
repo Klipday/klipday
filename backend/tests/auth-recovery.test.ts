@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import {
   AUTH_COOKIE_NAME,
+  AUTH_ERROR_CODES,
   AUTH_MESSAGES,
 } from '../src/features/authentication/auth.constants.js';
 import {
@@ -185,19 +186,37 @@ describe('Auth Recovery & Verification Module', () => {
         isEmailVerified: false,
       } as never);
 
-      jest.spyOn(prisma.emailVerificationCode, 'findFirst').mockResolvedValue({
-        id: 'code-1',
-        accountId: 'acc-1',
-        codeHash: HashTokenOrCode('123456'),
-        expiresAt: new Date(Date.now() + 600000),
-        usedAt: null,
-      } as never);
+      const updateManyMock = jest.fn<() => Promise<{ count: number }>>().mockResolvedValue({ count: 1 });
+      const accountUpdateMock = jest.fn<() => Promise<Record<string, unknown>>>().mockResolvedValue({});
 
-      jest.spyOn(prisma, '$transaction').mockResolvedValue([{}, {}] as never);
+      jest.spyOn(prisma, '$transaction').mockImplementation((async (
+        callback: (tx: {
+          emailVerificationCode: { updateMany: typeof updateManyMock };
+          account: { update: typeof accountUpdateMock };
+        }) => Promise<boolean>,
+      ) => {
+        return callback({
+          emailVerificationCode: { updateMany: updateManyMock },
+          account: { update: accountUpdateMock },
+        });
+      }) as never);
       jest.spyOn(jwt, 'sign').mockReturnValue('verified-session-jwt' as never);
 
       await VerifyEmail(req, res, next);
 
+      expect(updateManyMock).toHaveBeenCalledWith({
+        where: {
+          accountId: 'acc-1',
+          codeHash: HashTokenOrCode('123456'),
+          usedAt: null,
+          expiresAt: { gt: expect.any(Date) },
+        },
+        data: { usedAt: expect.any(Date) },
+      });
+      expect(accountUpdateMock).toHaveBeenCalledWith({
+        where: { id: 'acc-1' },
+        data: { isEmailVerified: true },
+      });
       expect(statusMock).toHaveBeenCalledWith(200);
       expect(cookieMock).toHaveBeenCalledWith(
         AUTH_COOKIE_NAME,
@@ -215,7 +234,7 @@ describe('Auth Recovery & Verification Module', () => {
       );
     });
 
-    it('rejects invalid or expired OTP code with 400 Bad Request', async () => {
+    it('rejects invalid, expired, or concurrently replayed OTP code with 400 Bad Request', async () => {
       const req = CreateMockRequest({
         body: {
           email: 'creator@klipday.com',
@@ -232,16 +251,60 @@ describe('Auth Recovery & Verification Module', () => {
         isEmailVerified: false,
       } as never);
 
-      // No active code found (expired or wrong code)
-      jest.spyOn(prisma.emailVerificationCode, 'findFirst').mockResolvedValue(null);
+      const updateManyMock = jest.fn<() => Promise<{ count: number }>>().mockResolvedValue({ count: 0 });
+      const accountUpdateMock = jest.fn<() => Promise<Record<string, unknown>>>().mockResolvedValue({});
+
+      jest.spyOn(prisma, '$transaction').mockImplementation((async (
+        callback: (tx: {
+          emailVerificationCode: { updateMany: typeof updateManyMock };
+          account: { update: typeof accountUpdateMock };
+        }) => Promise<boolean>,
+      ) => {
+        return callback({
+          emailVerificationCode: { updateMany: updateManyMock },
+          account: { update: accountUpdateMock },
+        });
+      }) as never);
 
       await VerifyEmail(req, res, next);
 
+      expect(accountUpdateMock).not.toHaveBeenCalled();
       expect(statusMock).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({
         status: 'error',
         data: null,
         message: AUTH_MESSAGES.INVALID_OR_EXPIRED_CODE,
+      });
+    });
+
+    it('returns 500 before modifying database when JWT_SECRET is missing', async () => {
+      delete process.env.JWT_SECRET;
+
+      const req = CreateMockRequest({
+        body: {
+          email: 'creator@klipday.com',
+          code: '123456',
+        },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      jest.spyOn(prisma.account, 'findFirst').mockResolvedValue({
+        id: 'acc-1',
+        email: 'creator@klipday.com',
+        role: Role.CREATOR,
+        isEmailVerified: false,
+      } as never);
+      const txSpy = jest.spyOn(prisma, '$transaction');
+
+      await VerifyEmail(req, res, next);
+
+      expect(txSpy).not.toHaveBeenCalled();
+      expect(statusMock).toHaveBeenCalledWith(500);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        data: null,
+        message: AUTH_MESSAGES.CONFIG_MISSING,
       });
     });
   });
@@ -277,6 +340,7 @@ describe('Auth Recovery & Verification Module', () => {
           status: 'error',
           message: AUTH_MESSAGES.RESEND_COOLDOWN_ACTIVE,
           data: expect.objectContaining({
+            code: AUTH_ERROR_CODES.RESEND_COOLDOWN_ACTIVE,
             remainingSeconds: expect.any(Number),
           }),
         }),
@@ -327,6 +391,63 @@ describe('Auth Recovery & Verification Module', () => {
         }),
       );
     });
+
+    it('cleans up OTP record and returns 503 when email delivery fails in production', async () => {
+      const prevEnv = process.env.NODE_ENV;
+      const prevResend = process.env.RESEND_API_KEY;
+      const prevSmtp = process.env.SMTP_HOST;
+      const prevProvider = process.env.EMAIL_PROVIDER;
+
+      process.env.NODE_ENV = 'production';
+      delete process.env.RESEND_API_KEY;
+      delete process.env.SMTP_HOST;
+      delete process.env.EMAIL_PROVIDER;
+
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      try {
+        const req = CreateMockRequest({
+          body: { email: 'creator@klipday.com' },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.account, 'findFirst').mockResolvedValue({
+          id: 'acc-1',
+          email: 'creator@klipday.com',
+          isEmailVerified: false,
+        } as never);
+
+        jest.spyOn(prisma.emailVerificationCode, 'findFirst').mockResolvedValue(null);
+        jest
+          .spyOn(prisma.emailVerificationCode, 'updateMany')
+          .mockResolvedValue({ count: 0 } as never);
+        jest
+          .spyOn(prisma.emailVerificationCode, 'create')
+          .mockResolvedValue({ id: 'code-failed' } as never);
+        const deleteSpy = jest
+          .spyOn(prisma.emailVerificationCode, 'delete')
+          .mockResolvedValue({ id: 'code-failed' } as never);
+
+        await ResendVerificationEmail(req, res, next);
+
+        expect(deleteSpy).toHaveBeenCalledWith({
+          where: { id: 'code-failed' },
+        });
+        expect(statusMock).toHaveBeenCalledWith(503);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: { code: AUTH_ERROR_CODES.EMAIL_DELIVERY_FAILED },
+          message: AUTH_MESSAGES.EMAIL_DELIVERY_FAILED,
+        });
+      } finally {
+        consoleErrorSpy.mockRestore();
+        process.env.NODE_ENV = prevEnv;
+        if (prevResend !== undefined) process.env.RESEND_API_KEY = prevResend;
+        if (prevSmtp !== undefined) process.env.SMTP_HOST = prevSmtp;
+        if (prevProvider !== undefined) process.env.EMAIL_PROVIDER = prevProvider;
+      }
+    });
   });
 
   // ===========================================================================
@@ -344,6 +465,7 @@ describe('Auth Recovery & Verification Module', () => {
         id: 'acc-1',
         email: 'creator@klipday.com',
       } as never);
+      jest.spyOn(prisma.passwordResetToken, 'findFirst').mockResolvedValue(null);
       jest
         .spyOn(prisma.passwordResetToken, 'updateMany')
         .mockResolvedValue({ count: 0 } as never);
@@ -369,6 +491,33 @@ describe('Auth Recovery & Verification Module', () => {
       );
     });
 
+    it('suppresses duplicate reset email within 60-second cooldown while returning generic 200', async () => {
+      const req = CreateMockRequest({
+        body: { email: 'creator@klipday.com' },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      jest.spyOn(prisma.account, 'findFirst').mockResolvedValue({
+        id: 'acc-1',
+        email: 'creator@klipday.com',
+      } as never);
+      jest.spyOn(prisma.passwordResetToken, 'findFirst').mockResolvedValue({
+        createdAt: new Date(Date.now() - 20_000),
+      } as never);
+      const tokenCreateSpy = jest.spyOn(prisma.passwordResetToken, 'create');
+
+      await ForgotPassword(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'success',
+        data: null,
+        message: AUTH_MESSAGES.FORGOT_PASSWORD_GENERIC_SUCCESS,
+      });
+      expect(tokenCreateSpy).not.toHaveBeenCalled();
+    });
+
     it('returns generic success even if email does not exist (enumeration defense)', async () => {
       const req = CreateMockRequest({
         body: { email: 'nonexistent@example.com' },
@@ -390,7 +539,7 @@ describe('Auth Recovery & Verification Module', () => {
       expect(tokenCreateSpy).not.toHaveBeenCalled();
     });
 
-    it('updates password and marks token used when valid token provided', async () => {
+    it('updates password and marks token used atomically when valid token provided', async () => {
       const rawToken = 'secret-reset-token-12345';
       const req = CreateMockRequest({
         body: {
@@ -401,24 +550,101 @@ describe('Auth Recovery & Verification Module', () => {
       const { res, statusMock, jsonMock } = CreateMockResponse();
       const next = CreateMockNext();
 
-      jest.spyOn(prisma.passwordResetToken, 'findFirst').mockResolvedValue({
-        id: 'tok-1',
-        accountId: 'acc-1',
-        tokenHash: HashTokenOrCode(rawToken),
-        expiresAt: new Date(Date.now() + 3600000),
-        usedAt: null,
-      } as never);
+      const findFirstSpy = jest
+        .spyOn(prisma.passwordResetToken, 'findFirst')
+        .mockResolvedValue({
+          id: 'tok-1',
+          accountId: 'acc-1',
+        } as never);
 
       jest.spyOn(bcrypt, 'hash').mockResolvedValue('new-hashed-password' as never);
-      jest.spyOn(prisma, '$transaction').mockResolvedValue([{}, {}] as never);
+
+      const updateManyMock = jest.fn<() => Promise<{ count: number }>>().mockResolvedValue({ count: 1 });
+      const accountUpdateMock = jest.fn<() => Promise<Record<string, unknown>>>().mockResolvedValue({});
+
+      jest.spyOn(prisma, '$transaction').mockImplementation((async (
+        callback: (tx: {
+          passwordResetToken: { updateMany: typeof updateManyMock };
+          account: { update: typeof accountUpdateMock };
+        }) => Promise<boolean>,
+      ) => {
+        return callback({
+          passwordResetToken: { updateMany: updateManyMock },
+          account: { update: accountUpdateMock },
+        });
+      }) as never);
 
       await ResetPassword(req, res, next);
 
+      expect(findFirstSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            tokenHash: HashTokenOrCode(rawToken),
+            usedAt: null,
+            account: { status: Status.ACTIVE },
+          }),
+        }),
+      );
+      expect(updateManyMock).toHaveBeenCalledWith({
+        where: {
+          id: 'tok-1',
+          usedAt: null,
+          expiresAt: { gt: expect.any(Date) },
+        },
+        data: { usedAt: expect.any(Date) },
+      });
+      expect(accountUpdateMock).toHaveBeenCalledWith({
+        where: { id: 'acc-1' },
+        data: { passwordHash: 'new-hashed-password' },
+      });
       expect(statusMock).toHaveBeenCalledWith(200);
       expect(jsonMock).toHaveBeenCalledWith({
         status: 'success',
         data: null,
         message: AUTH_MESSAGES.PASSWORD_RESET_SUCCESS,
+      });
+    });
+
+    it('rejects concurrent or replayed reset token when updateMany returns count 0', async () => {
+      const rawToken = 'secret-reset-token-race';
+      const req = CreateMockRequest({
+        body: {
+          token: rawToken,
+          password: 'NewStrongPassword123!',
+        },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      jest.spyOn(prisma.passwordResetToken, 'findFirst').mockResolvedValue({
+        id: 'tok-race',
+        accountId: 'acc-1',
+      } as never);
+      jest.spyOn(bcrypt, 'hash').mockResolvedValue('new-hashed-password' as never);
+
+      const updateManyMock = jest.fn<() => Promise<{ count: number }>>().mockResolvedValue({ count: 0 });
+      const accountUpdateMock = jest.fn<() => Promise<Record<string, unknown>>>().mockResolvedValue({});
+
+      jest.spyOn(prisma, '$transaction').mockImplementation((async (
+        callback: (tx: {
+          passwordResetToken: { updateMany: typeof updateManyMock };
+          account: { update: typeof accountUpdateMock };
+        }) => Promise<boolean>,
+      ) => {
+        return callback({
+          passwordResetToken: { updateMany: updateManyMock },
+          account: { update: accountUpdateMock },
+        });
+      }) as never);
+
+      await ResetPassword(req, res, next);
+
+      expect(accountUpdateMock).not.toHaveBeenCalled();
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        data: null,
+        message: AUTH_MESSAGES.INVALID_OR_EXPIRED_RESET_TOKEN,
       });
     });
 

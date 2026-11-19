@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { CloseIcon, MagnifierIcon } from '@solar-icons/react/linear';
 import { useSearchParams } from 'react-router';
 import { Input } from '@/components/ui/input';
 import {
@@ -132,7 +132,7 @@ export function AdminTopUpsPage() {
         <AdminTopUpStatusTabs counts={counts} />
 
         <div className="relative w-full sm:w-80 md:w-96">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <MagnifierIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
             type="text"
             value={searchInput}
@@ -149,7 +149,7 @@ export function AdminTopUpsPage() {
               }}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
             >
-              <X className="size-3.5" />
+              <CloseIcon className="size-3.5" />
             </button>
           )}
         </div>

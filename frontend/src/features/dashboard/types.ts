@@ -171,10 +171,20 @@ export interface BrandDashboardMetrics {
   totalVerifiedViews: number;
   totalSpent: number;
   activeCampaignsCount: number;
+  submittedCampaignsCount: number;
+  submittedVideosCount: number;
   pendingReviewsCount: number;
   walletActiveBalance: number;
   escrowLockedBalance: number;
   campaignStatusCounts: BrandDashboardCampaignStatusCounts;
+}
+
+/**
+ * Single KPI item displayed in the BrandDashboardMetricsGrid summary strip.
+ */
+export interface BrandDashboardMetricItem {
+  label: string;
+  value: string;
 }
 
 /**

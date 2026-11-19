@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Eye, Video } from 'lucide-react';
+import { CheckIcon, EyeIcon, VideocameraIcon } from '@solar-icons/react/linear';
 import { cn } from '@/lib/utils';
 import type { SubmissionVideoCardProps } from '../types';
 import { FormatCompactCount } from '../utils/submission-utils';
@@ -59,7 +59,7 @@ export function SubmissionVideoCard({
           />
         ) : (
           <div className="flex flex-col h-full w-full items-center justify-center gap-1 bg-muted/50 text-muted-foreground text-xs p-2 text-center">
-            <Video className="size-5 text-muted-foreground/60" />
+            <VideocameraIcon className="size-5 text-muted-foreground/60" />
             <span className="text-[10px]">Tidak ada pratinjau</span>
           </div>
         )}
@@ -72,12 +72,12 @@ export function SubmissionVideoCard({
               ? 'size-6 rounded-full bg-foreground text-background shadow-xs'
               : 'size-6 rounded-full border border-white/60 bg-black/30 text-transparent opacity-0 group-hover:opacity-100 backdrop-blur-xs',
           )}>
-          <Check className="size-3.5 stroke-[2.5]" />
+          <CheckIcon className="size-3.5 stroke-[2.5]" />
         </div>
 
         {/* Bottom view count pill */}
         <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-xs">
-          <Eye className="size-3" />
+          <EyeIcon className="size-3" />
           <span>{viewCountDisplay} views</span>
         </div>
       </div>

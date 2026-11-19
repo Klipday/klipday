@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { AltArrowLeftIcon, AltArrowRightIcon } from '@solar-icons/react/linear';
 import { cn } from '@/lib/utils';
 import type { FeaturedCampaignCarouselProps } from '../types';
 import { FeaturedCampaignSlide } from './FeaturedCampaignSlide';
@@ -236,14 +236,14 @@ export function FeaturedCampaignCarousel({
             onClick={GoToPrev}
             aria-label="Slide sebelumnya"
             className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-black/60 text-white/90 backdrop-blur-xs transition-colors hover:bg-black/80 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-            <ChevronLeft className="size-4" />
+            <AltArrowLeftIcon className="size-4" />
           </button>
           <button
             type="button"
             onClick={GoToNext}
             aria-label="Slide berikutnya"
             className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-black/60 text-white/90 backdrop-blur-xs transition-colors hover:bg-black/80 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-            <ChevronRight className="size-4" />
+            <AltArrowRightIcon className="size-4" />
           </button>
         </div>
       )}

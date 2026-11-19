@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { CloseIcon, HamburgerMenuIcon } from '@solar-icons/react/linear';
 import { Link } from 'react-router';
 import { KlipdayLogo } from '@/components';
 import { HOME_NAV_LINKS } from '../constants/home.constants';
@@ -113,7 +113,7 @@ export function HomeNavbar({ activeAudience, onAudienceChange, className = '' }:
             aria-label="Toggle navigation menu"
             className="flex size-11 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/5 hover:text-white"
           >
-            {isMobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            {isMobileMenuOpen ? <CloseIcon className="size-5" /> : <HamburgerMenuIcon className="size-5" />}
           </button>
         </div>
       </div>

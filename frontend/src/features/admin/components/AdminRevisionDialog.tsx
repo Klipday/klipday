@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { LoaderIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -102,7 +102,7 @@ export function AdminRevisionDialog({
           >
             {isPending ? (
               <>
-                <Loader2 className="size-3.5 animate-spin" />
+                <LoaderIcon className="size-3.5 animate-spin" />
                 <span>Mengirim...</span>
               </>
             ) : (

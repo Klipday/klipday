@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useGSAP } from '@gsap/react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRightIcon } from '@solar-icons/react/linear';
 import { Link } from 'react-router';
 import { cn } from '@/lib/utils';
 import {
@@ -141,7 +141,7 @@ export function HomeDiscordBanner({ activeAudience, className = '' }: HomeDiscor
               className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-7 sm:px-8 py-3.5 font-semibold text-sm text-white shadow-sm transition-all duration-200 hover:bg-rose-500 active:scale-[0.98]"
             >
               <span>{bannerData.ctaLabel}</span>
-              <ArrowRight className="size-4" />
+              <ArrowRightIcon className="size-4" />
             </Link>
           )}
         </div>

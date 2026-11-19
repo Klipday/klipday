@@ -1,14 +1,15 @@
 import {
-  ArrowDownToLine,
-  ArrowUpFromLine,
-  FileCheck,
-  LayoutDashboard,
-  Megaphone,
-  User,
-  UserCheck,
-  Video,
-  Wallet,
-} from 'lucide-react';
+  ArrowDownToLineIcon,
+  ArrowUpFromLineIcon,
+  BellIcon,
+  FileCheckIcon,
+  MegaphoneIcon,
+  UserCheckIcon,
+  UserIcon,
+  VideocameraIcon,
+  WalletIcon,
+  Widget5Icon,
+} from '@solar-icons/react/linear';
 import type { DashboardNavItem } from '../types';
 
 export type { DashboardNavItem };
@@ -17,22 +18,27 @@ export const BRAND_NAV_ITEMS: DashboardNavItem[] = [
   {
     title: 'Dashboard',
     href: '/brand-dashboard',
-    icon: LayoutDashboard,
+    icon: Widget5Icon,
   },
   {
     title: 'Kampanye',
     href: '/brand-dashboard/brand-campaigns',
-    icon: Megaphone,
+    icon: MegaphoneIcon,
   },
   {
     title: 'Dompet',
     href: '/brand-dashboard/wallet',
-    icon: Wallet,
+    icon: WalletIcon,
+  },
+  {
+    title: 'Notifikasi',
+    href: '/notifications',
+    icon: BellIcon,
   },
   {
     title: 'Profil Akun',
     href: '/brand-dashboard/profile',
-    icon: User,
+    icon: UserIcon,
   },
 ];
 
@@ -40,27 +46,32 @@ export const CREATOR_NAV_ITEMS: DashboardNavItem[] = [
   {
     title: 'Dashboard',
     href: '/creator-dashboard',
-    icon: LayoutDashboard,
+    icon: Widget5Icon,
   },
   {
     title: 'Kampanye',
     href: '/creator-dashboard/creator-campaigns',
-    icon: Megaphone,
+    icon: MegaphoneIcon,
   },
   {
     title: 'Submisi Video',
     href: '/creator-dashboard/submissions',
-    icon: Video,
+    icon: VideocameraIcon,
   },
   {
     title: 'Dompet',
     href: '/creator-dashboard/wallet',
-    icon: Wallet,
+    icon: WalletIcon,
+  },
+  {
+    title: 'Notifikasi',
+    href: '/notifications',
+    icon: BellIcon,
   },
   {
     title: 'Profil Akun',
     href: '/creator-dashboard/profile',
-    icon: User,
+    icon: UserIcon,
   },
 ];
 
@@ -68,32 +79,37 @@ export const ADMIN_NAV_ITEMS: DashboardNavItem[] = [
   {
     title: 'Dashboard',
     href: '/admin-dashboard',
-    icon: LayoutDashboard,
+    icon: Widget5Icon,
   },
   {
     title: 'Kampanye',
     href: '/admin-dashboard/campaigns',
-    icon: Megaphone,
+    icon: MegaphoneIcon,
   },
   {
     title: 'Settlement',
     href: '/admin-dashboard/settlements',
-    icon: FileCheck,
+    icon: FileCheckIcon,
   },
   {
     title: 'Top Up',
     href: '/admin-dashboard/top-ups',
-    icon: ArrowDownToLine,
+    icon: ArrowDownToLineIcon,
   },
   {
     title: 'Withdraw',
     href: '/admin-dashboard/withdrawals',
-    icon: ArrowUpFromLine,
+    icon: ArrowUpFromLineIcon,
   },
   {
     title: 'KYC',
     href: '/admin-dashboard/kyc',
-    icon: UserCheck,
+    icon: UserCheckIcon,
+  },
+  {
+    title: 'Notifikasi',
+    href: '/notifications',
+    icon: BellIcon,
   },
 ];
 
@@ -101,21 +117,26 @@ export const DEFAULT_NAV_ITEMS: DashboardNavItem[] = [
   {
     title: 'Dashboard',
     href: '/dashboard',
-    icon: LayoutDashboard,
+    icon: Widget5Icon,
   },
   {
     title: 'Kampanye',
     href: '/dashboard/campaigns',
-    icon: Megaphone,
+    icon: MegaphoneIcon,
   },
   {
     title: 'Dompet',
     href: '/dashboard/wallet',
-    icon: Wallet,
+    icon: WalletIcon,
+  },
+  {
+    title: 'Notifikasi',
+    href: '/notifications',
+    icon: BellIcon,
   },
   {
     title: 'Profil Akun',
     href: '/dashboard/profile',
-    icon: User,
+    icon: UserIcon,
   },
 ];

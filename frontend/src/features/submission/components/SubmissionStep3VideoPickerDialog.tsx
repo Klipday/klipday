@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshIcon } from '@solar-icons/react/linear';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { UseRecentTikTokVideosQuery, UseValidateTikTokVideoUrlMutation } from '../hooks';
@@ -93,7 +93,7 @@ export function SubmissionStep3VideoPickerDialog({
               disabled={isFetching}
               title="Segarkan galeri video"
               className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground ml-1.5 pl-1.5 border-l border-border/60 cursor-pointer disabled:opacity-50">
-              <RefreshCw className={cn('size-3', isFetching && 'animate-spin')} />
+              <RefreshIcon className={cn('size-3', isFetching && 'animate-spin')} />
               <span>{isFetching ? 'Memuat...' : 'Segarkan'}</span>
             </button>
           </div>

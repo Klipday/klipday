@@ -1,4 +1,4 @@
-import { apiClient, ExtractApiError } from '@/lib/api-client';
+import { apiClient, type ApiError, ExtractApiError } from '@/lib/api-client';
 import { TranslateAuthError } from './utils';
 import type {
   ApiResponse,
@@ -11,8 +11,10 @@ import type {
   ResetPasswordPayload,
   ResendVerificationPayload,
   VerifyEmailPayload,
+  VerifyEmailResponse,
 } from './types';
 export type {
+  AlreadyVerifiedResponse,
   ApiResponse,
   AuthRole,
   BrandProfile,
@@ -28,14 +30,33 @@ export type {
   ResetPasswordPayload,
   ResendVerificationPayload,
   VerifyEmailPayload,
+  VerifyEmailResponse,
 } from './types';
+
+/**
+ * Normalizes an API failure into a localized `ApiError` while preserving
+ * backend metadata (`code`, `data`, and HTTP `status`) needed for UI recovery flows.
+ *
+ * @param error - Unknown thrown error from Axios.
+ * @param fallbackMessage - Localized Indonesian fallback message.
+ * @returns An `ApiError` with translated message and preserved metadata.
+ */
+function BuildTranslatedAuthError(error: unknown, fallbackMessage: string): ApiError {
+  const rawError = ExtractApiError(error, fallbackMessage);
+  const translatedMessage = TranslateAuthError(rawError.message, fallbackMessage, rawError.code);
+  const apiError: ApiError = new Error(translatedMessage);
+  apiError.code = rawError.code;
+  apiError.data = rawError.data;
+  apiError.status = rawError.status;
+  return apiError;
+}
 
 /**
  * Sends a register request to the backend `POST /auth/register` endpoint using Axios.
  *
  * @param input - Validated register payload matching the backend schema.
  * @returns The newly created account.
- * @throws Error with the backend message when the request fails.
+ * @throws ApiError with the translated backend message when the request fails.
  */
 export async function RegisterAccount(input: RegisterInput): Promise<RegisteredAccount> {
   try {
@@ -43,9 +64,7 @@ export async function RegisterAccount(input: RegisterInput): Promise<RegisteredA
     const result = response.data.data;
     return result;
   } catch (error) {
-    const rawError = ExtractApiError(error, 'Registrasi gagal. Coba lagi.');
-    const translatedMessage = TranslateAuthError(rawError.message, 'Registrasi gagal. Coba lagi.');
-    const apiError = new Error(translatedMessage);
+    const apiError = BuildTranslatedAuthError(error, 'Registrasi gagal. Coba lagi.');
     throw apiError;
   }
 }
@@ -55,7 +74,7 @@ export async function RegisterAccount(input: RegisterInput): Promise<RegisteredA
  *
  * @param input - Validated login credentials (email and password).
  * @returns The authenticated account details.
- * @throws Error with the backend message when authentication fails.
+ * @throws ApiError with the translated backend message and error metadata when authentication fails.
  */
 export async function LoginAccount(input: LoginInput): Promise<LoggedInAccount> {
   try {
@@ -63,9 +82,7 @@ export async function LoginAccount(input: LoginInput): Promise<LoggedInAccount> 
     const result = response.data.data;
     return result;
   } catch (error) {
-    const rawError = ExtractApiError(error, 'Masuk gagal. Coba lagi.');
-    const translatedMessage = TranslateAuthError(rawError.message, 'Masuk gagal. Coba lagi.');
-    const apiError = new Error(translatedMessage);
+    const apiError = BuildTranslatedAuthError(error, 'Masuk gagal. Coba lagi.');
     throw apiError;
   }
 }
@@ -75,7 +92,7 @@ export async function LoginAccount(input: LoginInput): Promise<LoggedInAccount> 
  * the authenticated account's profile details based on active session cookies.
  *
  * @returns The active user's account and profile data.
- * @throws Error with the backend message when session is invalid or missing.
+ * @throws ApiError with the translated backend message when session is invalid or missing.
  */
 export async function GetCurrentAccount(): Promise<CurrentAccountProfile> {
   try {
@@ -83,9 +100,7 @@ export async function GetCurrentAccount(): Promise<CurrentAccountProfile> {
     const result = response.data.data;
     return result;
   } catch (error) {
-    const rawError = ExtractApiError(error, 'Gagal memuat profil akun.');
-    const translatedMessage = TranslateAuthError(rawError.message, 'Gagal memuat profil akun.');
-    const apiError = new Error(translatedMessage);
+    const apiError = BuildTranslatedAuthError(error, 'Gagal memuat profil akun.');
     throw apiError;
   }
 }
@@ -94,15 +109,13 @@ export async function GetCurrentAccount(): Promise<CurrentAccountProfile> {
  * Sends a logout request to the backend `POST /auth/logout` endpoint to clear the session cookie.
  *
  * @returns A promise that resolves when the session cookie is removed.
- * @throws Error with the backend message when logout fails.
+ * @throws ApiError with the translated backend message when logout fails.
  */
 export async function LogoutAccount(): Promise<void> {
   try {
     await apiClient.post('/auth/logout');
   } catch (error) {
-    const rawError = ExtractApiError(error, 'Gagal keluar.');
-    const translatedMessage = TranslateAuthError(rawError.message, 'Gagal keluar.');
-    const apiError = new Error(translatedMessage);
+    const apiError = BuildTranslatedAuthError(error, 'Gagal keluar.');
     throw apiError;
   }
 }
@@ -111,17 +124,15 @@ export async function LogoutAccount(): Promise<void> {
  * Sends a verify email request with 6-digit OTP to `POST /auth/verify-email`.
  *
  * @param input - Recipient email and 6-digit OTP code.
- * @returns The authenticated account details upon successful verification.
+ * @returns The authenticated account details or `{ alreadyVerified: true }`.
  */
-export async function VerifyEmailApi(input: VerifyEmailPayload): Promise<LoggedInAccount> {
+export async function VerifyEmailApi(input: VerifyEmailPayload): Promise<VerifyEmailResponse> {
   try {
-    const response = await apiClient.post<ApiResponse<LoggedInAccount>>('/auth/verify-email', input);
+    const response = await apiClient.post<ApiResponse<VerifyEmailResponse>>('/auth/verify-email', input);
     const result = response.data.data;
     return result;
   } catch (error) {
-    const rawError = ExtractApiError(error, 'Verifikasi email gagal.');
-    const translatedMessage = TranslateAuthError(rawError.message, 'Verifikasi email gagal.');
-    const apiError = new Error(translatedMessage);
+    const apiError = BuildTranslatedAuthError(error, 'Verifikasi email gagal.');
     throw apiError;
   }
 }
@@ -135,9 +146,7 @@ export async function ResendVerificationApi(input: ResendVerificationPayload): P
   try {
     await apiClient.post<ApiResponse<null>>('/auth/resend-verification', input);
   } catch (error) {
-    const rawError = ExtractApiError(error, 'Gagal mengirim ulang kode verifikasi.');
-    const translatedMessage = TranslateAuthError(rawError.message, 'Gagal mengirim ulang kode verifikasi.');
-    const apiError = new Error(translatedMessage);
+    const apiError = BuildTranslatedAuthError(error, 'Gagal mengirim ulang kode verifikasi.');
     throw apiError;
   }
 }
@@ -151,9 +160,7 @@ export async function ForgotPasswordApi(input: ForgotPasswordPayload): Promise<v
   try {
     await apiClient.post<ApiResponse<null>>('/auth/forgot-password', input);
   } catch (error) {
-    const rawError = ExtractApiError(error, 'Gagal mengirim tautan atur ulang kata sandi.');
-    const translatedMessage = TranslateAuthError(rawError.message, 'Gagal mengirim tautan atur ulang kata sandi.');
-    const apiError = new Error(translatedMessage);
+    const apiError = BuildTranslatedAuthError(error, 'Gagal mengirim tautan atur ulang kata sandi.');
     throw apiError;
   }
 }
@@ -167,10 +174,7 @@ export async function ResetPasswordApi(input: ResetPasswordPayload): Promise<voi
   try {
     await apiClient.post<ApiResponse<null>>('/auth/reset-password', input);
   } catch (error) {
-    const rawError = ExtractApiError(error, 'Gagal memperbarui kata sandi.');
-    const translatedMessage = TranslateAuthError(rawError.message, 'Gagal memperbarui kata sandi.');
-    const apiError = new Error(translatedMessage);
+    const apiError = BuildTranslatedAuthError(error, 'Gagal memperbarui kata sandi.');
     throw apiError;
   }
 }
-

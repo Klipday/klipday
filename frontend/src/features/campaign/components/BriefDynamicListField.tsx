@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { CheckCircle2, Plus, Trash2, X, XCircle } from 'lucide-react';
+import {
+  AddIcon,
+  CheckCircleIcon,
+  CloseCircleIcon,
+  CloseIcon,
+  TrashBinTrashIcon,
+} from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -64,7 +70,7 @@ function DynamicListInput({ onAdd, placeholder, prefix, disabled = false, maxLen
           onClick={HandleAdd}
           disabled={disabled || inputValue.trim() === ''}
           className="flex items-center gap-1.5 shrink-0">
-          <Plus className="size-4" />
+          <AddIcon className="size-4" />
           <span>Tambah</span>
         </Button>
       </div>
@@ -98,7 +104,7 @@ function DynamicListPills({ items, onRemove, disabled = false }: DynamicListPill
               onClick={() => onRemove(index)}
               className="rounded-full p-0.5 text-muted-foreground hover:bg-muted-foreground/20 hover:text-foreground outline-none"
               aria-label={`Hapus ${item}`}>
-              <X className="size-3" />
+              <CloseIcon className="size-3" />
             </button>
           )}
         </span>
@@ -128,8 +134,8 @@ function DynamicListRows({ items, onRemove, tone = 'neutral', disabled = false }
             isNegative && 'border-rose-500/30'
           )}>
           <div className="flex items-start gap-2.5 min-w-0">
-            {isPositive && <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />}
-            {isNegative && <XCircle className="size-3.5 text-rose-500 shrink-0 mt-0.5" />}
+            {isPositive && <CheckCircleIcon className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />}
+            {isNegative && <CloseCircleIcon className="size-3.5 text-rose-500 shrink-0 mt-0.5" />}
             <span className="text-foreground leading-relaxed wrap-break-word">{item}</span>
           </div>
 
@@ -141,7 +147,7 @@ function DynamicListRows({ items, onRemove, tone = 'neutral', disabled = false }
               onClick={() => onRemove(index)}
               className="h-6 w-6 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive shrink-0"
               aria-label={`Hapus ${item}`}>
-              <Trash2 className="size-3" />
+              <TrashBinTrashIcon className="size-3" />
             </Button>
           )}
         </li>

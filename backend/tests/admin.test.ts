@@ -507,11 +507,18 @@ describe('Admin Campaign Moderation Module', () => {
           }),
         }),
       );
+      expect(mockTx.wallet.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: mockBrandWallet.id },
+          data: { balance: { increment: new Prisma.Decimal(342) } },
+        }),
+      );
       expect(mockTx.walletTransaction.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             type: WalletTransactionType.CAMPAIGN_PAYMENT,
             walletId: mockBrandWallet.id,
+            amount: new Prisma.Decimal(500000),
           }),
         }),
       );
@@ -1353,12 +1360,12 @@ describe('Admin Campaign Moderation Module', () => {
           }),
         );
 
-        // Wallet incremented by totalPayable (500000 + 1000342 = 1500342)
+        // Wallet atomically incremented by totalPayable (1000342)
         expect(mockTx.wallet.update).toHaveBeenCalledWith(
           expect.objectContaining({
             where: { id: sampleTopUp.walletId },
             data: {
-              balance: new Prisma.Decimal(1500342),
+              balance: { increment: new Prisma.Decimal(1000342) },
             },
           }),
         );

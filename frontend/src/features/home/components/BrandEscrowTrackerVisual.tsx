@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheckIcon } from '@solar-icons/react/linear';
 import type { BrandEscrowTrackerVisualProps } from '../types';
 
 /**
@@ -37,7 +37,7 @@ export function BrandEscrowTrackerVisual({ className = '' }: BrandEscrowTrackerV
         {/* Header: Dana Rekber & Locked Balance */}
         <div className="flex items-center justify-between pb-2 border-b border-white/5">
           <div className="flex items-center gap-1.5 min-w-0">
-            <ShieldCheck className="size-3.5 text-rose-500 shrink-0" />
+            <ShieldCheckIcon className="size-3.5 text-rose-500 shrink-0" />
             <span className="text-[11px] text-zinc-400 whitespace-nowrap">
               Dana Rekber
             </span>
