@@ -73,11 +73,17 @@ export function CampaignFormStep1() {
       return;
     }
 
-    editMutation.mutate(values, {
-      onSuccess: () => {
-        form.reset(values);
+    editMutation.mutate(
+      {
+        ...values,
+        expectedUpdatedAt: campaign?.updatedAt,
       },
-    });
+      {
+        onSuccess: () => {
+          form.reset(values);
+        },
+      }
+    );
   }
 
   const isPending = editMutation.isPending || form.formState.isSubmitting;

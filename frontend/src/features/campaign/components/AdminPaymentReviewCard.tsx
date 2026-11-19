@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { SUPPORTED_BANKS, SUPPORTED_EWALLETS } from '@/features/brand/constants';
-import { cn } from '@/lib/utils';
+import { cn, SanitizeHttpUrl } from '@/lib/utils';
 import { UseVerifyCampaignPaymentMutation } from '../hooks';
 import type { AdminPaymentReviewCardProps } from '../types';
 import { FormatRupiah } from '../utils';
@@ -138,31 +138,38 @@ export function AdminPaymentReviewCard({
 
           {/* RIGHT: RECEIPT PROOF IMAGE */}
           <div className="flex flex-col justify-between rounded-xl border border-border/60 bg-background/80 p-4 space-y-3">
-            <div className="space-y-2">
-              <span className="text-xs font-medium text-muted-foreground">Bukti Struk Transfer:</span>
-              {latestPayment.transferProofUrl ? (
-                <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border/50 bg-muted">
-                  <img
-                    src={latestPayment.transferProofUrl}
-                    alt="Bukti Struk Transfer"
-                    className="h-full w-full object-contain"
-                  />
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground italic">Tidak ada URL bukti transfer.</p>
-              )}
-            </div>
+            {(() => {
+              const safeProofUrl = SanitizeHttpUrl(latestPayment.transferProofUrl);
+              return (
+                <>
+                  <div className="space-y-2">
+                    <span className="text-xs font-medium text-muted-foreground">Bukti Struk Transfer:</span>
+                    {safeProofUrl ? (
+                      <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border/50 bg-muted">
+                        <img
+                          src={safeProofUrl}
+                          alt="Bukti Struk Transfer"
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">Tidak ada URL bukti transfer yang valid.</p>
+                    )}
+                  </div>
 
-            {latestPayment.transferProofUrl && (
-              <a
-                href={latestPayment.transferProofUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors">
-                <span>Buka Bukti Gambar Ukuran Penuh</span>
-                <ExternalLink className="size-3" />
-              </a>
-            )}
+                  {safeProofUrl && (
+                    <a
+                      href={safeProofUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline transition-colors">
+                      <span>Buka Bukti Gambar Ukuran Penuh</span>
+                      <ExternalLink className="size-3" />
+                    </a>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
 

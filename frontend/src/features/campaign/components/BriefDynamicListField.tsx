@@ -52,6 +52,7 @@ function DynamicListInput({ onAdd, placeholder, prefix, disabled = false, maxLen
           value={inputValue}
           onChange={(event) => setInputValue(event.target.value)}
           onKeyDown={HandleKeyDown}
+          onBlur={HandleAdd}
           placeholder={placeholder}
           disabled={disabled}
           maxLength={maxLength}

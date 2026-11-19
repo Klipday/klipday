@@ -1,14 +1,13 @@
-import { Readable } from 'node:stream';
-import { TransformStream } from 'node:stream/web';
 import type { NextFunction, Request, Response } from 'express';
-import type { Prisma } from '../../generated/prisma/client.js';
-import { CampaignStatus, NotificationType, PaymentStatus, Role, Status, WalletTransactionType } from '../../generated/prisma/enums.js';
+import { Prisma } from '../../generated/prisma/client.js';
+import { CampaignStatus, NotificationType, PaymentStatus, Role, Status } from '../../generated/prisma/enums.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
 import { prisma } from '../../utils/prisma.js';
 import { NotifyAdminPendingItem } from '../../services/notification/notification.dispatcher.js';
 import {
   ALLOWED_PAYMENT_PROOF_MIME_TYPES,
   ALLOWED_THUMBNAIL_MIME_TYPES,
+  CAMPAIGN_CARD_DRAFT_SELECT,
   CAMPAIGN_CARD_ESCROW_SELECT,
   CAMPAIGN_DETAIL_ESCROW_SELECT,
   CAMPAIGN_DETAIL_SELECT,
@@ -18,22 +17,28 @@ import {
   DEFAULT_KLIPDAY_BANK_NAME,
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
+  EDITABLE_CAMPAIGN_STATUSES,
   FEATURED_CAMPAIGNS_LIMIT,
   FEATURED_CAMPAIGNS_MIN_COUNT,
+  FINANCIAL_LOCKED_PAYMENT_STATUSES,
   MAX_LIMIT,
   MAX_PAYMENT_PROOF_SIZE_BYTES,
   MAX_THUMBNAIL_SIZE_BYTES,
   SUBMITTABLE_CAMPAIGN_STATUSES,
-  WALLET_PAYMENT_DESTINATION_ACCOUNT,
-  WALLET_PAYMENT_DESTINATION_BANK,
 } from './campaign.constants.js';
 import {
   BuildCampaignEditFields,
   BuildCampaignsOrderBy,
   BuildCampaignsWhereClause,
+  CampaignTransactionError,
+  DeleteSupabaseObjectIfInBucket,
   EnrichCampaignEscrowMetrics,
+  ExecuteBankTransferConfirmInTx,
+  ExecuteCampaignSubmissionInTx,
+  ExecuteVerifyCampaignPaymentInTx,
+  ExecuteWalletPaymentInTx,
   GeneratePaymentUniqueCode,
-  GenerateWalletTransactionReferenceCode,
+  StreamCampaignImageUpload,
 } from './campaign.helper.js';
 import type { CampaignsPaginatedData, CampaignStatusCounts, CampaignPaymentDetailsResponse } from './campaign.types.js';
 import {
@@ -44,7 +49,18 @@ import {
   ValidateCampaignQuery,
   ValidateCampaignRewardLogic,
   ValidateCampaignSubmitCompleteness,
+  ValidateWalletPaymentBody,
 } from './campaign.validators.js';
+
+/**
+ * Checks whether a Prisma error represents P2025 (record not found / optimistic lock condition missed).
+ *
+ * @param err - Caught error object.
+ * @returns True if `err` is a Prisma `P2025` error.
+ */
+function IsPrismaRecordNotFoundError(err: unknown): boolean {
+  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025';
+}
 
 /**
  * Handles `POST /campaigns`: creates an empty draft campaign for the
@@ -132,6 +148,9 @@ export async function EditCampaign(req: Request, res: Response, next: NextFuncti
       },
       select: {
         id: true,
+        campaignStatus: true,
+        updatedAt: true,
+        thumbnailUrl: true,
         minViews: true,
         maxViews: true,
         budget: true,
@@ -143,7 +162,9 @@ export async function EditCampaign(req: Request, res: Response, next: NextFuncti
           orderBy: { createdAt: 'desc' as const },
           take: 1,
           select: {
+            id: true,
             paymentStatus: true,
+            uniqueCode: true,
           },
         },
       },
@@ -156,18 +177,43 @@ export async function EditCampaign(req: Request, res: Response, next: NextFuncti
       return;
     }
 
+    const isEditableStatus = EDITABLE_CAMPAIGN_STATUSES.includes(
+      ownedCampaign.campaignStatus as (typeof EDITABLE_CAMPAIGN_STATUSES)[number],
+    );
+
+    if (!isEditableStatus) {
+      SendError(res, CAMPAIGN_MESSAGES.CANNOT_EDIT_CURRENT_STATUS, 400);
+      return;
+    }
+
     const input = ValidateCampaignEditBody(req.body);
     if (typeof input === 'string') {
       SendError(res, input, 400);
       return;
     }
 
+    if (
+      input.expectedUpdatedAt !== undefined &&
+      ownedCampaign.updatedAt instanceof Date &&
+      new Date(input.expectedUpdatedAt).getTime() !== ownedCampaign.updatedAt.getTime()
+    ) {
+      SendError(res, CAMPAIGN_MESSAGES.CONFLICT_STALE_CAMPAIGN, 409);
+      return;
+    }
+
     const latestPayment = ownedCampaign.payments?.[0];
+    const isFinancialLocked = latestPayment
+      ? FINANCIAL_LOCKED_PAYMENT_STATUSES.includes(
+          latestPayment.paymentStatus as (typeof FINANCIAL_LOCKED_PAYMENT_STATUSES)[number],
+        )
+      : false;
     const isPaymentApproved = latestPayment?.paymentStatus === PaymentStatus.APPROVED;
 
-    if (isPaymentApproved) {
-      const isAttemptingBudgetChange = input.budget !== undefined && Number(input.budget) !== Number(ownedCampaign.budget);
-      const isAttemptingCpmChange = input.cpm !== undefined && Number(input.cpm) !== Number(ownedCampaign.cpm);
+    if (isFinancialLocked) {
+      const isAttemptingBudgetChange =
+        input.budget !== undefined && Number(input.budget) !== Number(ownedCampaign.budget ?? 0);
+      const isAttemptingCpmChange =
+        input.cpm !== undefined && Number(input.cpm) !== Number(ownedCampaign.cpm ?? 0);
 
       if (isAttemptingBudgetChange || isAttemptingCpmChange) {
         SendError(res, CAMPAIGN_MESSAGES.BUDGET_LOCKED_AFTER_PAYMENT, 400);
@@ -181,23 +227,82 @@ export async function EditCampaign(req: Request, res: Response, next: NextFuncti
       return;
     }
 
-    const dateError = ValidateCampaignDateLogic(input, ownedCampaign);
+    const dateError = ValidateCampaignDateLogic(input, {
+      ...ownedCampaign,
+      isPaymentApproved,
+    });
     if (dateError) {
       SendError(res, dateError, 400);
       return;
     }
 
     const updateFields = BuildCampaignEditFields(input);
-    const updateQuery = {
-      where: { id: ownedCampaign.id },
-      data: updateFields,
-      select: CAMPAIGN_DETAIL_SELECT,
+    const optimisticWhere: Prisma.CampaignWhereUniqueInput = {
+      id: ownedCampaign.id,
+      status: Status.ACTIVE,
+      campaignStatus: ownedCampaign.campaignStatus,
+      ...(input.expectedUpdatedAt !== undefined && ownedCampaign.updatedAt instanceof Date
+        ? { updatedAt: ownedCampaign.updatedAt }
+        : {}),
     };
 
-    const updated = await prisma.campaign.update(updateQuery);
+    const shouldSyncPendingPayment =
+      ownedCampaign.campaignStatus === CampaignStatus.AWAITING_PAYMENT &&
+      input.budget !== undefined &&
+      Number(input.budget) !== Number(ownedCampaign.budget ?? 0) &&
+      latestPayment !== undefined &&
+      (latestPayment.paymentStatus === PaymentStatus.PENDING ||
+        latestPayment.paymentStatus === PaymentStatus.REJECTED);
+
+    const updated = shouldSyncPendingPayment
+      ? await prisma.$transaction(async (tx) => {
+          const validUniqueCode =
+            latestPayment.uniqueCode >= 100 && latestPayment.uniqueCode <= 999
+              ? latestPayment.uniqueCode
+              : GeneratePaymentUniqueCode();
+          const newBudget = Number(input.budget);
+
+          await tx.campaignPayment.update({
+            where: { id: latestPayment.id },
+            data: {
+              amount: newBudget,
+              uniqueCode: validUniqueCode,
+              totalPayable: newBudget + validUniqueCode,
+            },
+          });
+
+          const savedCampaign = await tx.campaign.update({
+            where: optimisticWhere,
+            data: updateFields,
+            select: CAMPAIGN_DETAIL_SELECT,
+          });
+
+          return savedCampaign;
+        })
+      : await prisma.campaign.update({
+          where: optimisticWhere,
+          data: updateFields,
+          select: CAMPAIGN_DETAIL_SELECT,
+        });
+
+    if (
+      input.thumbnailUrl &&
+      ownedCampaign.thumbnailUrl &&
+      input.thumbnailUrl !== ownedCampaign.thumbnailUrl
+    ) {
+      void DeleteSupabaseObjectIfInBucket(ownedCampaign.thumbnailUrl, ownedCampaign.id);
+    }
 
     SendSuccess(res, updated, CAMPAIGN_MESSAGES.UPDATE_SUCCESS);
   } catch (err) {
+    if (IsPrismaRecordNotFoundError(err)) {
+      SendError(res, CAMPAIGN_MESSAGES.CONFLICT_STALE_CAMPAIGN, 409);
+      return;
+    }
+    if (err instanceof CampaignTransactionError) {
+      SendError(res, err.message, err.statusCode);
+      return;
+    }
     next(err);
   }
 }
@@ -244,6 +349,13 @@ export async function GetCampaigns(req: Request, res: Response, next: NextFuncti
 
     const whereClause = BuildCampaignsWhereClause(account, queryInput);
     const orderByClause = BuildCampaignsOrderBy(sort);
+    const isBrandDraftOrRevisionQuery =
+      account.role === Role.BRAND &&
+      (queryInput.campaignStatus === CampaignStatus.DRAFT ||
+        queryInput.campaignStatus === CampaignStatus.REVISION);
+    const cardSelect = isBrandDraftOrRevisionQuery
+      ? CAMPAIGN_CARD_DRAFT_SELECT
+      : CAMPAIGN_CARD_ESCROW_SELECT;
 
     const [campaigns, totalCount] = await prisma.$transaction([
       prisma.campaign.findMany({
@@ -251,7 +363,7 @@ export async function GetCampaigns(req: Request, res: Response, next: NextFuncti
         orderBy: orderByClause,
         skip,
         take: limit,
-        select: CAMPAIGN_CARD_ESCROW_SELECT,
+        select: cardSelect,
       }),
       prisma.campaign.count({
         where: whereClause,
@@ -551,29 +663,26 @@ export async function SubmitCampaign(req: Request, res: Response, next: NextFunc
       return;
     }
 
-    const existingPaymentQuery = {
-      where: {
+    const budgetAmount = Number(ownedCampaign.budget ?? 0);
+    const destinationBank = process.env.KLIPDAY_BANK_NAME || DEFAULT_KLIPDAY_BANK_NAME;
+    const destinationAccount = process.env.KLIPDAY_BANK_ACCOUNT_NO || DEFAULT_KLIPDAY_BANK_ACCOUNT_NO;
+
+    const txResult = await prisma.$transaction((tx) =>
+      ExecuteCampaignSubmissionInTx(tx, {
         campaignId: ownedCampaign.id,
-        status: Status.ACTIVE,
-      },
-      orderBy: { createdAt: 'desc' as const },
-    };
+        currentStatus: ownedCampaign.campaignStatus,
+        budgetAmount,
+        destinationBank,
+        destinationAccount,
+      }),
+    );
 
-    const existingPayment = await prisma.campaignPayment.findFirst(existingPaymentQuery);
+    const updatedCampaign = await prisma.campaign.findFirst({
+      where: { id: ownedCampaign.id, status: Status.ACTIVE },
+      select: CAMPAIGN_DETAIL_SELECT,
+    });
 
-    // If campaign is in REVISION and payment was already APPROVED, transition directly to IN_REVIEW without asking for payment again
-    if (ownedCampaign.campaignStatus === CampaignStatus.REVISION && existingPayment?.paymentStatus === PaymentStatus.APPROVED) {
-      const updateQuery = {
-        where: { id: ownedCampaign.id },
-        data: {
-          campaignStatus: CampaignStatus.IN_REVIEW,
-          adminNote: null,
-        },
-        select: CAMPAIGN_DETAIL_SELECT,
-      };
-
-      const updated = await prisma.campaign.update(updateQuery);
-
+    if (txResult.isPaidRevision) {
       void NotifyAdminPendingItem({
         type: NotificationType.ADMIN_NEW_CAMPAIGN,
         title: 'Kampanye Hasil Revisi Menunggu Moderasi',
@@ -582,61 +691,16 @@ export async function SubmitCampaign(req: Request, res: Response, next: NextFunc
         metadata: { campaignId: ownedCampaign.id },
       });
 
-      SendSuccess(res, updated, CAMPAIGN_MESSAGES.SUBMIT_SUCCESS);
+      SendSuccess(res, updatedCampaign, CAMPAIGN_MESSAGES.SUBMIT_SUCCESS);
       return;
     }
 
-    const budgetAmount = Number(ownedCampaign.budget ?? 0);
-    const destinationBank = process.env.KLIPDAY_BANK_NAME || DEFAULT_KLIPDAY_BANK_NAME;
-    const destinationAccount = process.env.KLIPDAY_BANK_ACCOUNT_NO || DEFAULT_KLIPDAY_BANK_ACCOUNT_NO;
-
-    if (!existingPayment || existingPayment.paymentStatus === PaymentStatus.REJECTED) {
-      const uniqueCode = GeneratePaymentUniqueCode();
-      const totalPayable = budgetAmount + uniqueCode;
-
-      await prisma.campaignPayment.create({
-        data: {
-          campaignId: ownedCampaign.id,
-          amount: budgetAmount,
-          uniqueCode,
-          totalPayable,
-          destinationBank,
-          destinationAccount,
-          paymentStatus: PaymentStatus.PENDING,
-          status: Status.ACTIVE,
-        },
-      });
-    } else if (existingPayment.paymentStatus === PaymentStatus.PENDING) {
-      const validCode =
-        existingPayment.uniqueCode >= 100 && existingPayment.uniqueCode <= 999
-          ? existingPayment.uniqueCode
-          : GeneratePaymentUniqueCode();
-      const totalPayable = budgetAmount + validCode;
-      await prisma.campaignPayment.update({
-        where: { id: existingPayment.id },
-        data: {
-          amount: budgetAmount,
-          uniqueCode: validCode,
-          totalPayable,
-          destinationBank,
-          destinationAccount,
-        },
-      });
-    }
-
-    const updateQuery = {
-      where: { id: ownedCampaign.id },
-      data: {
-        campaignStatus: CampaignStatus.AWAITING_PAYMENT,
-        adminNote: null,
-      },
-      select: CAMPAIGN_DETAIL_SELECT,
-    };
-
-    const updated = await prisma.campaign.update(updateQuery);
-
-    SendSuccess(res, updated, CAMPAIGN_MESSAGES.PAYMENT_INITIALIZED_SUCCESS);
+    SendSuccess(res, updatedCampaign, CAMPAIGN_MESSAGES.PAYMENT_INITIALIZED_SUCCESS);
   } catch (err) {
+    if (err instanceof CampaignTransactionError) {
+      SendError(res, err.message, err.statusCode);
+      return;
+    }
     next(err);
   }
 }
@@ -671,7 +735,7 @@ export async function UploadCampaignThumbnail(req: Request, res: Response, next:
         status: Status.ACTIVE,
         brand: { accountId: account.sub, status: Status.ACTIVE },
       },
-      select: { id: true },
+      select: { id: true, campaignStatus: true },
     };
 
     const ownedCampaign = await prisma.campaign.findFirst(findQuery);
@@ -681,79 +745,30 @@ export async function UploadCampaignThumbnail(req: Request, res: Response, next:
       return;
     }
 
-    const rawContentType = req.headers['content-type']?.split(';')[0]?.trim().toLowerCase() ?? '';
-    const fileExtension = ALLOWED_THUMBNAIL_MIME_TYPES[rawContentType as keyof typeof ALLOWED_THUMBNAIL_MIME_TYPES];
+    const canUploadThumbnail = EDITABLE_CAMPAIGN_STATUSES.includes(
+      ownedCampaign.campaignStatus as (typeof EDITABLE_CAMPAIGN_STATUSES)[number],
+    );
 
-    if (!fileExtension) {
-      SendError(res, CAMPAIGN_MESSAGES.UNSUPPORTED_FILE_TYPE, 400);
+    if (!canUploadThumbnail) {
+      SendError(res, CAMPAIGN_MESSAGES.CANNOT_UPLOAD_IN_CURRENT_STATUS, 400);
       return;
     }
 
-    const contentLength = Number(req.headers['content-length']);
-
-    if (!contentLength || Number.isNaN(contentLength)) {
-      SendError(res, CAMPAIGN_MESSAGES.CONTENT_LENGTH_REQUIRED, 411);
-      return;
-    }
-
-    if (contentLength > MAX_THUMBNAIL_SIZE_BYTES) {
-      SendError(res, CAMPAIGN_MESSAGES.FILE_SIZE_EXCEEDED, 400);
-      return;
-    }
-
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const bucket = process.env.SUPABASE_STORAGE_BUCKET || 'campaign-thumbnails';
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      SendError(res, CAMPAIGN_MESSAGES.STORAGE_CONFIG_MISSING, 500);
-      return;
-    }
-
-    let bytesReceived = 0;
-    const sizeLimiter = new TransformStream<Uint8Array, Uint8Array>({
-      transform(chunk, controller) {
-        bytesReceived += chunk.byteLength;
-        if (bytesReceived > MAX_THUMBNAIL_SIZE_BYTES) {
-          controller.error(new Error('FILE_SIZE_EXCEEDED'));
-        } else {
-          controller.enqueue(chunk);
-        }
-      },
+    const uploadResult = await StreamCampaignImageUpload(req, {
+      campaignId: ownedCampaign.id,
+      folderPrefix: 'thumbnail',
+      allowedMimeTypes: ALLOWED_THUMBNAIL_MIME_TYPES,
+      maxSizeBytes: MAX_THUMBNAIL_SIZE_BYTES,
+      successMessage: CAMPAIGN_MESSAGES.THUMBNAIL_UPLOAD_SUCCESS,
     });
 
-    const webStream = Readable.toWeb(req).pipeThrough(sizeLimiter);
-    const storagePath = `campaigns/${ownedCampaign.id}/thumbnail-${Date.now()}.${fileExtension}`;
-    const targetUrl = `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/${bucket}/${storagePath}`;
-
-    const supabaseResponse = await fetch(targetUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${serviceRoleKey}`,
-        apikey: serviceRoleKey,
-        'Content-Type': rawContentType,
-        'x-upsert': 'true',
-      },
-      body: webStream,
-      duplex: 'half',
-    });
-
-    if (!supabaseResponse.ok) {
-      const errorDetail = await supabaseResponse.text();
-      console.error('[Supabase Storage Upload Error]', supabaseResponse.status, errorDetail);
-      SendError(res, CAMPAIGN_MESSAGES.STORAGE_UPLOAD_FAILED, 502);
+    if (!uploadResult.ok) {
+      SendError(res, uploadResult.message, uploadResult.statusCode);
       return;
     }
 
-    const publicUrl = `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/${bucket}/${storagePath}`;
-
-    SendSuccess(res, { url: publicUrl }, CAMPAIGN_MESSAGES.THUMBNAIL_UPLOAD_SUCCESS);
+    SendSuccess(res, { url: uploadResult.publicUrl }, CAMPAIGN_MESSAGES.THUMBNAIL_UPLOAD_SUCCESS);
   } catch (error) {
-    if (error instanceof Error && error.message === 'FILE_SIZE_EXCEEDED') {
-      SendError(res, CAMPAIGN_MESSAGES.FILE_SIZE_EXCEEDED, 400);
-      return;
-    }
-
     next(error);
   }
 }
@@ -810,27 +825,47 @@ export async function DeleteCampaign(req: Request, res: Response, next: NextFunc
       return;
     }
 
-    await prisma.$transaction([
-      prisma.campaign.update({
-        where: { id: ownedCampaign.id },
+    await prisma.$transaction(async (tx) => {
+      const deleteWhere: Prisma.CampaignWhereInput = {
+        id: ownedCampaign.id,
+        status: Status.ACTIVE,
+        ...(account.role === Role.BRAND ? { campaignStatus: CampaignStatus.DRAFT } : {}),
+      };
+
+      const deletedCampaign = await tx.campaign.updateMany({
+        where: deleteWhere,
         data: { status: Status.DELETED },
-      }),
-      prisma.campaignBrief.updateMany({
+      });
+
+      if (deletedCampaign.count === 0) {
+        throw new CampaignTransactionError(
+          409,
+          account.role === Role.BRAND
+            ? CAMPAIGN_MESSAGES.ONLY_DRAFT_CAN_BE_DELETED
+            : CAMPAIGN_MESSAGES.CONFLICT_STALE_CAMPAIGN,
+        );
+      }
+
+      await tx.campaignBrief.updateMany({
         where: { campaignId: ownedCampaign.id, status: Status.ACTIVE },
         data: { status: Status.DELETED },
-      }),
-      prisma.campaignMaterial.updateMany({
+      });
+      await tx.campaignMaterial.updateMany({
         where: { campaignId: ownedCampaign.id, status: Status.ACTIVE },
         data: { status: Status.DELETED },
-      }),
-      prisma.submission.updateMany({
+      });
+      await tx.submission.updateMany({
         where: { campaignId: ownedCampaign.id, status: Status.ACTIVE },
         data: { status: Status.DELETED },
-      }),
-    ]);
+      });
+    });
 
     SendSuccess(res, null, CAMPAIGN_MESSAGES.DELETE_SUCCESS);
   } catch (err) {
+    if (err instanceof CampaignTransactionError) {
+      SendError(res, err.message, err.statusCode);
+      return;
+    }
     next(err);
   }
 }
@@ -935,47 +970,28 @@ export async function GetCampaignPaymentDetails(req: Request, res: Response, nex
       accountName: process.env.KLIPDAY_BANK_ACCOUNT_NAME || DEFAULT_KLIPDAY_BANK_ACCOUNT_NAME,
     };
 
-    let latestPayment = campaign.payments?.[0] ?? null;
+    const existingPayment = campaign.payments?.[0] ?? null;
 
-    if (!latestPayment && budget > 0) {
-      const uniqueCode = GeneratePaymentUniqueCode();
-      const totalPayable = budget + uniqueCode;
-      const destinationBank = bankDetails.bankName;
-      const destinationAccount = bankDetails.accountNo;
-
-      latestPayment = await prisma.campaignPayment.create({
-        data: {
-          campaignId: campaign.id,
-          amount: budget,
-          uniqueCode,
-          totalPayable,
-          destinationBank,
-          destinationAccount,
-          paymentStatus: PaymentStatus.PENDING,
-          status: Status.ACTIVE,
-        },
-      });
-    } else if (
-      latestPayment &&
-      latestPayment.paymentStatus === PaymentStatus.PENDING &&
+    // Strictly read-only: never mutate DB records inside a GET handler.
+    // Recompute preview payable totals in-memory only when a PENDING invoice predates a budget edit.
+    const latestPayment =
+      existingPayment &&
+      existingPayment.paymentStatus === PaymentStatus.PENDING &&
       budget > 0 &&
-      Number(latestPayment.amount) !== budget
-    ) {
-      const validCode =
-        latestPayment.uniqueCode >= 100 && latestPayment.uniqueCode <= 999
-          ? latestPayment.uniqueCode
-          : GeneratePaymentUniqueCode();
-      const totalPayable = budget + validCode;
-
-      latestPayment = await prisma.campaignPayment.update({
-        where: { id: latestPayment.id },
-        data: {
-          amount: budget,
-          uniqueCode: validCode,
-          totalPayable,
-        },
-      });
-    }
+      Number(existingPayment.amount) !== budget
+        ? (() => {
+            const validCode =
+              existingPayment.uniqueCode >= 100 && existingPayment.uniqueCode <= 999
+                ? existingPayment.uniqueCode
+                : 100;
+            return {
+              ...existingPayment,
+              amount: budget,
+              uniqueCode: validCode,
+              totalPayable: budget + validCode,
+            };
+          })()
+        : existingPayment;
 
     const responsePayload: CampaignPaymentDetailsResponse = {
       payment: latestPayment as never,
@@ -1002,7 +1018,7 @@ export async function GetCampaignPaymentDetails(req: Request, res: Response, nex
 export async function PayCampaignWithWallet(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const account = req.account;
-
+    
     if (!account) {
       SendError(res, CAMPAIGN_MESSAGES.AUTH_REQUIRED, 401);
       return;
@@ -1015,26 +1031,35 @@ export async function PayCampaignWithWallet(req: Request, res: Response, next: N
 
     const campaignId = req.params.id as string;
 
-    const findCampaignQuery = {
-      where: {
-        id: campaignId,
-        status: Status.ACTIVE,
-        brand: { accountId: account.sub, status: Status.ACTIVE },
-      },
-      select: {
-        id: true,
-        title: true,
-        budget: true,
-        campaignStatus: true,
-        payments: {
-          where: { status: Status.ACTIVE },
-          orderBy: { createdAt: 'desc' as const },
-          take: 1,
+    const [campaign, wallet] = await Promise.all([
+      prisma.campaign.findFirst({
+        where: {
+          id: campaignId,
+          status: Status.ACTIVE,
+          brand: { accountId: account.sub, status: Status.ACTIVE },
         },
-      },
-    };
+        select: {
+          id: true,
+          title: true,
+          budget: true,
+          campaignStatus: true,
+          payments: {
+            where: { status: Status.ACTIVE },
+            orderBy: { createdAt: 'desc' as const },
+            take: 1,
+            select: {
+              id: true,
+              paymentStatus: true,
+            },
+          },
+        },
+      }),
 
-    const campaign = await prisma.campaign.findFirst(findCampaignQuery);
+      prisma.wallet.findFirst({
+        where: { accountId: account.sub, status: Status.ACTIVE },
+        select: { id: true, balance: true },
+      }),
+    ]);
 
     if (!campaign) {
       SendError(res, CAMPAIGN_MESSAGES.CAMPAIGN_NOT_FOUND, 404);
@@ -1046,82 +1071,47 @@ export async function PayCampaignWithWallet(req: Request, res: Response, next: N
       return;
     }
 
+    const bodyValidation = ValidateWalletPaymentBody(req.body);
+    if (typeof bodyValidation === 'string') {
+      SendError(res, bodyValidation, 400);
+      return;
+    }
+
     const budget = Number(campaign.budget ?? 0);
     if (budget <= 0) {
       SendError(res, CAMPAIGN_MESSAGES.STEP_4_INVALID_BUDGET, 400);
       return;
     }
 
-    const findWalletQuery = {
-      where: { accountId: account.sub, status: Status.ACTIVE },
-    };
-
-    const wallet = await prisma.wallet.findFirst(findWalletQuery);
+    if (
+      bodyValidation?.expectedBudget !== undefined &&
+      Math.abs(bodyValidation.expectedBudget - budget) > 0.001
+    ) {
+      SendError(res, CAMPAIGN_MESSAGES.PAYMENT_AMOUNT_STALE, 409);
+      return;
+    }
 
     if (!wallet || Number(wallet.balance) < budget) {
       SendError(res, CAMPAIGN_MESSAGES.INSUFFICIENT_WALLET_BALANCE, 400);
       return;
     }
 
-    const currentBalance = Number(wallet.balance);
-    const newBalance = currentBalance - budget;
-    const refCode = GenerateWalletTransactionReferenceCode();
-    const latestPayment = campaign.payments?.[0];
+    const latestPayment = campaign.payments?.[0] ?? null;
 
-    const [updatedCampaign] = await prisma.$transaction([
-      prisma.campaign.update({
-        where: { id: campaign.id },
-        data: {
-          campaignStatus: CampaignStatus.IN_REVIEW,
-          adminNote: null,
-        },
-        select: CAMPAIGN_DETAIL_SELECT,
+    await prisma.$transaction((tx) =>
+      ExecuteWalletPaymentInTx(tx, {
+        campaignId: campaign.id,
+        campaignTitle: campaign.title,
+        accountId: account.sub,
+        budget,
+        latestPayment,
       }),
-      prisma.wallet.update({
-        where: { id: wallet.id },
-        data: { balance: newBalance },
-      }),
-      prisma.walletTransaction.create({
-        data: {
-          referenceCode: refCode,
-          walletId: wallet.id,
-          type: WalletTransactionType.CAMPAIGN_PAYMENT,
-          amount: budget,
-          balanceBefore: currentBalance,
-          balanceAfter: newBalance,
-          description: `Pembayaran kampanye "${campaign.title ?? 'Klipday'}" via saldo dompet`,
-          campaignId: campaign.id,
-          status: Status.ACTIVE,
-        },
-      }),
-      latestPayment
-        ? prisma.campaignPayment.update({
-            where: { id: latestPayment.id },
-            data: {
-              paymentStatus: PaymentStatus.APPROVED,
-              amount: budget,
-              uniqueCode: 0,
-              totalPayable: budget,
-              destinationBank: WALLET_PAYMENT_DESTINATION_BANK,
-              destinationAccount: WALLET_PAYMENT_DESTINATION_ACCOUNT,
-              verifiedAt: new Date(),
-              rejectionReason: null,
-            },
-          })
-        : prisma.campaignPayment.create({
-            data: {
-              campaignId: campaign.id,
-              amount: budget,
-              uniqueCode: 0,
-              totalPayable: budget,
-              destinationBank: WALLET_PAYMENT_DESTINATION_BANK,
-              destinationAccount: WALLET_PAYMENT_DESTINATION_ACCOUNT,
-              paymentStatus: PaymentStatus.APPROVED,
-              verifiedAt: new Date(),
-              status: Status.ACTIVE,
-            },
-          }),
-    ]);
+    );
+
+    const updatedCampaign = await prisma.campaign.findFirst({
+      where: { id: campaign.id, status: Status.ACTIVE },
+      select: CAMPAIGN_DETAIL_SELECT,
+    });
 
     void NotifyAdminPendingItem({
       type: NotificationType.ADMIN_NEW_CAMPAIGN,
@@ -1133,6 +1123,11 @@ export async function PayCampaignWithWallet(req: Request, res: Response, next: N
 
     SendSuccess(res, updatedCampaign, CAMPAIGN_MESSAGES.WALLET_PAYMENT_SUCCESS);
   } catch (err) {
+    if (err instanceof CampaignTransactionError) {
+      SendError(res, err.message, err.statusCode);
+      return;
+    }
+
     next(err);
   }
 }
@@ -1167,7 +1162,7 @@ export async function UploadPaymentProof(req: Request, res: Response, next: Next
         status: Status.ACTIVE,
         brand: { accountId: account.sub, status: Status.ACTIVE },
       },
-      select: { id: true },
+      select: { id: true, campaignStatus: true },
     };
 
     const ownedCampaign = await prisma.campaign.findFirst(findQuery);
@@ -1177,79 +1172,26 @@ export async function UploadPaymentProof(req: Request, res: Response, next: Next
       return;
     }
 
-    const rawContentType = req.headers['content-type']?.split(';')[0]?.trim().toLowerCase() ?? '';
-    const fileExtension = ALLOWED_PAYMENT_PROOF_MIME_TYPES[rawContentType as keyof typeof ALLOWED_PAYMENT_PROOF_MIME_TYPES];
-
-    if (!fileExtension) {
-      SendError(res, CAMPAIGN_MESSAGES.UNSUPPORTED_FILE_TYPE, 400);
+    if (ownedCampaign.campaignStatus !== CampaignStatus.AWAITING_PAYMENT) {
+      SendError(res, CAMPAIGN_MESSAGES.CAMPAIGN_NOT_AWAITING_PAYMENT, 400);
       return;
     }
 
-    const contentLength = Number(req.headers['content-length']);
-
-    if (!contentLength || Number.isNaN(contentLength)) {
-      SendError(res, CAMPAIGN_MESSAGES.CONTENT_LENGTH_REQUIRED, 411);
-      return;
-    }
-
-    if (contentLength > MAX_PAYMENT_PROOF_SIZE_BYTES) {
-      SendError(res, CAMPAIGN_MESSAGES.FILE_SIZE_EXCEEDED, 400);
-      return;
-    }
-
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const bucket = process.env.SUPABASE_STORAGE_BUCKET || 'campaign-thumbnails';
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      SendError(res, CAMPAIGN_MESSAGES.STORAGE_CONFIG_MISSING, 500);
-      return;
-    }
-
-    let bytesReceived = 0;
-    const sizeLimiter = new TransformStream<Uint8Array, Uint8Array>({
-      transform(chunk, controller) {
-        bytesReceived += chunk.byteLength;
-        if (bytesReceived > MAX_PAYMENT_PROOF_SIZE_BYTES) {
-          controller.error(new Error('FILE_SIZE_EXCEEDED'));
-        } else {
-          controller.enqueue(chunk);
-        }
-      },
+    const uploadResult = await StreamCampaignImageUpload(req, {
+      campaignId: ownedCampaign.id,
+      folderPrefix: 'payment-proof',
+      allowedMimeTypes: ALLOWED_PAYMENT_PROOF_MIME_TYPES,
+      maxSizeBytes: MAX_PAYMENT_PROOF_SIZE_BYTES,
+      successMessage: CAMPAIGN_MESSAGES.PAYMENT_PROOF_UPLOAD_SUCCESS,
     });
 
-    const webStream = Readable.toWeb(req).pipeThrough(sizeLimiter);
-    const storagePath = `campaigns/${ownedCampaign.id}/payment-proof-${Date.now()}.${fileExtension}`;
-    const targetUrl = `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/${bucket}/${storagePath}`;
-
-    const supabaseResponse = await fetch(targetUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${serviceRoleKey}`,
-        apikey: serviceRoleKey,
-        'Content-Type': rawContentType,
-        'x-upsert': 'true',
-      },
-      body: webStream,
-      duplex: 'half',
-    });
-
-    if (!supabaseResponse.ok) {
-      const errorDetail = await supabaseResponse.text();
-      console.error('[Supabase Storage Upload Payment Proof Error]', supabaseResponse.status, errorDetail);
-      SendError(res, CAMPAIGN_MESSAGES.STORAGE_UPLOAD_FAILED, 502);
+    if (!uploadResult.ok) {
+      SendError(res, uploadResult.message, uploadResult.statusCode);
       return;
     }
 
-    const publicUrl = `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/${bucket}/${storagePath}`;
-
-    SendSuccess(res, { url: publicUrl }, CAMPAIGN_MESSAGES.PAYMENT_PROOF_UPLOAD_SUCCESS);
+    SendSuccess(res, { url: uploadResult.publicUrl }, CAMPAIGN_MESSAGES.PAYMENT_PROOF_UPLOAD_SUCCESS);
   } catch (error) {
-    if (error instanceof Error && error.message === 'FILE_SIZE_EXCEEDED') {
-      SendError(res, CAMPAIGN_MESSAGES.FILE_SIZE_EXCEEDED, 400);
-      return;
-    }
-
     next(error);
   }
 }
@@ -1278,7 +1220,7 @@ export async function ConfirmBankTransferPayment(req: Request, res: Response, ne
 
     const campaignId = req.params.id as string;
 
-    const findCampaignQuery = {
+    const campaign = await prisma.campaign.findFirst({
       where: {
         id: campaignId,
         status: Status.ACTIVE,
@@ -1293,11 +1235,13 @@ export async function ConfirmBankTransferPayment(req: Request, res: Response, ne
           where: { status: Status.ACTIVE },
           orderBy: { createdAt: 'desc' as const },
           take: 1,
+          select: {
+            id: true,
+            uniqueCode: true,
+          },
         },
       },
-    };
-
-    const campaign = await prisma.campaign.findFirst(findCampaignQuery);
+    });
 
     if (!campaign) {
       SendError(res, CAMPAIGN_MESSAGES.CAMPAIGN_NOT_FOUND, 404);
@@ -1316,48 +1260,58 @@ export async function ConfirmBankTransferPayment(req: Request, res: Response, ne
     }
 
     const input = validationResult;
-    const latestPayment = campaign.payments?.[0];
     const budgetAmount = Number(campaign.budget ?? 0);
 
-    const [updatedCampaign] = await prisma.$transaction([
-      prisma.campaign.update({
-        where: { id: campaign.id },
-        data: {
-          campaignStatus: CampaignStatus.IN_REVIEW,
-          adminNote: null,
-        },
-        select: CAMPAIGN_DETAIL_SELECT,
+    if (budgetAmount <= 0) {
+      SendError(res, CAMPAIGN_MESSAGES.STEP_4_INVALID_BUDGET, 400);
+      return;
+    }
+
+    if (
+      input.expectedBudget !== undefined &&
+      Math.abs(input.expectedBudget - budgetAmount) > 0.001
+    ) {
+      SendError(res, CAMPAIGN_MESSAGES.PAYMENT_AMOUNT_STALE, 409);
+      return;
+    }
+
+    const latestPayment = campaign.payments?.[0] ?? null;
+    const validUniqueCode =
+      latestPayment && latestPayment.uniqueCode >= 100 && latestPayment.uniqueCode <= 999
+        ? latestPayment.uniqueCode
+        : GeneratePaymentUniqueCode();
+    const effectiveTotalPayable = budgetAmount + validUniqueCode;
+
+    if (
+      input.expectedTotalPayable !== undefined &&
+      Math.abs(input.expectedTotalPayable - effectiveTotalPayable) > 0.001
+    ) {
+      SendError(res, CAMPAIGN_MESSAGES.PAYMENT_AMOUNT_STALE, 409);
+      return;
+    }
+
+    const destinationBank = process.env.KLIPDAY_BANK_NAME || DEFAULT_KLIPDAY_BANK_NAME;
+    const destinationAccount = process.env.KLIPDAY_BANK_ACCOUNT_NO || DEFAULT_KLIPDAY_BANK_ACCOUNT_NO;
+
+    await prisma.$transaction((tx) =>
+      ExecuteBankTransferConfirmInTx(tx, {
+        campaignId: campaign.id,
+        budgetAmount,
+        uniqueCode: validUniqueCode,
+        totalPayable: effectiveTotalPayable,
+        destinationBank,
+        destinationAccount,
+        senderProviderName: input.senderProviderName,
+        senderAccountName: input.senderAccountName,
+        transferProofUrl: input.transferProofUrl,
+        latestPaymentId: latestPayment?.id ?? null,
       }),
-      latestPayment
-        ? prisma.campaignPayment.update({
-            where: { id: latestPayment.id },
-            data: {
-              senderProviderName: input.senderProviderName,
-              senderAccountName: input.senderAccountName,
-              transferProofUrl: input.transferProofUrl,
-              paymentStatus: PaymentStatus.SUBMITTED,
-              rejectionReason: null,
-            },
-          })
-        : prisma.campaignPayment.create({
-            data: (() => {
-              const uniqueCode = GeneratePaymentUniqueCode();
-              return {
-                campaignId: campaign.id,
-                amount: budgetAmount,
-                uniqueCode,
-                totalPayable: budgetAmount + uniqueCode,
-                destinationBank: process.env.KLIPDAY_BANK_NAME || DEFAULT_KLIPDAY_BANK_NAME,
-                destinationAccount: process.env.KLIPDAY_BANK_ACCOUNT_NO || DEFAULT_KLIPDAY_BANK_ACCOUNT_NO,
-                senderProviderName: input.senderProviderName,
-                senderAccountName: input.senderAccountName,
-                transferProofUrl: input.transferProofUrl,
-                paymentStatus: PaymentStatus.SUBMITTED,
-                status: Status.ACTIVE,
-              };
-            })(),
-          }),
-    ]);
+    );
+
+    const updatedCampaign = await prisma.campaign.findFirst({
+      where: { id: campaign.id, status: Status.ACTIVE },
+      select: CAMPAIGN_DETAIL_SELECT,
+    });
 
     void NotifyAdminPendingItem({
       type: NotificationType.ADMIN_NEW_CAMPAIGN,
@@ -1369,6 +1323,10 @@ export async function ConfirmBankTransferPayment(req: Request, res: Response, ne
 
     SendSuccess(res, updatedCampaign, CAMPAIGN_MESSAGES.TRANSFER_PAYMENT_SUBMITTED_SUCCESS);
   } catch (err) {
+    if (err instanceof CampaignTransactionError) {
+      SendError(res, err.message, err.statusCode);
+      return;
+    }
     next(err);
   }
 }
@@ -1415,11 +1373,13 @@ export async function VerifyCampaignPayment(req: Request, res: Response, next: N
 
     const input = validationResult;
 
-    const findCampaignQuery = {
+    const campaign = await prisma.campaign.findFirst({
       where: { id: campaignId, status: Status.ACTIVE },
       select: {
         id: true,
         title: true,
+        budget: true,
+        campaignStatus: true,
         brandId: true,
         brand: {
           select: {
@@ -1432,12 +1392,15 @@ export async function VerifyCampaignPayment(req: Request, res: Response, next: N
           take: 1,
         },
       },
-    };
-
-    const campaign = await prisma.campaign.findFirst(findCampaignQuery);
+    });
 
     if (!campaign) {
       SendError(res, CAMPAIGN_MESSAGES.CAMPAIGN_NOT_FOUND, 404);
+      return;
+    }
+
+    if (campaign.campaignStatus !== CampaignStatus.IN_REVIEW) {
+      SendError(res, CAMPAIGN_MESSAGES.PAYMENT_NOT_SUBMITTED, 400);
       return;
     }
 
@@ -1453,74 +1416,52 @@ export async function VerifyCampaignPayment(req: Request, res: Response, next: N
       return;
     }
 
-    if (input.action === 'APPROVE') {
-      const brandWallet = await prisma.wallet.findFirst({
-        where: { accountId: campaign.brand.accountId, status: Status.ACTIVE },
-      });
-
-      if (!brandWallet) {
-        SendError(res, CAMPAIGN_MESSAGES.WALLET_NOT_FOUND, 404);
-        return;
-      }
-
-      const refCode = GenerateWalletTransactionReferenceCode();
-
-      const [updatedCampaign] = await prisma.$transaction([
-        prisma.campaign.update({
-          where: { id: campaign.id },
-          data: { campaignStatus: CampaignStatus.ACTIVE },
-          select: CAMPAIGN_DETAIL_SELECT,
-        }),
-        prisma.campaignPayment.update({
-          where: { id: latestPayment.id },
-          data: {
-            paymentStatus: PaymentStatus.APPROVED,
-            verifiedByAdminId: admin.id,
-            verifiedAt: new Date(),
-          },
-        }),
-        prisma.walletTransaction.create({
-          data: {
-            referenceCode: refCode,
-            walletId: brandWallet.id,
-            type: WalletTransactionType.CAMPAIGN_PAYMENT,
-            amount: latestPayment.totalPayable,
-            balanceBefore: brandWallet.balance,
-            balanceAfter: brandWallet.balance,
-            description: `Pembayaran kampanye "${campaign.title ?? 'Klipday'}" via transfer manual terverifikasi admin`,
-            campaignId: campaign.id,
-            status: Status.ACTIVE,
-          },
-        }),
-      ]);
-
-      SendSuccess(res, updatedCampaign, CAMPAIGN_MESSAGES.PAYMENT_VERIFIED_SUCCESS);
+    if (
+      input.action === 'APPROVE' &&
+      latestPayment.amount !== null &&
+      latestPayment.amount !== undefined &&
+      Math.abs(Number(latestPayment.amount) - Number(campaign.budget ?? 0)) > 0.001
+    ) {
+      SendError(res, CAMPAIGN_MESSAGES.PAYMENT_AMOUNT_STALE, 409);
       return;
     }
 
-    // Action === 'REJECT'
-    const [updatedCampaign] = await prisma.$transaction([
-      prisma.campaign.update({
-        where: { id: campaign.id },
-        data: {
-          campaignStatus: CampaignStatus.AWAITING_PAYMENT,
-          adminNote: input.rejectionReason,
-        },
-        select: CAMPAIGN_DETAIL_SELECT,
+    const brandWallet =
+      input.action === 'APPROVE'
+        ? await prisma.wallet.findFirst({
+            where: { accountId: campaign.brand.accountId, status: Status.ACTIVE },
+            select: { id: true, balance: true },
+          })
+        : null;
+
+    if (input.action === 'APPROVE' && !brandWallet) {
+      SendError(res, CAMPAIGN_MESSAGES.WALLET_NOT_FOUND, 404);
+      return;
+    }
+
+    await prisma.$transaction((tx) =>
+      ExecuteVerifyCampaignPaymentInTx(tx, {
+        campaignId: campaign.id,
+        campaignTitle: campaign.title,
+        adminId: admin.id,
+        action: input.action,
+        rejectionReason: input.rejectionReason,
+        latestPayment,
+        brandWallet,
       }),
-      prisma.campaignPayment.update({
-        where: { id: latestPayment.id },
-        data: {
-          paymentStatus: PaymentStatus.REJECTED,
-          rejectionReason: input.rejectionReason,
-          verifiedByAdminId: admin.id,
-          verifiedAt: new Date(),
-        },
-      }),
-    ]);
+    );
+
+    const updatedCampaign = await prisma.campaign.findFirst({
+      where: { id: campaign.id, status: Status.ACTIVE },
+      select: CAMPAIGN_DETAIL_SELECT,
+    });
 
     SendSuccess(res, updatedCampaign, CAMPAIGN_MESSAGES.PAYMENT_VERIFIED_SUCCESS);
   } catch (err) {
+    if (err instanceof CampaignTransactionError) {
+      SendError(res, err.message, err.statusCode);
+      return;
+    }
     next(err);
   }
 }

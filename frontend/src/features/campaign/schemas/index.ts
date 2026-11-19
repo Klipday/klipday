@@ -18,7 +18,7 @@ export { briefSchema } from './brief-schema';
 
 export type { BriefFormValues } from './brief-schema';
 
-export { rewardSchema } from './reward-schema';
+export { CreateRewardSchema, rewardSchema } from './reward-schema';
 
 export type { RewardFormValues } from './reward-schema';
 

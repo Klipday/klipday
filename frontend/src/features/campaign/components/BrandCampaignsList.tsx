@@ -8,7 +8,7 @@ import { CampaignCard } from './CampaignCard';
 import { CampaignCardSkeleton } from './CampaignCardSkeleton';
 import { CampaignStatusEmptyState } from './CampaignStatusEmptyState';
 
-const VALID_STATUSES = ['ACTIVE', 'AWAITING_PAYMENT', 'IN_REVIEW', 'REVISION', 'FINISHED'] as const;
+const VALID_STATUSES = ['ACTIVE', 'AWAITING_PAYMENT', 'IN_REVIEW', 'REVISION', 'FINISHED', 'REJECTED'] as const;
 
 /**
  * Brand campaigns list component.

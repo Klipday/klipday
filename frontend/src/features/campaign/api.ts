@@ -11,6 +11,7 @@ import type {
   CampaignsPaginatedData,
   CampaignStatusCounts,
   InitializeCampaignResponse,
+  WalletPaymentPayload,
 } from './types';
 
 /**
@@ -236,16 +237,20 @@ export async function GetCampaignPaymentDetails(id?: string): Promise<CampaignPa
  * Sends a POST request to `/campaigns/:id/payment/wallet` to pay campaign budget via brand wallet.
  *
  * @param id - The UUID of the campaign.
+ * @param data - Optional expected budget payload for stale-price race protection.
  * @returns The updated campaign entity.
  * @throws Error if id is missing or standardized API error if request fails.
  */
-export async function PayCampaignWithWallet(id: string): Promise<Campaign> {
+export async function PayCampaignWithWallet(id: string, data?: WalletPaymentPayload): Promise<Campaign> {
   if (!id) {
     throw new Error('Campaign ID is required.');
   }
 
   try {
-    const response = await apiClient.post<ApiResponse<Campaign>>(`/campaigns/${id}/payment/wallet`);
+    const response = await apiClient.post<ApiResponse<Campaign>>(
+      `/campaigns/${id}/payment/wallet`,
+      data ?? {}
+    );
     const result = response.data.data;
     return result;
   } catch (error) {

@@ -1,5 +1,22 @@
 import { z } from 'zod';
 
+const CPM_VIEW_DIVISOR = 1000;
+
+/**
+ * Returns today's calendar date string (YYYY-MM-DD) in Asia/Jakarta (WIB) timezone.
+ *
+ * @returns Today's WIB YYYY-MM-DD string.
+ */
+function GetJakartaTodayDateString(): string {
+  const formatted = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  return formatted;
+}
+
 const cpmField = z.number({ error: 'Tarif CPM wajib diisi angka.' }).positive('Tarif CPM harus lebih besar dari Rp 0.');
 
 const minViewsField = z
@@ -19,53 +36,87 @@ const startDateField = z.string().trim().min(1, 'Tanggal mulai kampanye wajib di
 const endDateField = z.string().trim().min(1, 'Tanggal berakhir kampanye wajib diisi.');
 
 /**
- * Validation schema for campaign creation wizard Step 4 (Hadiah & Anggaran).
- * Validates CPM, min/max views, total escrow budget, and campaign date range.
+ * Builds the validation schema for Step 4 (Hadiah & Anggaran),
+ * supporting unchanged past `startDate` on paid REVISION campaigns.
+ *
+ * @param options - Optional locks for paid revision campaigns.
+ * @returns Configured Zod schema enforcing pricing ratios, minimum payout coverage, and WIB dates.
  */
-export const rewardSchema = z
-  .object({
-    cpm: cpmField,
-    minViews: minViewsField,
-    maxViews: maxViewsField,
-    budget: budgetField,
-    startDate: startDateField,
-    endDate: endDateField,
-  })
-  .refine((data) => data.maxViews >= data.minViews, {
-    message: 'Batas penayangan maksimum tidak boleh lebih kecil dari penayangan minimum.',
-    path: ['maxViews'],
-  })
-  .refine((data) => data.budget >= data.cpm, {
-    message: 'Total anggaran tidak boleh lebih kecil dari tarif CPM.',
-    path: ['budget'],
-  })
-  .refine(
-    (data) => {
-      if (!data.startDate) return true;
-      const start = new Date(data.startDate);
-      start.setHours(0, 0, 0, 0);
+export function CreateRewardSchema(options?: {
+  allowUnchangedPastStartDate?: boolean;
+  existingStartDate?: string;
+}) {
+  return z
+    .object({
+      cpm: cpmField,
+      minViews: minViewsField,
+      maxViews: maxViewsField,
+      budget: budgetField,
+      startDate: startDateField,
+      endDate: endDateField,
+    })
+    .refine((data) => data.maxViews >= data.minViews, {
+      message: 'Batas penayangan maksimum tidak boleh lebih kecil dari penayangan minimum.',
+      path: ['maxViews'],
+    })
+    .refine((data) => data.budget >= data.cpm, {
+      message: 'Total anggaran tidak boleh lebih kecil dari tarif CPM.',
+      path: ['budget'],
+    })
+    .refine(
+      (data) => {
+        const minRequiredPayout = Math.ceil((data.minViews * data.cpm) / CPM_VIEW_DIVISOR);
+        return data.budget >= minRequiredPayout;
+      },
+      {
+        message: 'Total anggaran harus mencukupi minimal imbalan untuk satu video mencapai tayangan minimum.',
+        path: ['budget'],
+      }
+    )
+    .refine(
+      (data) => {
+        if (!data.startDate) return true;
+        if (
+          options?.allowUnchangedPastStartDate &&
+          options.existingStartDate &&
+          data.startDate === options.existingStartDate
+        ) {
+          return true;
+        }
+        const todayWib = GetJakartaTodayDateString();
+        return data.startDate >= todayWib;
+      },
+      {
+        message: 'Tanggal mulai tidak boleh lebih awal dari hari ini.',
+        path: ['startDate'],
+      }
+    )
+    .refine(
+      (data) => {
+        if (!data.startDate || !data.endDate) return true;
+        return data.endDate > data.startDate;
+      },
+      {
+        message: 'Tanggal berakhir harus lebih lambat dari tanggal mulai.',
+        path: ['endDate'],
+      }
+    )
+    .refine(
+      (data) => {
+        if (!data.endDate) return true;
+        const todayWib = GetJakartaTodayDateString();
+        return data.endDate > todayWib;
+      },
+      {
+        message: 'Tanggal berakhir kampanye harus lebih lambat dari hari ini.',
+        path: ['endDate'],
+      }
+    );
+}
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      return start >= today;
-    },
-    {
-      message: 'Tanggal mulai tidak boleh lebih awal dari hari ini.',
-      path: ['startDate'],
-    }
-  )
-  .refine(
-    (data) => {
-      if (!data.startDate || !data.endDate) return true;
-      const start = new Date(data.startDate);
-      const end = new Date(data.endDate);
-      return end > start;
-    },
-    {
-      message: 'Tanggal berakhir harus lebih lambat dari tanggal mulai.',
-      path: ['endDate'],
-    }
-  );
+/**
+ * Default validation schema for campaign creation wizard Step 4 (Hadiah & Anggaran).
+ */
+export const rewardSchema = CreateRewardSchema();
 
 export type RewardFormValues = z.infer<typeof rewardSchema>;

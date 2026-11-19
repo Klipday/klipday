@@ -44,7 +44,7 @@ export function CampaignPaymentWalletOption({
 
   const HandleConfirmPay = () => {
     setIsConfirmOpen(false);
-    payMutation.mutate();
+    payMutation.mutate({ expectedBudget: budget });
   };
 
   return (

@@ -1,6 +1,6 @@
-import { Link } from 'react-router';
 import { ArrowRight, CheckCircle2, Megaphone, Plus, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CreateCampaignDialog } from '@/features/campaign/components';
 import { cn } from '@/lib/utils';
 import { DASHBOARD_MESSAGES } from '../constants';
 import type { BrandDashboardLaunchpadProps } from '../types';
@@ -82,16 +82,15 @@ export function BrandDashboardLaunchpad({
             </p>
           </div>
 
-          <Button
-            asChild
-            size="sm"
-            className="w-full h-9 gap-1.5 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <Link to="/brand-dashboard/brand-campaigns/create/step-1">
+          <CreateCampaignDialog>
+            <Button
+              size="sm"
+              className="w-full h-9 gap-1.5 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90"
+            >
               <span>Buat Kampanye</span>
               <ArrowRight className="size-3.5" />
-            </Link>
-          </Button>
+            </Button>
+          </CreateCampaignDialog>
         </div>
 
         {/* Step 3 */}

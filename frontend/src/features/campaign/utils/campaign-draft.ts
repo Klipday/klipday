@@ -42,7 +42,8 @@ export function GetDraftStepProgress(draft?: Partial<CampaignCardItem> | null): 
   const stepNumber = GetHighestAccessibleStepNumber(draft as Partial<Campaign>);
   const matchedStep = CAMPAIGN_WIZARD_STEPS.find((step) => step.stepNumber === stepNumber);
   const stepTitle = matchedStep?.title ?? 'Informasi Dasar';
-  const stepBadgeText = `Langkah ${stepNumber} dari 5: ${stepTitle}`;
+  const totalSteps = CAMPAIGN_WIZARD_STEPS.length;
+  const stepBadgeText = `Langkah ${stepNumber} dari ${totalSteps}: ${stepTitle}`;
 
   const progressResult: DraftStepProgress = {
     stepNumber,

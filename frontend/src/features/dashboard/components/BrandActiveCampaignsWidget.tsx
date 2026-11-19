@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { ArrowUpRight, Megaphone, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CreateCampaignDialog } from '@/features/campaign/components';
 import { FormatCompactCount } from '@/features/submission/utils/submission-utils';
 import { FormatRupiah } from '@/features/wallet/utils/wallet-format';
 import { cn } from '@/lib/utils';
@@ -66,16 +67,15 @@ export function BrandActiveCampaignsWidget({
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mb-4">
               Luncurkan kampanye baru agar para kreator TikTok dapat mulai membuat klip promosi.
             </p>
-            <Button
-              asChild
-              size="sm"
-              className="h-8 gap-1.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              <Link to="/brand-dashboard/brand-campaigns/create/step-1">
+            <CreateCampaignDialog>
+              <Button
+                size="sm"
+                className="h-8 gap-1.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
+              >
                 <Plus className="size-3.5" />
                 <span>Buat Kampanye</span>
-              </Link>
-            </Button>
+              </Button>
+            </CreateCampaignDialog>
           </div>
         ) : (
           <div className="space-y-3">

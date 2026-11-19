@@ -91,6 +91,23 @@ function CampaignDetailPage({ className }: CampaignDetailPageProps) {
 
       {/* Main Campaign Content Container spanning full available space */}
       <div className="w-full space-y-6 pt-2 sm:pt-4">
+        {/* Permanent Rejection Notice for Owning Brand */}
+        {userProfile?.role === 'BRAND' && campaign.campaignStatus === 'REJECTED' && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 space-y-1.5">
+            <h3 className="text-xs font-semibold text-destructive">
+              Kampanye Ditolak Permanen oleh Admin
+            </h3>
+            <p className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed">
+              {campaign.adminNote || 'Kampanye ini ditolak karena tidak memenuhi standar atau kebijakan platform Klipday.'}
+            </p>
+            {campaign.payments?.[0]?.paymentStatus === 'APPROVED' && (
+              <p className="text-[11px] text-muted-foreground pt-1 border-t border-destructive/20">
+                Dana anggaran kampanye ini telah dikembalikan (refund) secara otomatis ke Saldo Dompet Anda.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Admin Campaign Moderation Panel */}
         {userProfile?.role === 'ADMIN' && (
           <AdminCampaignModerationPanel

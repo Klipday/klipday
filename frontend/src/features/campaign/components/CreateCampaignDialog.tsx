@@ -47,13 +47,12 @@ export function CreateCampaignDialog({ children }: CreateCampaignDialogProps) {
   const hasDrafts = draftCountOnOpen >= 1;
 
   const { data: draftsData } = UseCampaignsQuery(
-    isOpen && hasDrafts
-      ? {
-          campaignStatus: 'DRAFT',
-          sort: 'latest',
-          limit: 1,
-        }
-      : undefined
+    {
+      campaignStatus: 'DRAFT',
+      sort: 'latest',
+      limit: 1,
+    },
+    { enabled: isOpen && hasDrafts }
   );
 
   const initializeMutation = UseInitializeCampaignMutation({
@@ -68,6 +67,10 @@ export function CreateCampaignDialog({ children }: CreateCampaignDialogProps) {
   const latestDraftDate = FormatDraftDate(latestDraft?.updatedAt);
 
   const HandleOpenChange = (open: boolean) => {
+    if (!open && initializeMutation.isPending) {
+      return;
+    }
+
     if (open) {
       setDraftCountOnOpen(currentDraftCount);
       setIsOpen(true);
@@ -77,19 +80,20 @@ export function CreateCampaignDialog({ children }: CreateCampaignDialogProps) {
   };
 
   const HandleContinueLatest = () => {
-    if (!latestDraft) return;
+    if (!latestDraft || initializeMutation.isPending) return;
     setIsOpen(false);
     const targetPath = ResolveCampaignWizardStepPath(latestDraft);
     navigate(targetPath);
   };
 
   const HandleOpenSheet = () => {
+    if (initializeMutation.isPending) return;
     setIsOpen(false);
     setIsSheetOpen(true);
   };
 
   const HandleCreateNew = () => {
-    setIsOpen(false);
+    if (initializeMutation.isPending) return;
     initializeMutation.mutate();
   };
 
@@ -162,7 +166,10 @@ export function CreateCampaignDialog({ children }: CreateCampaignDialogProps) {
               </div>
 
               <AlertDialogFooter className="pt-2 sm:justify-start">
-                <AlertDialogCancel className="h-8 w-full text-xs sm:w-auto">
+                <AlertDialogCancel
+                  disabled={initializeMutation.isPending}
+                  className="h-8 w-full text-xs sm:w-auto"
+                >
                   Batal
                 </AlertDialogCancel>
               </AlertDialogFooter>

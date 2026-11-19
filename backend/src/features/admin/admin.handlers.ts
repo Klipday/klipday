@@ -108,6 +108,164 @@ import type {
 } from './admin.types.js';
 
 /**
+ * Expected HTTP error thrown inside admin Prisma transactions so PostgreSQL rolls back
+ * partial writes cleanly before translating to a standardized API error response.
+ */
+class AdminTransactionError extends Error {
+  public readonly statusCode: number;
+
+  /**
+   * Creates a typed transaction error with an HTTP status code and localized message.
+   *
+   * @param statusCode - HTTP response status code.
+   * @param message - Localized API error message.
+   */
+  public constructor(statusCode: number, message: string) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
+
+/**
+ * Atomically claims an IN_REVIEW campaign row inside a transaction before applying side effects.
+ * Throws a 409 conflict error if another moderator concurrently transitioned the campaign.
+ *
+ * @param tx - Active Prisma transaction client.
+ * @param campaignId - Target campaign ID.
+ * @param targetStatus - Next moderation lifecycle status.
+ * @param adminNote - Optional moderation or rejection note.
+ */
+async function ClaimInReviewCampaignInTx(
+  tx: Prisma.TransactionClient,
+  campaignId: string,
+  targetStatus: CampaignStatus,
+  adminNote: string | null,
+): Promise<void> {
+  const claimed = await tx.campaign.updateMany({
+    where: {
+      id: campaignId,
+      status: Status.ACTIVE,
+      campaignStatus: CampaignStatus.IN_REVIEW,
+    },
+    data: {
+      campaignStatus: targetStatus,
+      adminNote,
+    },
+  });
+
+  if (claimed.count === 0) {
+    throw new AdminTransactionError(409, ADMIN_MESSAGES.MODERATION_RACE_CONFLICT);
+  }
+}
+
+/**
+ * Atomically approves a SUBMITTED manual bank transfer payment inside a transaction
+ * and records the corresponding CAMPAIGN_PAYMENT ledger entry on the brand wallet.
+ *
+ * @param tx - Active Prisma transaction client.
+ * @param params - Payment, campaign, admin, and ledger description metadata.
+ * @returns Provisioned/active brand wallet record if found.
+ */
+async function ApproveSubmittedPaymentInTx(
+  tx: Prisma.TransactionClient,
+  params: {
+    campaignId: string;
+    brandAccountId: string;
+    adminId: string;
+    payment: { id: string; totalPayable: Prisma.Decimal | number };
+    description: string;
+  },
+) {
+  const claimedPayment = await tx.campaignPayment.updateMany({
+    where: {
+      id: params.payment.id,
+      status: Status.ACTIVE,
+      paymentStatus: PaymentStatus.SUBMITTED,
+    },
+    data: {
+      paymentStatus: PaymentStatus.APPROVED,
+      verifiedByAdminId: params.adminId,
+      verifiedAt: new Date(),
+      rejectionReason: null,
+    },
+  });
+
+  if (claimedPayment.count === 0) {
+    throw new AdminTransactionError(409, ADMIN_MESSAGES.MODERATION_RACE_CONFLICT);
+  }
+
+  const brandWallet = await ProvisionAccountWallet(params.brandAccountId, Role.BRAND, tx);
+  const totalPayable = Number(params.payment.totalPayable);
+
+  if (brandWallet) {
+    const refCode = GenerateSettlementTransactionRefCode();
+    await tx.walletTransaction.create({
+      data: {
+        referenceCode: refCode,
+        walletId: brandWallet.id,
+        type: WalletTransactionType.CAMPAIGN_PAYMENT,
+        amount: new Prisma.Decimal(totalPayable),
+        balanceBefore: brandWallet.balance,
+        balanceAfter: brandWallet.balance,
+        description: params.description,
+        campaignId: params.campaignId,
+        transactionDate: new Date(),
+        status: Status.ACTIVE,
+      },
+    });
+  }
+
+  return brandWallet;
+}
+
+/**
+ * Atomically credits a permanent-rejection campaign refund back to the brand wallet
+ * using SQL relative `increment` so concurrent wallet activity cannot lose updates.
+ *
+ * @param tx - Active Prisma transaction client.
+ * @param params - Target wallet, refund amount, campaign details, and ref offset.
+ */
+async function CreditBrandWalletRefundInTx(
+  tx: Prisma.TransactionClient,
+  params: {
+    wallet: { id: string; balance: Prisma.Decimal | number };
+    refundAmount: number;
+    campaignId: string;
+    campaignTitle: string | null;
+    refOffset?: number;
+  },
+): Promise<void> {
+  if (params.refundAmount <= 0) {
+    return;
+  }
+
+  const updatedWallet = await tx.wallet.update({
+    where: { id: params.wallet.id },
+    data: { balance: { increment: new Prisma.Decimal(params.refundAmount) } },
+    select: { balance: true },
+  });
+
+  const balanceAfter = Number(updatedWallet?.balance ?? Number(params.wallet.balance) + params.refundAmount);
+  const balanceBefore = balanceAfter - params.refundAmount;
+  const refundRefCode = GenerateSettlementTransactionRefCode(params.refOffset);
+
+  await tx.walletTransaction.create({
+    data: {
+      referenceCode: refundRefCode,
+      walletId: params.wallet.id,
+      type: WalletTransactionType.CAMPAIGN_REFUND,
+      amount: new Prisma.Decimal(params.refundAmount),
+      balanceBefore: new Prisma.Decimal(balanceBefore),
+      balanceAfter: new Prisma.Decimal(balanceAfter),
+      description: `Pengembalian dana (refund) kampanye "${params.campaignTitle ?? 'Klipday'}" ditolak permanen`,
+      campaignId: params.campaignId,
+      transactionDate: new Date(),
+      status: Status.ACTIVE,
+    },
+  });
+}
+
+/**
  * Handles `GET /admin/settlements`:
  * Lists campaigns eligible for settlement review (expired or 100% budget reached) as well as settled campaigns.
  *
@@ -1182,121 +1340,104 @@ export async function GetAdminModerationCampaigns(
     }
 
     const skip = (page - 1) * limit;
+    const moderationStatuses = [
+      CampaignStatus.IN_REVIEW,
+      CampaignStatus.REVISION,
+      CampaignStatus.ACTIVE,
+      CampaignStatus.REJECTED,
+    ];
 
-    const [campaigns, totalFiltered, countInReview, countRevision, countActive, countRejected, countAll] =
-      await Promise.all([
-        prisma.campaign.findMany({
-          where: whereClause,
-          orderBy: { updatedAt: 'desc' },
-          skip,
-          take: limit,
-          select: {
-            id: true,
-            title: true,
-            campaignCategory: true,
-            campaignType: true,
-            campaignStatus: true,
-            thumbnailUrl: true,
-            cpm: true,
-            minViews: true,
-            maxViews: true,
-            budget: true,
-            startDate: true,
-            endDate: true,
-            createdAt: true,
-            updatedAt: true,
-            adminNote: true,
-            isFeatured: true,
-            featuredOrder: true,
-            brand: {
-              select: {
-                id: true,
-                companyName: true,
-                logoUrl: true,
-                accountId: true,
-              },
-            },
-            brief: {
-              where: { status: Status.ACTIVE },
-              select: {
-                id: true,
-                purpose: true,
-                keyMessage: true,
-                narration: true,
-                guidelines: true,
-                callToAction: true,
-                requiredCaption: true,
-              },
-            },
-            _count: {
-              select: {
-                materials: { where: { status: Status.ACTIVE } },
-              },
-            },
-            payments: {
-              where: { status: Status.ACTIVE },
-              orderBy: { createdAt: 'desc' },
-              take: 1,
-              select: {
-                id: true,
-                amount: true,
-                uniqueCode: true,
-                totalPayable: true,
-                destinationBank: true,
-                destinationAccount: true,
-                senderProviderName: true,
-                senderAccountName: true,
-                transferProofUrl: true,
-                paymentStatus: true,
-                verifiedAt: true,
-              },
+    const [campaigns, totalFiltered, statusGroups] = await Promise.all([
+      prisma.campaign.findMany({
+        where: whereClause,
+        orderBy: { updatedAt: 'desc' },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          title: true,
+          campaignCategory: true,
+          campaignType: true,
+          campaignStatus: true,
+          thumbnailUrl: true,
+          cpm: true,
+          minViews: true,
+          maxViews: true,
+          budget: true,
+          startDate: true,
+          endDate: true,
+          createdAt: true,
+          updatedAt: true,
+          adminNote: true,
+          isFeatured: true,
+          featuredOrder: true,
+          brand: {
+            select: {
+              id: true,
+              companyName: true,
+              logoUrl: true,
+              accountId: true,
             },
           },
-        }),
-        prisma.campaign.count({ where: whereClause }),
-        prisma.campaign.count({
-          where: {
-            status: Status.ACTIVE,
-            campaignStatus: CampaignStatus.IN_REVIEW,
-            brand: { status: Status.ACTIVE },
-          },
-        }),
-        prisma.campaign.count({
-          where: {
-            status: Status.ACTIVE,
-            campaignStatus: CampaignStatus.REVISION,
-            brand: { status: Status.ACTIVE },
-          },
-        }),
-        prisma.campaign.count({
-          where: {
-            status: Status.ACTIVE,
-            campaignStatus: CampaignStatus.ACTIVE,
-            brand: { status: Status.ACTIVE },
-          },
-        }),
-        prisma.campaign.count({
-          where: {
-            status: Status.ACTIVE,
-            campaignStatus: CampaignStatus.REJECTED,
-            brand: { status: Status.ACTIVE },
-          },
-        }),
-        prisma.campaign.count({
-          where: {
-            status: Status.ACTIVE,
-            campaignStatus: {
-              in: [
-                CampaignStatus.IN_REVIEW,
-                CampaignStatus.REVISION,
-                CampaignStatus.ACTIVE,
-                CampaignStatus.REJECTED,
-              ],
+          brief: {
+            where: { status: Status.ACTIVE },
+            select: {
+              id: true,
+              purpose: true,
+              keyMessage: true,
+              narration: true,
+              guidelines: true,
+              callToAction: true,
+              requiredCaption: true,
             },
-            brand: { status: Status.ACTIVE },
           },
-        }),
-      ]);
+          _count: {
+            select: {
+              materials: { where: { status: Status.ACTIVE } },
+            },
+          },
+          payments: {
+            where: { status: Status.ACTIVE },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: {
+              id: true,
+              amount: true,
+              uniqueCode: true,
+              totalPayable: true,
+              destinationBank: true,
+              destinationAccount: true,
+              senderProviderName: true,
+              senderAccountName: true,
+              transferProofUrl: true,
+              paymentStatus: true,
+              verifiedAt: true,
+            },
+          },
+        },
+      }),
+      prisma.campaign.count({ where: whereClause }),
+      prisma.campaign.groupBy({
+        by: ['campaignStatus'],
+        where: {
+          status: Status.ACTIVE,
+          campaignStatus: { in: moderationStatuses },
+          brand: { status: Status.ACTIVE },
+        },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const statusCountMap = new Map<CampaignStatus, number>();
+    for (const row of statusGroups) {
+      statusCountMap.set(row.campaignStatus, row._count._all);
+    }
+
+    const countInReview = statusCountMap.get(CampaignStatus.IN_REVIEW) ?? 0;
+    const countRevision = statusCountMap.get(CampaignStatus.REVISION) ?? 0;
+    const countActive = statusCountMap.get(CampaignStatus.ACTIVE) ?? 0;
+    const countRejected = statusCountMap.get(CampaignStatus.REJECTED) ?? 0;
+    const countAll = countInReview + countRevision + countActive + countRejected;
 
     const items: AdminModerationCampaignCardDto[] = campaigns.map((campaign) => {
       const payment = campaign.payments?.[0];
@@ -1306,10 +1447,9 @@ export async function GetAdminModerationCampaigns(
 
       const isBriefComplete = Boolean(
         campaign.brief &&
-          (campaign.brief.guidelines ||
-            campaign.brief.narration ||
-            campaign.brief.requiredCaption ||
-            campaign.brief.callToAction),
+          campaign.brief.purpose?.trim() &&
+          campaign.brief.keyMessage?.trim() &&
+          campaign.brief.callToAction?.trim(),
       );
 
       const item: AdminModerationCampaignCardDto = {
@@ -1477,96 +1617,37 @@ export async function ModerateCampaign(
 
     if (input.action === MODERATION_ACTION.APPROVE) {
       await prisma.$transaction(async (tx) => {
+        await ClaimInReviewCampaignInTx(tx, campaign.id, CampaignStatus.ACTIVE, null);
+
         if (latestPayment && latestPayment.paymentStatus === PaymentStatus.SUBMITTED) {
-          const brandWallet = await ProvisionAccountWallet(campaign.brand.accountId, Role.BRAND, tx);
-          const totalPayable = Number(latestPayment.totalPayable);
-
-          const paymentUpdatePayload = {
-            where: { id: latestPayment.id },
-            data: {
-              paymentStatus: PaymentStatus.APPROVED,
-              verifiedByAdminId: admin.id,
-              verifiedAt: new Date(),
-              rejectionReason: null,
-            },
-          };
-          await tx.campaignPayment.update(paymentUpdatePayload);
-
-          if (brandWallet) {
-            const refCode = GenerateSettlementTransactionRefCode();
-            const walletTransactionPayload = {
-              data: {
-                referenceCode: refCode,
-                walletId: brandWallet.id,
-                type: WalletTransactionType.CAMPAIGN_PAYMENT,
-                amount: new Prisma.Decimal(totalPayable),
-                balanceBefore: brandWallet.balance,
-                balanceAfter: brandWallet.balance,
-                description: `Pembayaran transfer manual kampanye "${campaign.title ?? 'Klipday'}" diverifikasi admin`,
-                campaignId: campaign.id,
-                transactionDate: new Date(),
-                status: Status.ACTIVE,
-              },
-            };
-            await tx.walletTransaction.create(walletTransactionPayload);
-          }
+          await ApproveSubmittedPaymentInTx(tx, {
+            campaignId: campaign.id,
+            brandAccountId: campaign.brand.accountId,
+            adminId: admin.id,
+            payment: latestPayment,
+            description: `Pembayaran transfer manual kampanye "${campaign.title ?? 'Klipday'}" diverifikasi admin`,
+          });
         }
-
-        const campaignUpdatePayload = {
-          where: { id: campaign.id },
-          data: {
-            campaignStatus: CampaignStatus.ACTIVE,
-            adminNote: null,
-          },
-        };
-        await tx.campaign.update(campaignUpdatePayload);
       });
     } else if (input.action === MODERATION_ACTION.REVISION) {
       await prisma.$transaction(async (tx) => {
+        await ClaimInReviewCampaignInTx(
+          tx,
+          campaign.id,
+          CampaignStatus.REVISION,
+          input.adminNote ?? null,
+        );
+
         // If payment was SUBMITTED, lock the payment as APPROVED so brand does not have to pay again
         if (latestPayment && latestPayment.paymentStatus === PaymentStatus.SUBMITTED) {
-          const brandWallet = await ProvisionAccountWallet(campaign.brand.accountId, Role.BRAND, tx);
-          const totalPayable = Number(latestPayment.totalPayable);
-
-          const paymentUpdatePayload = {
-            where: { id: latestPayment.id },
-            data: {
-              paymentStatus: PaymentStatus.APPROVED,
-              verifiedByAdminId: admin.id,
-              verifiedAt: new Date(),
-              rejectionReason: null,
-            },
-          };
-          await tx.campaignPayment.update(paymentUpdatePayload);
-
-          if (brandWallet) {
-            const refCode = GenerateSettlementTransactionRefCode();
-            const walletTransactionPayload = {
-              data: {
-                referenceCode: refCode,
-                walletId: brandWallet.id,
-                type: WalletTransactionType.CAMPAIGN_PAYMENT,
-                amount: new Prisma.Decimal(totalPayable),
-                balanceBefore: brandWallet.balance,
-                balanceAfter: brandWallet.balance,
-                description: `Pembayaran transfer manual kampanye "${campaign.title ?? 'Klipday'}" diverifikasi admin (status revisi)`,
-                campaignId: campaign.id,
-                transactionDate: new Date(),
-                status: Status.ACTIVE,
-              },
-            };
-            await tx.walletTransaction.create(walletTransactionPayload);
-          }
+          await ApproveSubmittedPaymentInTx(tx, {
+            campaignId: campaign.id,
+            brandAccountId: campaign.brand.accountId,
+            adminId: admin.id,
+            payment: latestPayment,
+            description: `Pembayaran transfer manual kampanye "${campaign.title ?? 'Klipday'}" diverifikasi admin (status revisi)`,
+          });
         }
-
-        const campaignUpdatePayload = {
-          where: { id: campaign.id },
-          data: {
-            campaignStatus: CampaignStatus.REVISION,
-            adminNote: input.adminNote ?? null,
-          },
-        };
-        await tx.campaign.update(campaignUpdatePayload);
       });
     } else if (input.action === MODERATION_ACTION.REJECT_PAYMENT) {
       if (!latestPayment || latestPayment.paymentStatus !== PaymentStatus.SUBMITTED) {
@@ -1575,147 +1656,97 @@ export async function ModerateCampaign(
       }
 
       await prisma.$transaction(async (tx) => {
-        const paymentUpdatePayload = {
-          where: { id: latestPayment.id },
+        await ClaimInReviewCampaignInTx(
+          tx,
+          campaign.id,
+          CampaignStatus.AWAITING_PAYMENT,
+          input.adminNote ?? null,
+        );
+
+        const claimedPayment = await tx.campaignPayment.updateMany({
+          where: {
+            id: latestPayment.id,
+            status: Status.ACTIVE,
+            paymentStatus: PaymentStatus.SUBMITTED,
+          },
           data: {
             paymentStatus: PaymentStatus.REJECTED,
             rejectionReason: input.adminNote ?? null,
             verifiedByAdminId: admin.id,
             verifiedAt: new Date(),
           },
-        };
-        await tx.campaignPayment.update(paymentUpdatePayload);
+        });
 
-        const campaignUpdatePayload = {
-          where: { id: campaign.id },
-          data: {
-            campaignStatus: CampaignStatus.AWAITING_PAYMENT,
-            adminNote: input.adminNote ?? null,
-          },
-        };
-        await tx.campaign.update(campaignUpdatePayload);
+        if (claimedPayment.count === 0) {
+          throw new AdminTransactionError(409, ADMIN_MESSAGES.MODERATION_RACE_CONFLICT);
+        }
       });
     } else if (input.action === MODERATION_ACTION.REJECT_CAMPAIGN) {
       await prisma.$transaction(async (tx) => {
+        await ClaimInReviewCampaignInTx(
+          tx,
+          campaign.id,
+          CampaignStatus.REJECTED,
+          input.adminNote ?? null,
+        );
+
         const budgetAmount = Number(campaign.budget ?? 0);
-        const brandWallet = await ProvisionAccountWallet(campaign.brand.accountId, Role.BRAND, tx);
 
         if (latestPayment?.paymentStatus === PaymentStatus.APPROVED) {
-          // Already paid via Saldo Dompet or previously approved manual transfer -> ALWAYS REFUND TO WALLET BALANCE
+          const brandWallet = await ProvisionAccountWallet(
+            campaign.brand.accountId,
+            Role.BRAND,
+            tx,
+          );
           const refundAmount = Number(latestPayment.totalPayable ?? budgetAmount);
-          if (brandWallet && refundAmount > 0) {
-            const balanceBefore = Number(brandWallet.balance);
-            const balanceAfter = balanceBefore + refundAmount;
-
-            const walletUpdatePayload = {
-              where: { id: brandWallet.id },
-              data: { balance: new Prisma.Decimal(balanceAfter) },
-            };
-            await tx.wallet.update(walletUpdatePayload);
-
-            const refundRefCode = GenerateSettlementTransactionRefCode();
-            const walletTransactionPayload = {
-              data: {
-                referenceCode: refundRefCode,
-                walletId: brandWallet.id,
-                type: WalletTransactionType.CAMPAIGN_REFUND,
-                amount: new Prisma.Decimal(refundAmount),
-                balanceBefore: new Prisma.Decimal(balanceBefore),
-                balanceAfter: new Prisma.Decimal(balanceAfter),
-                description: `Pengembalian dana (refund) kampanye "${campaign.title ?? 'Klipday'}" ditolak permanen`,
-                campaignId: campaign.id,
-                transactionDate: new Date(),
-                status: Status.ACTIVE,
-              },
-            };
-            await tx.walletTransaction.create(walletTransactionPayload);
+          if (brandWallet) {
+            await CreditBrandWalletRefundInTx(tx, {
+              wallet: brandWallet,
+              refundAmount,
+              campaignId: campaign.id,
+              campaignTitle: campaign.title,
+            });
           }
         } else if (latestPayment?.paymentStatus === PaymentStatus.SUBMITTED) {
-          // Direct manual bank transfer receipt is in review
           if (input.refundConfirmedManualPayment !== false) {
             const payableAmount = Number(latestPayment.totalPayable);
-
-            // Admin confirmed the money actually arrived in Klipday's bank account -> Record payment and immediately refund to brand's wallet
-            const paymentUpdatePayload = {
-              where: { id: latestPayment.id },
-              data: {
-                paymentStatus: PaymentStatus.APPROVED,
-                verifiedByAdminId: admin.id,
-                verifiedAt: new Date(),
-                rejectionReason: null,
-              },
-            };
-            await tx.campaignPayment.update(paymentUpdatePayload);
+            const brandWallet = await ApproveSubmittedPaymentInTx(tx, {
+              campaignId: campaign.id,
+              brandAccountId: campaign.brand.accountId,
+              adminId: admin.id,
+              payment: latestPayment,
+              description: `Penerimaan transfer manual kampanye "${campaign.title ?? 'Klipday'}" sebelum penolakan`,
+            });
 
             if (brandWallet) {
-              const paymentRefCode = GenerateSettlementTransactionRefCode();
-              const paymentTransactionPayload = {
-                data: {
-                  referenceCode: paymentRefCode,
-                  walletId: brandWallet.id,
-                  type: WalletTransactionType.CAMPAIGN_PAYMENT,
-                  amount: new Prisma.Decimal(payableAmount),
-                  balanceBefore: brandWallet.balance,
-                  balanceAfter: brandWallet.balance,
-                  description: `Penerimaan transfer manual kampanye "${campaign.title ?? 'Klipday'}" sebelum penolakan`,
-                  campaignId: campaign.id,
-                  transactionDate: new Date(),
-                  status: Status.ACTIVE,
-                },
-              };
-              await tx.walletTransaction.create(paymentTransactionPayload);
-
-              if (payableAmount > 0) {
-                const balanceBefore = Number(brandWallet.balance);
-                const balanceAfter = balanceBefore + payableAmount;
-
-                const walletUpdatePayload = {
-                  where: { id: brandWallet.id },
-                  data: { balance: new Prisma.Decimal(balanceAfter) },
-                };
-                await tx.wallet.update(walletUpdatePayload);
-
-                const refundRefCode = GenerateSettlementTransactionRefCode(1);
-                const refundTransactionPayload = {
-                  data: {
-                    referenceCode: refundRefCode,
-                    walletId: brandWallet.id,
-                    type: WalletTransactionType.CAMPAIGN_REFUND,
-                    amount: new Prisma.Decimal(payableAmount),
-                    balanceBefore: new Prisma.Decimal(balanceBefore),
-                    balanceAfter: new Prisma.Decimal(balanceAfter),
-                    description: `Pengembalian dana (refund) kampanye "${campaign.title ?? 'Klipday'}" ditolak permanen`,
-                    campaignId: campaign.id,
-                    transactionDate: new Date(),
-                    status: Status.ACTIVE,
-                  },
-                };
-                await tx.walletTransaction.create(refundTransactionPayload);
-              }
+              await CreditBrandWalletRefundInTx(tx, {
+                wallet: brandWallet,
+                refundAmount: payableAmount,
+                campaignId: campaign.id,
+                campaignTitle: campaign.title,
+                refOffset: 1,
+              });
             }
           } else {
-            // Money never arrived / fake proof -> Mark payment REJECTED, no wallet refund
-            const paymentUpdatePayload = {
-              where: { id: latestPayment.id },
+            const claimedPayment = await tx.campaignPayment.updateMany({
+              where: {
+                id: latestPayment.id,
+                status: Status.ACTIVE,
+                paymentStatus: PaymentStatus.SUBMITTED,
+              },
               data: {
                 paymentStatus: PaymentStatus.REJECTED,
                 rejectionReason: input.adminNote ?? null,
                 verifiedByAdminId: admin.id,
                 verifiedAt: new Date(),
               },
-            };
-            await tx.campaignPayment.update(paymentUpdatePayload);
+            });
+
+            if (claimedPayment.count === 0) {
+              throw new AdminTransactionError(409, ADMIN_MESSAGES.MODERATION_RACE_CONFLICT);
+            }
           }
         }
-
-        const campaignUpdatePayload = {
-          where: { id: campaign.id },
-          data: {
-            campaignStatus: CampaignStatus.REJECTED,
-            adminNote: input.adminNote ?? null,
-          },
-        };
-        await tx.campaign.update(campaignUpdatePayload);
       });
     }
 
@@ -1749,6 +1780,10 @@ export async function ModerateCampaign(
 
     SendSuccess(res, updatedCampaign, ADMIN_MESSAGES.MODERATE_CAMPAIGN_SUCCESS);
   } catch (err) {
+    if (err instanceof AdminTransactionError) {
+      SendError(res, err.message, err.statusCode);
+      return;
+    }
     next(err);
   }
 }

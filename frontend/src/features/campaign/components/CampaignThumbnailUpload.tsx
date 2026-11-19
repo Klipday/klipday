@@ -173,13 +173,16 @@ export function CampaignThumbnailUpload({ value, onChange, campaignId, disabled 
             />
           </div>
         </div>
-      ) : hasExistingImage ? (
+      ) : hasExistingImage && sanitizedThumbnailUrl ? (
         /* Preview State */
         <div className="space-y-3">
           <div className="relative group w-full aspect-video max-h-56 sm:max-h-64 rounded-xl overflow-hidden border border-border bg-muted/20">
             <img
-              src={value}
+              src={sanitizedThumbnailUrl}
               alt="Preview Thumbnail Kampanye"
+              onError={() => {
+                toast.error('Gambar thumbnail gagal dimuat atau tautan tidak valid.');
+              }}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.01]"
             />
             {/* High-contrast hover overlay */}

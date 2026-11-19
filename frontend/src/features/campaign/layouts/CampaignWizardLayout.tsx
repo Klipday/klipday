@@ -1,4 +1,5 @@
 import { Suspense, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle } from 'lucide-react';
 import { Navigate, Outlet, useLocation, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -11,13 +12,17 @@ import {
 } from '../components';
 import { CAMPAIGN_WIZARD_STEPS, GetWizardStepPath } from '../config/wizard-steps';
 import { UseCampaignQuery } from '../hooks';
-import { GetHighestAccessibleStepNumber } from '../utils';
+import {
+  GetHighestAccessibleStepNumber,
+  SubscribeCampaignUpdatesAcrossTabs,
+} from '../utils';
 
 /**
  * Layout orchestrator for the campaign creation workflow wizard.
  * Houses the wizard header with back navigation,
  * the progress stepper showing current step completion and locks,
  * route guards ensuring users cannot skip incomplete mandatory steps,
+ * cross-tab synchronization via BroadcastChannel,
  * centralized error recovery, and the dynamic nested route outlet for each step.
  *
  * @returns The rendered campaign wizard layout shell.
@@ -25,8 +30,24 @@ import { GetHighestAccessibleStepNumber } from '../utils';
 function CampaignWizardLayout() {
   const { id } = useParams<{ id?: string }>();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   const { data: campaign, isLoading, isError, error, refetch } = UseCampaignQuery(id);
+
+  useEffect(() => {
+    const unsubscribe = SubscribeCampaignUpdatesAcrossTabs((remoteCampaignId) => {
+      if (!id || !remoteCampaignId || remoteCampaignId === id) {
+        if (id) {
+          void queryClient.invalidateQueries({ queryKey: ['campaign', id] });
+          void queryClient.invalidateQueries({ queryKey: ['campaign-payment', id] });
+        }
+        void queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+        void queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
+      }
+    });
+
+    return unsubscribe;
+  }, [id, queryClient]);
 
   const matchedStep = CAMPAIGN_WIZARD_STEPS.find((step) => location.pathname.includes(step.slug));
   const currentStepNumber = matchedStep?.stepNumber ?? 1;

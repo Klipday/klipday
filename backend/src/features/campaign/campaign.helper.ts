@@ -1,14 +1,49 @@
-import type { Prisma } from '../../generated/prisma/client.js';
-import { CampaignStatus, Role, Status } from '../../generated/prisma/enums.js';
+import { Readable } from 'node:stream';
+import { TransformStream } from 'node:stream/web';
+import type { Request } from 'express';
+import { Prisma } from '../../generated/prisma/client.js';
+import { CampaignStatus, PaymentStatus, Role, Status, WalletTransactionType } from '../../generated/prisma/enums.js';
 import type { AuthPayload } from '../../middleware/auth.middleware.js';
-import { SCALAR_FIELDS } from './campaign.constants.js';
+import {
+  CAMPAIGN_FIELD_LIMITS,
+  CAMPAIGN_MESSAGES,
+  DEFAULT_CAMPAIGN_STORAGE_BUCKET,
+  SCALAR_FIELDS,
+  WALLET_PAYMENT_DESTINATION_ACCOUNT,
+  WALLET_PAYMENT_DESTINATION_BANK,
+} from './campaign.constants.js';
 import type {
   CampaignBriefInput,
   CampaignEditInput,
+  CampaignImageUploadOptions,
+  CampaignImageUploadResult,
   CampaignMaterialsInput,
   CampaignQueryInput,
   CampaignSortOption,
+  ExecuteBankTransferConfirmParams,
+  ExecuteCampaignSubmissionParams,
+  ExecuteVerifyCampaignPaymentParams,
+  ExecuteWalletPaymentParams,
 } from './campaign.types.js';
+
+/**
+ * Expected HTTP error thrown inside Prisma interactive transactions so PostgreSQL rolls back
+ * partial writes cleanly before translating to a standardized API error response.
+ */
+export class CampaignTransactionError extends Error {
+  public readonly statusCode: number;
+
+  /**
+   * Creates a typed transaction-abort error with an HTTP status code and localized message.
+   *
+   * @param statusCode - HTTP response status code (e.g. 400, 404, 409).
+   * @param message - Localized API error message.
+   */
+  public constructor(statusCode: number, message: string) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
 
 /**
  * Copies `value` into `target[key]` when it is defined, so only the fields
@@ -346,6 +381,653 @@ export function EnrichCampaignEscrowMetrics<
   };
 
   return enriched;
+}
+
+/**
+ * Inspects initial file bytes to identify genuine JPEG, PNG, or WEBP signatures,
+ * blocking Content-Type spoofing (e.g. HTML, SVG, or executable payloads labeled as `image/png`).
+ *
+ * @param bytes - Leading header bytes buffered from the upload stream.
+ * @returns Detected canonical extension (`jpg` | `png` | `webp`), or `null` when unrecognized.
+ */
+export function DetectImageMagicBytes(bytes: Uint8Array): 'jpg' | 'png' | 'webp' | null {
+  // JPEG SOI marker: FF D8 FF
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return 'jpg';
+  }
+
+  // PNG signature: 89 50 4E 47 0D 0A 1A 0A
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) {
+    return 'png';
+  }
+
+  // WEBP RIFF container: "RIFF" (0..3) + "WEBP" (8..11)
+  if (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return 'webp';
+  }
+
+  return null;
+}
+
+/**
+ * Concatenates small buffered header chunks into a single Uint8Array for magic-byte verification.
+ *
+ * @param chunks - Array of header chunks captured before reaching header inspection threshold.
+ * @param totalLength - Combined byte count across all chunks.
+ * @returns Single contiguous Uint8Array containing the header bytes.
+ */
+function MergeHeaderChunks(chunks: Uint8Array[], totalLength: number): Uint8Array {
+  const merged = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return merged;
+}
+
+/**
+ * Extracts a safe nested Supabase object path for a given campaign folder when a public URL
+ * belongs to this application's Supabase Storage bucket.
+ *
+ * @param publicUrl - Candidate public asset URL stored on a campaign record.
+ * @param campaignId - Owning campaign identifier used to scope deletions strictly to that campaign folder.
+ * @returns Relative storage object path when valid and scoped, otherwise null.
+ */
+export function ExtractSupabaseObjectPath(publicUrl: string | null | undefined, campaignId: string): string | null {
+  if (!publicUrl) {
+    return null;
+  }
+
+  const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/+$/, '');
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET || DEFAULT_CAMPAIGN_STORAGE_BUCKET;
+
+  if (!supabaseUrl) {
+    return null;
+  }
+
+  const publicPrefix = `${supabaseUrl}/storage/v1/object/public/${bucket}/`;
+  if (!publicUrl.startsWith(publicPrefix)) {
+    return null;
+  }
+
+  const relativePath = publicUrl.slice(publicPrefix.length);
+  const campaignPrefix = `campaigns/${campaignId}/`;
+
+  if (!relativePath.startsWith(campaignPrefix) || relativePath.includes('..')) {
+    return null;
+  }
+
+  return relativePath;
+}
+
+/**
+ * Best-effort asynchronous deletion of an orphaned image asset from Supabase Storage
+ * when a campaign thumbnail is replaced on the same campaign. Never throws on network errors.
+ *
+ * @param previousUrl - Previously stored thumbnail public URL.
+ * @param campaignId - Campaign identifier scoping allowed object deletions.
+ */
+export async function DeleteSupabaseObjectIfInBucket(
+  previousUrl: string | null | undefined,
+  campaignId: string,
+): Promise<void> {
+  const objectPath = ExtractSupabaseObjectPath(previousUrl, campaignId);
+  if (!objectPath) {
+    return;
+  }
+
+  const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/+$/, '');
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET || DEFAULT_CAMPAIGN_STORAGE_BUCKET;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return;
+  }
+
+  try {
+    const deleteUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${objectPath}`;
+    const response = await fetch(deleteUrl, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: serviceRoleKey,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      console.warn(`[Supabase Storage Cleanup] Failed (${response.status}) for ${objectPath}:`, errorText);
+    }
+  } catch (cleanupError) {
+    console.warn(`[Supabase Storage Cleanup] Error deleting ${objectPath}:`, cleanupError);
+  }
+}
+
+/**
+ * Unwraps nested stream errors thrown through Undici `fetch` (often wrapped in `TypeError.cause`).
+ *
+ * @param error - Unknown caught error object.
+ * @returns Known stream validation error token or null.
+ */
+function ExtractStreamValidationCode(error: unknown): 'FILE_SIZE_EXCEEDED' | 'INVALID_IMAGE_SIGNATURE' | null {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  if (error.message === 'FILE_SIZE_EXCEEDED' || error.message === 'INVALID_IMAGE_SIGNATURE') {
+    return error.message;
+  }
+
+  const errorWithCause = error as Error & { cause?: unknown };
+  if (errorWithCause.cause instanceof Error) {
+    const causeMsg = errorWithCause.cause.message;
+    if (causeMsg === 'FILE_SIZE_EXCEEDED' || causeMsg === 'INVALID_IMAGE_SIGNATURE') {
+      return causeMsg;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Zero-dependency binary stream uploader to Supabase Storage with Content-Type validation,
+ * Content-Length enforcement, byte-limit DoS protection, and magic-byte header verification.
+ *
+ * @param req - Incoming Express request stream.
+ * @param options - Upload validation and Supabase folder configuration.
+ * @returns Discriminated result containing either the uploaded `publicUrl` or HTTP error details.
+ */
+export async function StreamCampaignImageUpload(
+  req: Request,
+  options: CampaignImageUploadOptions,
+): Promise<CampaignImageUploadResult> {
+  const rawContentType = req.headers['content-type']?.split(';')[0]?.trim().toLowerCase() ?? '';
+  const fileExtension = options.allowedMimeTypes[rawContentType];
+
+  if (!fileExtension) {
+    return {
+      ok: false,
+      statusCode: 400,
+      message: CAMPAIGN_MESSAGES.UNSUPPORTED_FILE_TYPE,
+    };
+  }
+
+  const contentLength = Number(req.headers['content-length']);
+  if (!contentLength || Number.isNaN(contentLength)) {
+    return {
+      ok: false,
+      statusCode: 411,
+      message: CAMPAIGN_MESSAGES.CONTENT_LENGTH_REQUIRED,
+    };
+  }
+
+  if (contentLength > options.maxSizeBytes) {
+    return {
+      ok: false,
+      statusCode: 400,
+      message: CAMPAIGN_MESSAGES.FILE_SIZE_EXCEEDED,
+    };
+  }
+
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET || DEFAULT_CAMPAIGN_STORAGE_BUCKET;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return {
+      ok: false,
+      statusCode: 500,
+      message: CAMPAIGN_MESSAGES.STORAGE_CONFIG_MISSING,
+    };
+  }
+
+  let bytesReceived = 0;
+  let headerValidated = false;
+  let headerBufferedLength = 0;
+  let headerChunks: Uint8Array[] = [];
+
+  const streamValidator = new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      bytesReceived += chunk.byteLength;
+      if (bytesReceived > options.maxSizeBytes) {
+        controller.error(new Error('FILE_SIZE_EXCEEDED'));
+        return;
+      }
+
+      if (headerValidated) {
+        controller.enqueue(chunk);
+        return;
+      }
+
+      headerChunks.push(chunk);
+      headerBufferedLength += chunk.byteLength;
+
+      if (headerBufferedLength >= CAMPAIGN_FIELD_LIMITS.IMAGE_SIGNATURE_HEADER_BYTES) {
+        const mergedHeader = MergeHeaderChunks(headerChunks, headerBufferedLength);
+        const detectedExt = DetectImageMagicBytes(mergedHeader);
+        if (detectedExt !== fileExtension) {
+          controller.error(new Error('INVALID_IMAGE_SIGNATURE'));
+          return;
+        }
+
+        headerValidated = true;
+        headerChunks = [];
+        controller.enqueue(mergedHeader);
+      }
+    },
+    flush(controller) {
+      if (headerValidated) {
+        return;
+      }
+
+      if (headerBufferedLength === 0) {
+        controller.error(new Error('INVALID_IMAGE_SIGNATURE'));
+        return;
+      }
+
+      const mergedHeader = MergeHeaderChunks(headerChunks, headerBufferedLength);
+      const detectedExt = DetectImageMagicBytes(mergedHeader);
+      if (detectedExt !== fileExtension) {
+        controller.error(new Error('INVALID_IMAGE_SIGNATURE'));
+        return;
+      }
+
+      headerValidated = true;
+      headerChunks = [];
+      controller.enqueue(mergedHeader);
+    },
+  });
+
+  try {
+    const webStream = Readable.toWeb(req).pipeThrough(streamValidator);
+    const storagePath = `campaigns/${options.campaignId}/${options.folderPrefix}-${Date.now()}.${fileExtension}`;
+    const cleanSupabaseUrl = supabaseUrl.replace(/\/+$/, '');
+    const targetUrl = `${cleanSupabaseUrl}/storage/v1/object/${bucket}/${storagePath}`;
+
+    const supabaseResponse = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: serviceRoleKey,
+        'Content-Type': rawContentType,
+        'x-upsert': 'true',
+      },
+      body: webStream,
+      duplex: 'half',
+    });
+
+    if (!supabaseResponse.ok) {
+      const errorDetail = await supabaseResponse.text();
+      console.error('[Supabase Storage Upload Error]', supabaseResponse.status, errorDetail);
+      return {
+        ok: false,
+        statusCode: 502,
+        message: CAMPAIGN_MESSAGES.STORAGE_UPLOAD_FAILED,
+      };
+    }
+
+    const publicUrl = `${cleanSupabaseUrl}/storage/v1/object/public/${bucket}/${storagePath}`;
+    return { ok: true, publicUrl };
+  } catch (error) {
+    const validationCode = ExtractStreamValidationCode(error);
+    if (validationCode === 'FILE_SIZE_EXCEEDED') {
+      return {
+        ok: false,
+        statusCode: 400,
+        message: CAMPAIGN_MESSAGES.FILE_SIZE_EXCEEDED,
+      };
+    }
+    if (validationCode === 'INVALID_IMAGE_SIGNATURE') {
+      return {
+        ok: false,
+        statusCode: 400,
+        message: CAMPAIGN_MESSAGES.INVALID_IMAGE_SIGNATURE,
+      };
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Executes campaign submission transition and initial PENDING invoice provisioning
+ * inside a lean transaction holding row locks strictly for state & payment writes.
+ *
+ * @param tx - Active Prisma transaction client.
+ * @param params - Campaign submission state and invoice details.
+ * @returns Object indicating whether the campaign bypassed payment via already-approved revision.
+ */
+export async function ExecuteCampaignSubmissionInTx(
+  tx: Prisma.TransactionClient,
+  params: ExecuteCampaignSubmissionParams,
+): Promise<{ isPaidRevision: boolean }> {
+  const existingPayment = await tx.campaignPayment.findFirst({
+    where: {
+      campaignId: params.campaignId,
+      status: Status.ACTIVE,
+    },
+    orderBy: { createdAt: 'desc' as const },
+  });
+
+  const isPaidRevision =
+    params.currentStatus === CampaignStatus.REVISION &&
+    existingPayment?.paymentStatus === PaymentStatus.APPROVED;
+
+  const targetStatus = isPaidRevision ? CampaignStatus.IN_REVIEW : CampaignStatus.AWAITING_PAYMENT;
+
+  const claimed = await tx.campaign.updateMany({
+    where: {
+      id: params.campaignId,
+      status: Status.ACTIVE,
+      campaignStatus: params.currentStatus,
+    },
+    data: {
+      campaignStatus: targetStatus,
+      adminNote: null,
+    },
+  });
+
+  if (claimed.count === 0) {
+    throw new CampaignTransactionError(409, CAMPAIGN_MESSAGES.PAYMENT_RACE_CONFLICT);
+  }
+
+  if (!isPaidRevision) {
+    if (!existingPayment || existingPayment.paymentStatus === PaymentStatus.REJECTED) {
+      const uniqueCode = GeneratePaymentUniqueCode();
+      const totalPayable = params.budgetAmount + uniqueCode;
+
+      await tx.campaignPayment.create({
+        data: {
+          campaignId: params.campaignId,
+          amount: params.budgetAmount,
+          uniqueCode,
+          totalPayable,
+          destinationBank: params.destinationBank,
+          destinationAccount: params.destinationAccount,
+          paymentStatus: PaymentStatus.PENDING,
+          status: Status.ACTIVE,
+        },
+      });
+    } else if (existingPayment.paymentStatus === PaymentStatus.PENDING) {
+      const validCode =
+        existingPayment.uniqueCode >= 100 && existingPayment.uniqueCode <= 999
+          ? existingPayment.uniqueCode
+          : GeneratePaymentUniqueCode();
+      const totalPayable = params.budgetAmount + validCode;
+
+      await tx.campaignPayment.update({
+        where: { id: existingPayment.id },
+        data: {
+          amount: params.budgetAmount,
+          uniqueCode: validCode,
+          totalPayable,
+          destinationBank: params.destinationBank,
+          destinationAccount: params.destinationAccount,
+        },
+      });
+    }
+  }
+
+  return { isPaidRevision };
+}
+
+/**
+ * Executes wallet-based campaign payment in 4 pure write operations inside a lean transaction:
+ * 1) conditional campaign status + budget lock claim (`updateMany`),
+ * 2) conditional wallet debit returning post-debit balance (`updateManyAndReturn`),
+ * 3) wallet ledger transaction insert, and
+ * 4) campaign payment approval update or insert.
+ *
+ * @param tx - Active Prisma transaction client.
+ * @param params - Pre-validated campaign, account, budget, and latest payment metadata.
+ */
+export async function ExecuteWalletPaymentInTx(
+  tx: Prisma.TransactionClient,
+  params: ExecuteWalletPaymentParams,
+): Promise<void> {
+  const budgetDecimal = new Prisma.Decimal(params.budget);
+
+  const claimedCampaign = await tx.campaign.updateMany({
+    where: {
+      id: params.campaignId,
+      status: Status.ACTIVE,
+      campaignStatus: CampaignStatus.AWAITING_PAYMENT,
+      budget: budgetDecimal,
+    },
+    data: {
+      campaignStatus: CampaignStatus.IN_REVIEW,
+      adminNote: null,
+    },
+  });
+
+  if (claimedCampaign.count === 0) {
+    throw new CampaignTransactionError(409, CAMPAIGN_MESSAGES.PAYMENT_RACE_CONFLICT);
+  }
+
+  const debitedWallets = await tx.wallet.updateManyAndReturn({
+    select: { id: true, balance: true },
+    where: {
+      accountId: params.accountId,
+      status: Status.ACTIVE,
+      balance: { gte: budgetDecimal },
+    },
+    data: {
+      balance: { decrement: budgetDecimal },
+    },
+  });
+
+  const debitedWallet = debitedWallets[0];
+  if (!debitedWallet) {
+    throw new CampaignTransactionError(400, CAMPAIGN_MESSAGES.INSUFFICIENT_WALLET_BALANCE);
+  }
+
+  const balanceAfter = Number(debitedWallet.balance);
+  const balanceBefore = balanceAfter + params.budget;
+  const refCode = GenerateWalletTransactionReferenceCode();
+
+  await tx.walletTransaction.create({
+    data: {
+      referenceCode: refCode,
+      walletId: debitedWallet.id,
+      type: WalletTransactionType.CAMPAIGN_PAYMENT,
+      amount: params.budget,
+      balanceBefore,
+      balanceAfter,
+      description: `Pembayaran kampanye "${params.campaignTitle ?? 'Klipday'}" via saldo dompet`,
+      campaignId: params.campaignId,
+      status: Status.ACTIVE,
+    },
+  });
+
+  const approvedPaymentPayload = {
+    paymentStatus: PaymentStatus.APPROVED,
+    amount: params.budget,
+    uniqueCode: 0,
+    totalPayable: params.budget,
+    destinationBank: WALLET_PAYMENT_DESTINATION_BANK,
+    destinationAccount: WALLET_PAYMENT_DESTINATION_ACCOUNT,
+    verifiedByAdminId: null,
+    verifiedAt: new Date(),
+    rejectionReason: null,
+  };
+
+  if (params.latestPayment) {
+    const updatedPayment = await tx.campaignPayment.updateMany({
+      where: {
+        id: params.latestPayment.id,
+        status: Status.ACTIVE,
+        paymentStatus: params.latestPayment.paymentStatus,
+      },
+      data: approvedPaymentPayload,
+    });
+
+    if (updatedPayment.count === 0) {
+      throw new CampaignTransactionError(409, CAMPAIGN_MESSAGES.PAYMENT_RACE_CONFLICT);
+    }
+  } else {
+    await tx.campaignPayment.create({
+      data: {
+        campaignId: params.campaignId,
+        ...approvedPaymentPayload,
+        status: Status.ACTIVE,
+      },
+    });
+  }
+}
+
+/**
+ * Atomically transitions an AWAITING_PAYMENT campaign to IN_REVIEW and persists bank transfer
+ * proof inside a lean 2-write transaction without holding locks during detail joins.
+ *
+ * @param tx - Active Prisma transaction client.
+ * @param params - Pre-validated bank transfer confirmation parameters.
+ */
+export async function ExecuteBankTransferConfirmInTx(
+  tx: Prisma.TransactionClient,
+  params: ExecuteBankTransferConfirmParams,
+): Promise<void> {
+  const claimedCampaign = await tx.campaign.updateMany({
+    where: {
+      id: params.campaignId,
+      status: Status.ACTIVE,
+      campaignStatus: CampaignStatus.AWAITING_PAYMENT,
+      budget: new Prisma.Decimal(params.budgetAmount),
+    },
+    data: {
+      campaignStatus: CampaignStatus.IN_REVIEW,
+      adminNote: null,
+    },
+  });
+
+  if (claimedCampaign.count === 0) {
+    throw new CampaignTransactionError(409, CAMPAIGN_MESSAGES.PAYMENT_RACE_CONFLICT);
+  }
+
+  const submittedPaymentPayload = {
+    amount: params.budgetAmount,
+    uniqueCode: params.uniqueCode,
+    totalPayable: params.totalPayable,
+    destinationBank: params.destinationBank,
+    destinationAccount: params.destinationAccount,
+    senderProviderName: params.senderProviderName,
+    senderAccountName: params.senderAccountName,
+    transferProofUrl: params.transferProofUrl,
+    paymentStatus: PaymentStatus.SUBMITTED,
+    verifiedByAdminId: null,
+    verifiedAt: null,
+    rejectionReason: null,
+  };
+
+  if (params.latestPaymentId) {
+    const updatedPayment = await tx.campaignPayment.updateMany({
+      where: {
+        id: params.latestPaymentId,
+        status: Status.ACTIVE,
+        paymentStatus: { in: [PaymentStatus.PENDING, PaymentStatus.REJECTED] },
+      },
+      data: submittedPaymentPayload,
+    });
+
+    if (updatedPayment.count === 0) {
+      throw new CampaignTransactionError(409, CAMPAIGN_MESSAGES.PAYMENT_RACE_CONFLICT);
+    }
+  } else {
+    await tx.campaignPayment.create({
+      data: {
+        campaignId: params.campaignId,
+        ...submittedPaymentPayload,
+        status: Status.ACTIVE,
+      },
+    });
+  }
+}
+
+/**
+ * Executes administrative verification of a submitted manual bank transfer inside a lean transaction
+ * (2–3 writes only, keeping detail queries outside the lock window).
+ *
+ * @param tx - Active Prisma transaction client.
+ * @param params - Verification action, admin ID, payment, and optional wallet info.
+ */
+export async function ExecuteVerifyCampaignPaymentInTx(
+  tx: Prisma.TransactionClient,
+  params: ExecuteVerifyCampaignPaymentParams,
+): Promise<void> {
+  const isApprove = params.action === 'APPROVE';
+  const targetStatus = isApprove ? CampaignStatus.ACTIVE : CampaignStatus.AWAITING_PAYMENT;
+  const targetPaymentStatus = isApprove ? PaymentStatus.APPROVED : PaymentStatus.REJECTED;
+
+  const claimedCampaign = await tx.campaign.updateMany({
+    where: {
+      id: params.campaignId,
+      status: Status.ACTIVE,
+      campaignStatus: CampaignStatus.IN_REVIEW,
+    },
+    data: {
+      campaignStatus: targetStatus,
+      adminNote: isApprove ? null : params.rejectionReason,
+    },
+  });
+
+  if (claimedCampaign.count === 0) {
+    throw new CampaignTransactionError(409, CAMPAIGN_MESSAGES.PAYMENT_RACE_CONFLICT);
+  }
+
+  const claimedPayment = await tx.campaignPayment.updateMany({
+    where: {
+      id: params.latestPayment.id,
+      status: Status.ACTIVE,
+      paymentStatus: PaymentStatus.SUBMITTED,
+    },
+    data: {
+      paymentStatus: targetPaymentStatus,
+      rejectionReason: isApprove ? null : params.rejectionReason,
+      verifiedByAdminId: params.adminId,
+      verifiedAt: new Date(),
+    },
+  });
+
+  if (claimedPayment.count === 0) {
+    throw new CampaignTransactionError(409, CAMPAIGN_MESSAGES.PAYMENT_RACE_CONFLICT);
+  }
+
+  if (isApprove && params.brandWallet) {
+    const refCode = GenerateWalletTransactionReferenceCode();
+    await tx.walletTransaction.create({
+      data: {
+        referenceCode: refCode,
+        walletId: params.brandWallet.id,
+        type: WalletTransactionType.CAMPAIGN_PAYMENT,
+        amount: params.latestPayment.totalPayable,
+        balanceBefore: params.brandWallet.balance,
+        balanceAfter: params.brandWallet.balance,
+        description: `Pembayaran kampanye "${params.campaignTitle ?? 'Klipday'}" via transfer manual terverifikasi admin`,
+        campaignId: params.campaignId,
+        status: Status.ACTIVE,
+      },
+    });
+  }
 }
 
 

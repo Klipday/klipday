@@ -3,16 +3,25 @@ import type { RewardFormValues } from '../schemas';
 import type { Campaign, CampaignProjections } from '../types';
 
 /**
- * Formats a Date object or date string into an HTML date input format (YYYY-MM-DD).
+ * Formats a Date object or date string into an HTML date input format (YYYY-MM-DD)
+ * aligned to the Asia/Jakarta (WIB) calendar date so local selections do not shift by 1 day.
  *
  * @param date - The Date or ISO string to format.
- * @returns Formatted date string or empty string if invalid.
+ * @returns Formatted YYYY-MM-DD date string or empty string if invalid.
  */
 export function FormatDateForInput(date?: string | Date | null): string {
   if (!date) return '';
+  if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date.trim())) {
+    return date.trim();
+  }
   const parsed = new Date(date);
   if (isNaN(parsed.getTime())) return '';
-  const formatted = parsed.toISOString().split('T')[0] ?? '';
+  const formatted = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(parsed);
   return formatted;
 }
 
@@ -77,8 +86,8 @@ export function CalculateCampaignProjections(values: Partial<RewardFormValues>):
   const maxViews = Number(values.maxViews) || 0;
   const budget = Number(values.budget) || 0;
 
-  const totalEstimatedViews = cpm > 0 && budget > 0 ? Math.round((budget / cpm) * 1000) : 0;
-  const maxEarningsPerVideo = maxViews > 0 && cpm > 0 ? Math.round((maxViews / 1000) * cpm) : 0;
+  const totalEstimatedViews = cpm > 0 && budget > 0 ? Math.floor((budget / cpm) * 1000) : 0;
+  const maxEarningsPerVideo = maxViews > 0 && cpm > 0 ? Math.floor((maxViews * cpm) / 1000) : 0;
   const minFundedVideos = maxEarningsPerVideo > 0 && budget > 0 ? Math.floor(budget / maxEarningsPerVideo) : 0;
 
   let durationDays = 0;

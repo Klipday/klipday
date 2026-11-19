@@ -10,4 +10,5 @@ export const CAMPAIGN_STATUS_TABS: StatusTabItem[] = [
   { key: 'IN_REVIEW', label: 'Menunggu Review', countKey: 'IN_REVIEW' },
   { key: 'REVISION', label: 'Perlu Revisi', countKey: 'REVISION', alertOnCount: true },
   { key: 'FINISHED', label: 'Selesai', countKey: 'FINISHED' },
+  { key: 'REJECTED', label: 'Ditolak', countKey: 'REJECTED' },
 ];

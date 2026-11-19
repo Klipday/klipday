@@ -45,13 +45,12 @@ export function ResumeDraftBanner({ className }: ResumeDraftBannerProps) {
   const draftCount = counts?.DRAFT ?? 0;
 
   const { data: draftsData, isLoading: isDraftsLoading } = UseCampaignsQuery(
-    draftCount > 0
-      ? {
-          campaignStatus: 'DRAFT',
-          sort: 'latest',
-          limit: 5,
-        }
-      : undefined
+    {
+      campaignStatus: 'DRAFT',
+      sort: 'latest',
+      limit: 5,
+    },
+    { enabled: draftCount > 0 }
   );
 
   const deleteMutation = UseDeleteCampaignMutation({

@@ -350,14 +350,11 @@ describe('Admin Campaign Moderation Module', () => {
       const next = CreateMockNext();
 
       jest.spyOn(prisma.campaign, 'findMany').mockResolvedValue([sampleInReviewCampaign as never]);
-      jest
-        .spyOn(prisma.campaign, 'count')
-        .mockResolvedValueOnce(1) // totalFiltered
-        .mockResolvedValueOnce(1) // countInReview
-        .mockResolvedValueOnce(0) // countRevision
-        .mockResolvedValueOnce(2) // countActive
-        .mockResolvedValueOnce(0) // countRejected
-        .mockResolvedValueOnce(3); // countAll
+      jest.spyOn(prisma.campaign, 'count').mockResolvedValueOnce(1);
+      jest.spyOn(prisma.campaign, 'groupBy').mockResolvedValue([
+        { campaignStatus: CampaignStatus.IN_REVIEW, _count: { _all: 1 } },
+        { campaignStatus: CampaignStatus.ACTIVE, _count: { _all: 2 } },
+      ] as never);
 
       await GetAdminModerationCampaigns(req, res, next);
 
@@ -489,9 +486,9 @@ describe('Admin Campaign Moderation Module', () => {
           findFirst: jest.fn().mockResolvedValue(mockBrandWallet),
           update: jest.fn().mockResolvedValue(mockBrandWallet),
         },
-        campaignPayment: { update: jest.fn().mockResolvedValue({}) },
+        campaignPayment: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
         walletTransaction: { create: jest.fn().mockResolvedValue({}) },
-        campaign: { update: jest.fn().mockResolvedValue({}) },
+        campaign: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
       };
 
       jest.spyOn(prisma, '$transaction').mockImplementation(async (callback: unknown) => {
@@ -501,9 +498,9 @@ describe('Admin Campaign Moderation Module', () => {
       await ModerateCampaign(req, res, next);
 
       expect(statusMock).toHaveBeenCalledWith(200);
-      expect(mockTx.campaignPayment.update).toHaveBeenCalledWith(
+      expect(mockTx.campaignPayment.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: sampleInReviewCampaign.payments[0].id },
+          where: expect.objectContaining({ id: sampleInReviewCampaign.payments[0].id }),
           data: expect.objectContaining({
             paymentStatus: PaymentStatus.APPROVED,
             verifiedByAdminId: mockAdmin.id,
@@ -518,9 +515,12 @@ describe('Admin Campaign Moderation Module', () => {
           }),
         }),
       );
-      expect(mockTx.campaign.update).toHaveBeenCalledWith(
+      expect(mockTx.campaign.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: sampleInReviewCampaign.id },
+          where: expect.objectContaining({
+            id: sampleInReviewCampaign.id,
+            campaignStatus: CampaignStatus.IN_REVIEW,
+          }),
           data: expect.objectContaining({
             campaignStatus: CampaignStatus.ACTIVE,
             adminNote: null,
@@ -558,9 +558,9 @@ describe('Admin Campaign Moderation Module', () => {
           findFirst: jest.fn().mockResolvedValue(mockBrandWallet),
           update: jest.fn().mockResolvedValue(mockBrandWallet),
         },
-        campaignPayment: { update: jest.fn().mockResolvedValue({}) },
+        campaignPayment: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
         walletTransaction: { create: jest.fn().mockResolvedValue({}) },
-        campaign: { update: jest.fn().mockResolvedValue({}) },
+        campaign: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
       };
 
       jest.spyOn(prisma, '$transaction').mockImplementation(async (callback: unknown) => {
@@ -570,14 +570,14 @@ describe('Admin Campaign Moderation Module', () => {
       await ModerateCampaign(req, res, next);
 
       expect(statusMock).toHaveBeenCalledWith(200);
-      expect(mockTx.campaignPayment.update).toHaveBeenCalledWith(
+      expect(mockTx.campaignPayment.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             paymentStatus: PaymentStatus.APPROVED,
           }),
         }),
       );
-      expect(mockTx.campaign.update).toHaveBeenCalledWith(
+      expect(mockTx.campaign.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             campaignStatus: CampaignStatus.REVISION,
@@ -647,14 +647,17 @@ describe('Admin Campaign Moderation Module', () => {
 
       jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockBrandWallet as never);
 
+      const expectedRefundAmount = Number(sampleInReviewCampaign.payments[0].totalPayable);
+      const expectedNewBalance = Number(mockBrandWallet.balance) + expectedRefundAmount;
+
       const mockTx = {
-        campaignPayment: { update: jest.fn().mockResolvedValue({}) },
+        campaignPayment: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
         walletTransaction: { create: jest.fn().mockResolvedValue({}) },
         wallet: {
           findFirst: jest.fn().mockResolvedValue(mockBrandWallet),
-          update: jest.fn().mockResolvedValue(mockBrandWallet),
+          update: jest.fn().mockResolvedValue({ ...mockBrandWallet, balance: new Prisma.Decimal(expectedNewBalance) }),
         },
-        campaign: { update: jest.fn().mockResolvedValue({}) },
+        campaign: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
       };
 
       jest.spyOn(prisma, '$transaction').mockImplementation(async (callback: unknown) => {
@@ -666,7 +669,7 @@ describe('Admin Campaign Moderation Module', () => {
       expect(statusMock).toHaveBeenCalledWith(200);
 
       // Payment verified
-      expect(mockTx.campaignPayment.update).toHaveBeenCalledWith(
+      expect(mockTx.campaignPayment.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             paymentStatus: PaymentStatus.APPROVED,
@@ -674,14 +677,11 @@ describe('Admin Campaign Moderation Module', () => {
         }),
       );
 
-      // Wallet balance refunded
-      const expectedRefundAmount = Number(sampleInReviewCampaign.payments[0].totalPayable);
-      const expectedNewBalance = Number(mockBrandWallet.balance) + expectedRefundAmount;
-
+      // Wallet balance refunded atomically with SQL increment
       expect(mockTx.wallet.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: mockBrandWallet.id },
-          data: { balance: new Prisma.Decimal(expectedNewBalance) },
+          data: { balance: { increment: new Prisma.Decimal(expectedRefundAmount) } },
         }),
       );
 
@@ -696,7 +696,7 @@ describe('Admin Campaign Moderation Module', () => {
       );
 
       // Campaign set to REJECTED
-      expect(mockTx.campaign.update).toHaveBeenCalledWith(
+      expect(mockTx.campaign.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             campaignStatus: CampaignStatus.REJECTED,
@@ -731,13 +731,13 @@ describe('Admin Campaign Moderation Module', () => {
       jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockBrandWallet as never);
 
       const mockTx = {
-        campaignPayment: { update: jest.fn().mockResolvedValue({}) },
+        campaignPayment: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
         walletTransaction: { create: jest.fn().mockResolvedValue({}) },
         wallet: {
           findFirst: jest.fn().mockResolvedValue(mockBrandWallet),
           update: jest.fn().mockResolvedValue(mockBrandWallet),
         },
-        campaign: { update: jest.fn().mockResolvedValue({}) },
+        campaign: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
       };
 
       jest.spyOn(prisma, '$transaction').mockImplementation(async (callback: unknown) => {
@@ -749,7 +749,7 @@ describe('Admin Campaign Moderation Module', () => {
       expect(statusMock).toHaveBeenCalledWith(200);
 
       // Payment marked REJECTED
-      expect(mockTx.campaignPayment.update).toHaveBeenCalledWith(
+      expect(mockTx.campaignPayment.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             paymentStatus: PaymentStatus.REJECTED,
@@ -761,6 +761,44 @@ describe('Admin Campaign Moderation Module', () => {
       // No wallet refund
       expect(mockTx.wallet.update).not.toHaveBeenCalled();
       expect(mockTx.walletTransaction.create).not.toHaveBeenCalled();
+    });
+
+    it('returns 409 MODERATION_RACE_CONFLICT and aborts wallet refund when two admins reject concurrently', async () => {
+      const req = CreateMockRequest({
+        account: mockAdminAccount,
+        params: { id: sampleInReviewCampaign.id },
+        body: {
+          action: MODERATION_ACTION.REJECT_CAMPAIGN,
+          adminNote: 'Konflik moderasi paralel.',
+          refundConfirmedManualPayment: true,
+        },
+      });
+      const { res, statusMock, jsonMock } = CreateMockResponse();
+      const next = CreateMockNext();
+
+      jest.spyOn(prisma.admin, 'findFirst').mockResolvedValue(mockAdmin as never);
+      jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(sampleInReviewCampaign as never);
+
+      const mockTx = {
+        campaign: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+        wallet: { update: jest.fn() },
+        walletTransaction: { create: jest.fn() },
+      };
+
+      jest.spyOn(prisma, '$transaction').mockImplementation(async (callback: unknown) => {
+        return (callback as (tx: unknown) => Promise<unknown>)(mockTx);
+      });
+
+      await ModerateCampaign(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(409);
+      expect(mockTx.wallet.update).not.toHaveBeenCalled();
+      expect(mockTx.walletTransaction.create).not.toHaveBeenCalled();
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'error',
+        data: null,
+        message: ADMIN_MESSAGES.MODERATION_RACE_CONFLICT,
+      });
     });
   });
 

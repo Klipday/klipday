@@ -51,4 +51,9 @@ export {
   GetFilterSortLabel,
 } from './campaign-filters';
 export type { FilterOption } from './campaign-filters';
+export {
+  IsCampaignConflictError,
+  NotifyCampaignUpdatedAcrossTabs,
+  SubscribeCampaignUpdatesAcrossTabs,
+} from './campaign-sync';
 

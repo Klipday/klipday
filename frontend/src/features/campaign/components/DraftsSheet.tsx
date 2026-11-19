@@ -26,11 +26,14 @@ export function DraftsSheet({ isOpen, onOpenChange, className }: DraftsSheetProp
   const navigate = useNavigate();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const { data: draftsData, isLoading } = UseCampaignsQuery({
-    campaignStatus: 'DRAFT',
-    sort: 'latest',
-    limit: 50,
-  });
+  const { data: draftsData, isLoading } = UseCampaignsQuery(
+    {
+      campaignStatus: 'DRAFT',
+      sort: 'latest',
+      limit: 50,
+    },
+    { enabled: isOpen }
+  );
 
   const deleteMutation = UseDeleteCampaignMutation({
     successMessage: 'Draf kampanye berhasil dihapus.',

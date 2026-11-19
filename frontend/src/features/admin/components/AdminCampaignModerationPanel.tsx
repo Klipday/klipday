@@ -83,7 +83,10 @@ export function AdminCampaignModerationPanel({
   const materialsCount = campaign.materials?.length ?? 0;
   const brief = campaign.brief;
   const isBriefComplete = Boolean(
-    brief && (brief.guidelines || brief.narration || brief.requiredCaption),
+    brief &&
+      brief.purpose?.trim() &&
+      brief.keyMessage?.trim() &&
+      brief.callToAction?.trim(),
   );
 
   const durationDays = CalculateDurationDays(campaign.startDate, campaign.endDate);

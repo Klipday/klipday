@@ -65,6 +65,7 @@ export const SUBMISSION_MESSAGES = {
   STATUS_NOT_ALLOW_DRAFT: 'Draft cannot be modified in the current submission status.',
   SUBMISSION_STATUS_NOT_RESUBMITTABLE: 'Submission cannot be submitted in the current status.',
   SUBMISSION_STATUS_NOT_REVIEWABLE: 'Video submission cannot be reviewed in its current status.',
+  SUBMISSION_RACE_CONFLICT: 'Status pengajuan video telah berubah secara bersamaan. Harap muat ulang halaman.',
   REJECTED_CANNOT_RESUBMIT: 'This submission has been rejected and cannot be modified or resubmitted.',
 
   // Social Account Validation

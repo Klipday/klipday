@@ -8,7 +8,7 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/c
 import { Input } from '@/components/ui/input';
 import { GetWizardStepPath } from '../config/wizard-steps';
 import { UseCampaignWizardContext, UseEditCampaignMutation, UseUnsavedChangesGuard } from '../hooks';
-import { rewardSchema, type RewardFormValues } from '../schemas';
+import { CreateRewardSchema, type RewardFormValues } from '../schemas';
 import {
   CalculateCampaignProjections,
   FormatDateForInput,
@@ -34,7 +34,9 @@ export function CampaignFormStep4() {
   const navigate = useNavigate();
   const { campaign } = UseCampaignWizardContext();
 
-  const isBudgetLocked = campaign?.payments?.[0]?.paymentStatus === 'APPROVED';
+  const latestPaymentStatus = campaign?.payments?.[0]?.paymentStatus;
+  const isPaymentApproved = latestPaymentStatus === 'APPROVED';
+  const isBudgetLocked = isPaymentApproved || latestPaymentStatus === 'SUBMITTED';
 
   const editMutation = UseEditCampaignMutation(id, {
     successMessage: 'Hadiah & anggaran berhasil disimpan.',
@@ -43,8 +45,18 @@ export function CampaignFormStep4() {
 
   const initialValues = useMemo(() => GetInitialReward(campaign), [campaign]);
 
+  const activeRewardSchema = useMemo(
+    () =>
+      CreateRewardSchema({
+        allowUnchangedPastStartDate:
+          campaign?.campaignStatus === 'REVISION' && isPaymentApproved,
+        existingStartDate: initialValues.startDate,
+      }),
+    [campaign?.campaignStatus, isPaymentApproved, initialValues.startDate]
+  );
+
   const form = useForm<RewardFormValues>({
-    resolver: zodResolver(rewardSchema),
+    resolver: zodResolver(activeRewardSchema),
     defaultValues: initialValues,
     values: initialValues,
     resetOptions: {
@@ -82,11 +94,17 @@ export function CampaignFormStep4() {
       return;
     }
 
-    editMutation.mutate(values, {
-      onSuccess: () => {
-        form.reset(values);
+    editMutation.mutate(
+      {
+        ...values,
+        expectedUpdatedAt: campaign?.updatedAt,
       },
-    });
+      {
+        onSuccess: () => {
+          form.reset(values);
+        },
+      }
+    );
   }
 
   const isPending = editMutation.isPending || form.formState.isSubmitting;

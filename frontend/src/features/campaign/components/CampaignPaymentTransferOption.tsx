@@ -8,7 +8,7 @@ import { BrandBankCombobox } from '@/features/brand/components';
 import { SUPPORTED_EWALLETS } from '@/features/brand/constants';
 import { UseBrandPayoutAccountsQuery } from '@/features/brand/hooks';
 import type { BrandPayoutAccount } from '@/features/brand/types';
-import { cn } from '@/lib/utils';
+import { cn, SanitizeHttpUrl } from '@/lib/utils';
 import { UploadPaymentProof } from '../api';
 import { UseConfirmBankTransferPaymentMutation } from '../hooks';
 import type { CampaignPaymentTransferOptionProps } from '../types';
@@ -24,6 +24,7 @@ import { CampaignPaymentSenderAssistant } from './CampaignPaymentSenderAssistant
  */
 export function CampaignPaymentTransferOption({
   campaignId,
+  budget,
   totalPayable,
   uniqueCode: _uniqueCode,
   bankDetails,
@@ -88,7 +89,13 @@ export function CampaignPaymentTransferOption({
   });
 
   const isPending = confirmMutation.isPending || isUploading;
-  const canSubmit = Boolean(senderProviderName.trim() && senderAccountName.trim() && transferProofUrl && !isPending);
+  const sanitizedProofUrl = SanitizeHttpUrl(transferProofUrl);
+  const canSubmit = Boolean(
+    senderProviderName.trim().length >= 2 &&
+      senderAccountName.trim().length >= 2 &&
+      sanitizedProofUrl &&
+      !isPending
+  );
 
   const HandleCopy = async (text: string, field: 'account' | 'amount') => {
     try {
@@ -148,7 +155,7 @@ export function CampaignPaymentTransferOption({
 
   const HandleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || !sanitizedProofUrl) return;
 
     const trimmedProvider = senderProviderName.trim();
     const trimmedAccount = senderAccountName.trim();
@@ -156,7 +163,9 @@ export function CampaignPaymentTransferOption({
     confirmMutation.mutate({
       senderProviderName: trimmedProvider,
       senderAccountName: trimmedAccount,
-      transferProofUrl,
+      transferProofUrl: sanitizedProofUrl,
+      expectedBudget: budget > 0 ? budget : undefined,
+      expectedTotalPayable: totalPayable > 0 ? totalPayable : undefined,
     });
   };
 
@@ -296,7 +305,7 @@ export function CampaignPaymentTransferOption({
                 value={senderProviderName}
                 onChange={(val) => setSenderProviderName(val)}
                 disabled={isPending}
-                className="h-10 rounded-xl border-border/60 bg-background text-xs"
+                className="h-10 rounded-xl border-border/60 bg-input/50 text-xs"
                 placeholder={
                   accountType === 'BANK_TRANSFER'
                     ? 'Pilih Bank Pengirim'
@@ -319,7 +328,9 @@ export function CampaignPaymentTransferOption({
                 onChange={(e) => setSenderAccountName(e.target.value)}
                 disabled={isPending}
                 required
-                className="h-10 rounded-xl border-border/60 bg-background text-xs sm:text-sm"
+                minLength={2}
+                maxLength={100}
+                className="h-10 rounded-xl border-border/60 bg-input/50 text-xs sm:text-sm"
               />
             </div>
           </div>
@@ -338,11 +349,11 @@ export function CampaignPaymentTransferOption({
               className="hidden"
             />
 
-            {transferProofUrl ? (
+            {sanitizedProofUrl ? (
               <div className="relative overflow-hidden rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-4">
                 <div className="flex items-center gap-3">
                   <div className="relative size-14 shrink-0 overflow-hidden rounded-lg border border-border/40 bg-muted">
-                    <img src={transferProofUrl} alt="Bukti Transfer" className="h-full w-full object-cover" />
+                    <img src={sanitizedProofUrl} alt="Bukti Transfer" className="h-full w-full object-cover" />
                   </div>
                   <div className="min-w-0 flex-1 space-y-0.5">
                     <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-500">
@@ -350,7 +361,7 @@ export function CampaignPaymentTransferOption({
                       Bukti transfer siap diajukan
                     </div>
                     <a
-                      href={transferProofUrl}
+                      href={sanitizedProofUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[11px] text-muted-foreground hover:text-foreground underline truncate block">

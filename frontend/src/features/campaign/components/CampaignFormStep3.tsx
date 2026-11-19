@@ -72,7 +72,10 @@ export function CampaignFormStep3() {
     }
 
     editMutation.mutate(
-      { brief: values },
+      {
+        brief: values,
+        expectedUpdatedAt: campaign?.updatedAt,
+      },
       {
         onSuccess: () => {
           form.reset(values);
@@ -270,6 +273,7 @@ export function CampaignFormStep3() {
                   placeholder="Contoh: skincare, glowing, racunbelanja"
                   prefix="#"
                   variant="pills"
+                  maxItemLength={200}
                   items={field.value ?? []}
                   onAddItem={(newItem) => field.onChange([...(field.value ?? []), newItem])}
                   onRemoveItem={(indexToRemove) => field.onChange((field.value ?? []).filter((_, index) => index !== indexToRemove))}
@@ -290,6 +294,7 @@ export function CampaignFormStep3() {
                   placeholder="Contoh: klipday, brandofficial"
                   prefix="@"
                   variant="pills"
+                  maxItemLength={200}
                   items={field.value ?? []}
                   onAddItem={(newItem) => field.onChange([...(field.value ?? []), newItem])}
                   onRemoveItem={(indexToRemove) => field.onChange((field.value ?? []).filter((_, index) => index !== indexToRemove))}
@@ -321,6 +326,7 @@ export function CampaignFormStep3() {
                 placeholder="Contoh: Tampilkan produk di 3 detik pertama..."
                 variant="rows"
                 tone="positive"
+                maxItemLength={200}
                 items={field.value ?? []}
                 onAddItem={(newItem) => field.onChange([...(field.value ?? []), newItem])}
                 onRemoveItem={(indexToRemove) => field.onChange((field.value ?? []).filter((_, index) => index !== indexToRemove))}
@@ -341,6 +347,7 @@ export function CampaignFormStep3() {
                 placeholder="Contoh: Jangan bandingkan dengan merek kompetitor..."
                 variant="rows"
                 tone="negative"
+                maxItemLength={200}
                 items={field.value ?? []}
                 onAddItem={(newItem) => field.onChange([...(field.value ?? []), newItem])}
                 onRemoveItem={(indexToRemove) => field.onChange((field.value ?? []).filter((_, index) => index !== indexToRemove))}

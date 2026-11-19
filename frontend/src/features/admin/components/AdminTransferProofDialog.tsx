@@ -7,10 +7,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { AdminTransferProofDialogProps } from '../types';
+import { SanitizeHttpUrl } from '@/lib/utils';
 import { FormatRupiah } from '../utils/formatters';
 
 /**
  * Modal dialog for inspecting the brand's uploaded bank transfer receipt.
+ * Sanitizes receipt URLs against dangerous non-HTTP schemes before rendering.
  *
  * @param props - Dialog props containing open state, proof URL, and sender metadata.
  * @returns The rendered transfer proof dialog.
@@ -24,6 +26,7 @@ export function AdminTransferProofDialog({
   totalPayable,
 }: AdminTransferProofDialogProps) {
   const numericPayable = typeof totalPayable === 'string' ? Number(totalPayable) : (totalPayable ?? 0);
+  const safeProofUrl = SanitizeHttpUrl(proofUrl);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -52,22 +55,22 @@ export function AdminTransferProofDialog({
 
         {/* Image Preview Container */}
         <div className="flex max-h-[60vh] items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-background/50 p-2">
-          {proofUrl ? (
+          {safeProofUrl ? (
             <img
-              src={proofUrl}
+              src={safeProofUrl}
               alt="Bukti Struk Transfer"
               className="max-h-[55vh] w-auto rounded-lg object-contain"
             />
           ) : (
             <div className="py-12 text-center text-xs text-muted-foreground">
-              Tidak ada gambar bukti transfer yang terlampir.
+              Tidak ada gambar bukti transfer yang valid.
             </div>
           )}
         </div>
 
         {/* Footer Actions */}
         <div className="flex items-center justify-between pt-2">
-          {proofUrl && (
+          {safeProofUrl && (
             <Button
               type="button"
               variant="outline"
@@ -75,7 +78,7 @@ export function AdminTransferProofDialog({
               asChild
               className="gap-2 text-xs cursor-pointer"
             >
-              <a href={proofUrl} target="_blank" rel="noopener noreferrer">
+              <a href={safeProofUrl} target="_blank" rel="noopener noreferrer">
                 <span>Buka Ukuran Penuh</span>
                 <ExternalLink className="size-3.5" />
               </a>

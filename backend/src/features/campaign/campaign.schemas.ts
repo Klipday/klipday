@@ -1,46 +1,85 @@
 import { z } from 'zod';
 import { CampaignStatus, CampaignType, Category, MaterialType, Platform } from '../../generated/prisma/enums.js';
-import { ADMIN_PAYMENT_VERIFY_ACTIONS, CAMPAIGN_MESSAGES, CAMPAIGN_SORT_OPTIONS } from './campaign.constants.js';
+import {
+  ADMIN_PAYMENT_VERIFY_ACTIONS,
+  CAMPAIGN_FIELD_LIMITS,
+  CAMPAIGN_MESSAGES,
+  CAMPAIGN_SORT_OPTIONS,
+  SCALAR_FIELDS,
+} from './campaign.constants.js';
 
 export type CampaignSortOption = (typeof CAMPAIGN_SORT_OPTIONS)[number];
+
+/**
+ * Builds a strict HTTP/HTTPS URL schema that rejects unsafe pseudo-schemes such as `javascript:` or `data:`.
+ *
+ * @param errorMessage - Validation error message returned when the URL is invalid or non-HTTP.
+ * @returns Configured Zod string schema.
+ */
+function BuildHttpUrlSchema(errorMessage: string) {
+  return z
+    .string({ error: errorMessage })
+    .trim()
+    .pipe(z.url({ error: errorMessage }))
+    .refine((val) => /^https?:\/\//i.test(val), {
+      message: errorMessage,
+    });
+}
+
+/**
+ * Builds an optional nullable brief text schema that normalizes empty strings (`""`)
+ * into `null` so optional fields can be omitted, left blank on Step 3, or cleared later.
+ *
+ * @param maxLength - Maximum allowed character count.
+ * @param maxMessage - Error message when maxLength is exceeded.
+ * @returns Configured Zod schema.
+ */
+function BuildOptionalNullableBriefTextSchema(maxLength: number, maxMessage: string) {
+  return z
+    .union([z.string().trim().max(maxLength, maxMessage), z.null()])
+    .transform((val) => (val === '' ? null : val))
+    .optional();
+}
 
 const titleField = z
   .string({ error: CAMPAIGN_MESSAGES.TITLE_REQUIRED })
   .trim()
-  .min(1, CAMPAIGN_MESSAGES.TITLE_REQUIRED);
+  .min(1, CAMPAIGN_MESSAGES.TITLE_REQUIRED)
+  .max(CAMPAIGN_FIELD_LIMITS.TITLE_MAX_LENGTH, CAMPAIGN_MESSAGES.TITLE_MAX_EXCEEDED);
 
 const descriptionField = z
   .string({ error: CAMPAIGN_MESSAGES.DESCRIPTION_REQUIRED })
   .trim()
-  .min(1, CAMPAIGN_MESSAGES.DESCRIPTION_REQUIRED);
+  .min(1, CAMPAIGN_MESSAGES.DESCRIPTION_REQUIRED)
+  .max(CAMPAIGN_FIELD_LIMITS.DESCRIPTION_MAX_LENGTH, CAMPAIGN_MESSAGES.DESCRIPTION_MAX_EXCEEDED);
 
-const thumbnailUrlField = z
-  .string({ error: CAMPAIGN_MESSAGES.THUMBNAIL_URL_INVALID })
-  .trim()
-  .pipe(z.url({ error: CAMPAIGN_MESSAGES.THUMBNAIL_URL_INVALID }));
+const thumbnailUrlField = BuildHttpUrlSchema(CAMPAIGN_MESSAGES.THUMBNAIL_URL_INVALID);
 
-const mainMediaUrlField = z
-  .string({ error: CAMPAIGN_MESSAGES.MAIN_MEDIA_URL_INVALID })
-  .trim()
-  .pipe(z.url({ error: CAMPAIGN_MESSAGES.MAIN_MEDIA_URL_INVALID }));
+const mainMediaUrlField = BuildHttpUrlSchema(CAMPAIGN_MESSAGES.MAIN_MEDIA_URL_INVALID);
 
 const cpmField = z
   .number({ error: CAMPAIGN_MESSAGES.CPM_NUMBER_REQUIRED })
-  .positive(CAMPAIGN_MESSAGES.CPM_POSITIVE);
+  .finite(CAMPAIGN_MESSAGES.CPM_NUMBER_REQUIRED)
+  .positive(CAMPAIGN_MESSAGES.CPM_POSITIVE)
+  .max(CAMPAIGN_FIELD_LIMITS.MAX_CPM_VALUE, CAMPAIGN_MESSAGES.CPM_MAX_EXCEEDED);
 
 const minViewsField = z
   .number({ error: CAMPAIGN_MESSAGES.MIN_VIEWS_NUMBER_REQUIRED })
   .int(CAMPAIGN_MESSAGES.MIN_VIEWS_INTEGER)
-  .positive(CAMPAIGN_MESSAGES.MIN_VIEWS_POSITIVE);
+  .positive(CAMPAIGN_MESSAGES.MIN_VIEWS_POSITIVE)
+  .max(CAMPAIGN_FIELD_LIMITS.MAX_PG_INT, CAMPAIGN_MESSAGES.MIN_VIEWS_MAX_EXCEEDED);
 
 const maxViewsField = z
   .number({ error: CAMPAIGN_MESSAGES.MAX_VIEWS_NUMBER_REQUIRED })
   .int(CAMPAIGN_MESSAGES.MAX_VIEWS_INTEGER)
-  .positive(CAMPAIGN_MESSAGES.MAX_VIEWS_POSITIVE);
+  .positive(CAMPAIGN_MESSAGES.MAX_VIEWS_POSITIVE)
+  .max(CAMPAIGN_FIELD_LIMITS.MAX_PG_INT, CAMPAIGN_MESSAGES.MAX_VIEWS_MAX_EXCEEDED);
 
 const budgetField = z
   .number({ error: CAMPAIGN_MESSAGES.BUDGET_NUMBER_REQUIRED })
-  .positive(CAMPAIGN_MESSAGES.BUDGET_POSITIVE);
+  .finite(CAMPAIGN_MESSAGES.BUDGET_NUMBER_REQUIRED)
+  .positive(CAMPAIGN_MESSAGES.BUDGET_POSITIVE)
+  .max(CAMPAIGN_FIELD_LIMITS.MAX_BUDGET_VALUE, CAMPAIGN_MESSAGES.BUDGET_MAX_EXCEEDED);
 
 const startDateField = z.union(
   [
@@ -68,52 +107,105 @@ const endDateField = z.union(
 
 const campaignMaterialItemSchema = z.object({
   type: z.enum(MaterialType, { error: CAMPAIGN_MESSAGES.MATERIAL_TYPE_INVALID }),
-  name: z.string({ error: CAMPAIGN_MESSAGES.MATERIAL_NAME_REQUIRED }).trim().min(1, CAMPAIGN_MESSAGES.MATERIAL_NAME_REQUIRED),
-  url: z
-    .string({ error: CAMPAIGN_MESSAGES.MATERIAL_URL_INVALID })
+  name: z
+    .string({ error: CAMPAIGN_MESSAGES.MATERIAL_NAME_REQUIRED })
     .trim()
-    .pipe(z.url({ error: CAMPAIGN_MESSAGES.MATERIAL_URL_INVALID })),
+    .min(1, CAMPAIGN_MESSAGES.MATERIAL_NAME_REQUIRED)
+    .max(CAMPAIGN_FIELD_LIMITS.MATERIAL_NAME_MAX_LENGTH, CAMPAIGN_MESSAGES.MATERIAL_NAME_MAX_EXCEEDED),
+  url: BuildHttpUrlSchema(CAMPAIGN_MESSAGES.MATERIAL_URL_INVALID),
 });
 
 const campaignMaterialsSchema = z
   .array(campaignMaterialItemSchema)
-  .min(1, CAMPAIGN_MESSAGES.MATERIALS_REQUIRED);
+  .min(1, CAMPAIGN_MESSAGES.MATERIALS_REQUIRED)
+  .max(CAMPAIGN_FIELD_LIMITS.MATERIALS_MAX_COUNT, CAMPAIGN_MESSAGES.MATERIALS_MAX_EXCEEDED);
+
+const buildBriefArraySchema = (emptyItemMsg: string) =>
+  z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(1, emptyItemMsg)
+        .max(CAMPAIGN_FIELD_LIMITS.BRIEF_ARRAY_ITEM_MAX_LENGTH, CAMPAIGN_MESSAGES.BRIEF_ARRAY_ITEM_MAX_EXCEEDED)
+    )
+    .max(CAMPAIGN_FIELD_LIMITS.BRIEF_ARRAY_MAX_ITEMS, CAMPAIGN_MESSAGES.BRIEF_ARRAY_MAX_ITEMS)
+    .optional();
 
 const campaignBriefSchema = z.object({
-  purpose: z.string().trim().min(1, CAMPAIGN_MESSAGES.BRIEF_PURPOSE_EMPTY).optional(),
-  keyMessage: z.string().trim().min(1, CAMPAIGN_MESSAGES.BRIEF_KEY_MESSAGE_EMPTY).optional(),
-  narration: z.string().trim().min(1, CAMPAIGN_MESSAGES.BRIEF_NARRATION_EMPTY).optional(),
-  impression: z.string().trim().min(1, CAMPAIGN_MESSAGES.BRIEF_IMPRESSION_EMPTY).optional(),
-  callToAction: z.string().trim().min(1, CAMPAIGN_MESSAGES.BRIEF_CALL_TO_ACTION_EMPTY).optional(),
-  requiredCaption: z.string().trim().min(1, CAMPAIGN_MESSAGES.BRIEF_REQUIRED_CAPTION_EMPTY).optional(),
-  hashtags: z.array(z.string().trim().min(1, CAMPAIGN_MESSAGES.BRIEF_HASHTAG_EMPTY)).optional(),
-  mentionTags: z.array(z.string().trim().min(1, CAMPAIGN_MESSAGES.BRIEF_MENTION_TAG_EMPTY)).optional(),
-  dos: z.array(z.string().trim().min(1, CAMPAIGN_MESSAGES.BRIEF_DO_GUIDELINE_EMPTY)).optional(),
-  donts: z.array(z.string().trim().min(1, CAMPAIGN_MESSAGES.BRIEF_DONT_GUIDELINE_EMPTY)).optional(),
-  guidelines: z.string().trim().min(1, CAMPAIGN_MESSAGES.BRIEF_GUIDELINES_EMPTY).optional(),
+  purpose: z
+    .string()
+    .trim()
+    .min(1, CAMPAIGN_MESSAGES.BRIEF_PURPOSE_EMPTY)
+    .max(CAMPAIGN_FIELD_LIMITS.BRIEF_PURPOSE_MAX_LENGTH, CAMPAIGN_MESSAGES.BRIEF_PURPOSE_MAX_EXCEEDED)
+    .optional(),
+  keyMessage: z
+    .string()
+    .trim()
+    .min(1, CAMPAIGN_MESSAGES.BRIEF_KEY_MESSAGE_EMPTY)
+    .max(CAMPAIGN_FIELD_LIMITS.BRIEF_KEY_MESSAGE_MAX_LENGTH, CAMPAIGN_MESSAGES.BRIEF_KEY_MESSAGE_MAX_EXCEEDED)
+    .optional(),
+  narration: BuildOptionalNullableBriefTextSchema(
+    CAMPAIGN_FIELD_LIMITS.BRIEF_NARRATION_MAX_LENGTH,
+    CAMPAIGN_MESSAGES.BRIEF_NARRATION_MAX_EXCEEDED
+  ),
+  impression: BuildOptionalNullableBriefTextSchema(
+    CAMPAIGN_FIELD_LIMITS.BRIEF_IMPRESSION_MAX_LENGTH,
+    CAMPAIGN_MESSAGES.BRIEF_IMPRESSION_MAX_EXCEEDED
+  ),
+  callToAction: z
+    .string()
+    .trim()
+    .min(1, CAMPAIGN_MESSAGES.BRIEF_CALL_TO_ACTION_EMPTY)
+    .max(CAMPAIGN_FIELD_LIMITS.BRIEF_CALL_TO_ACTION_MAX_LENGTH, CAMPAIGN_MESSAGES.BRIEF_CALL_TO_ACTION_MAX_EXCEEDED)
+    .optional(),
+  requiredCaption: BuildOptionalNullableBriefTextSchema(
+    CAMPAIGN_FIELD_LIMITS.BRIEF_REQUIRED_CAPTION_MAX_LENGTH,
+    CAMPAIGN_MESSAGES.BRIEF_REQUIRED_CAPTION_MAX_EXCEEDED
+  ),
+  hashtags: buildBriefArraySchema(CAMPAIGN_MESSAGES.BRIEF_HASHTAG_EMPTY),
+  mentionTags: buildBriefArraySchema(CAMPAIGN_MESSAGES.BRIEF_MENTION_TAG_EMPTY),
+  dos: buildBriefArraySchema(CAMPAIGN_MESSAGES.BRIEF_DO_GUIDELINE_EMPTY),
+  donts: buildBriefArraySchema(CAMPAIGN_MESSAGES.BRIEF_DONT_GUIDELINE_EMPTY),
+  guidelines: BuildOptionalNullableBriefTextSchema(
+    CAMPAIGN_FIELD_LIMITS.BRIEF_GUIDELINES_MAX_LENGTH,
+    CAMPAIGN_MESSAGES.BRIEF_GUIDELINES_MAX_EXCEEDED
+  ),
 });
 
 // Single edit schema for the creation wizard: every field is optional, so a
-// PATCH only needs the fields of the current wizard step. materials, when
-// present, must be a non-empty list and replaces the current set; an empty
-// array is rejected so materials cannot be wiped by accident.
-export const campaignEditSchema = z.object({
-  title: titleField.optional(),
-  description: descriptionField.optional(),
-  campaignType: z.enum(CampaignType, { error: CAMPAIGN_MESSAGES.CAMPAIGN_TYPE_INVALID }).optional(),
-  campaignCategory: z.enum(Category, { error: CAMPAIGN_MESSAGES.CAMPAIGN_CATEGORY_INVALID }).optional(),
-  thumbnailUrl: thumbnailUrlField.optional(),
-  platform: z.enum(Platform, { error: CAMPAIGN_MESSAGES.PLATFORM_INVALID }).optional(),
-  mainMediaUrl: mainMediaUrlField.optional(),
-  materials: campaignMaterialsSchema.optional(),
-  brief: campaignBriefSchema.optional(),
-  cpm: cpmField.optional(),
-  minViews: minViewsField.optional(),
-  maxViews: maxViewsField.optional(),
-  budget: budgetField.optional(),
-  startDate: startDateField.optional(),
-  endDate: endDateField.optional(),
-});
+// PATCH only needs the fields of the current wizard step, while requiring at least
+// one known update field and optional optimistic concurrency check.
+export const campaignEditSchema = z
+  .object({
+    title: titleField.optional(),
+    description: descriptionField.optional(),
+    campaignType: z.enum(CampaignType, { error: CAMPAIGN_MESSAGES.CAMPAIGN_TYPE_INVALID }).optional(),
+    campaignCategory: z.enum(Category, { error: CAMPAIGN_MESSAGES.CAMPAIGN_CATEGORY_INVALID }).optional(),
+    thumbnailUrl: thumbnailUrlField.optional(),
+    platform: z.enum(Platform, { error: CAMPAIGN_MESSAGES.PLATFORM_INVALID }).optional(),
+    mainMediaUrl: mainMediaUrlField.optional(),
+    materials: campaignMaterialsSchema.optional(),
+    brief: campaignBriefSchema.optional(),
+    cpm: cpmField.optional(),
+    minViews: minViewsField.optional(),
+    maxViews: maxViewsField.optional(),
+    budget: budgetField.optional(),
+    startDate: startDateField.optional(),
+    endDate: endDateField.optional(),
+    expectedUpdatedAt: z.iso
+      .datetime({ error: CAMPAIGN_MESSAGES.EXPECTED_UPDATED_AT_INVALID })
+      .optional(),
+  })
+  .refine(
+    (data) =>
+      SCALAR_FIELDS.some((key) => data[key] !== undefined) ||
+      data.materials !== undefined ||
+      data.brief !== undefined,
+    {
+      message: CAMPAIGN_MESSAGES.EDIT_NO_FIELDS_PROVIDED,
+    }
+  );
 
 const pageQueryField = z.coerce
   .number({ error: CAMPAIGN_MESSAGES.PAGE_NUMBER_REQUIRED })
@@ -149,19 +241,26 @@ export const campaignQuerySchema = z.object({
   sort: campaignQuerySortEnum.optional(),
 });
 
+export const walletPaymentSchema = z
+  .object({
+    expectedBudget: budgetField.optional(),
+  })
+  .optional();
+
 export const bankTransferPaymentSchema = z.object({
   senderProviderName: z
     .string({ error: CAMPAIGN_MESSAGES.SENDER_PROVIDER_REQUIRED })
     .trim()
-    .min(2, CAMPAIGN_MESSAGES.SENDER_PROVIDER_REQUIRED),
+    .min(2, CAMPAIGN_MESSAGES.SENDER_PROVIDER_REQUIRED)
+    .max(CAMPAIGN_FIELD_LIMITS.TITLE_MAX_LENGTH, CAMPAIGN_MESSAGES.SENDER_PROVIDER_MAX_EXCEEDED),
   senderAccountName: z
     .string({ error: CAMPAIGN_MESSAGES.SENDER_ACCOUNT_NAME_REQUIRED })
     .trim()
-    .min(2, CAMPAIGN_MESSAGES.SENDER_ACCOUNT_NAME_REQUIRED),
-  transferProofUrl: z
-    .string({ error: CAMPAIGN_MESSAGES.PAYMENT_PROOF_REQUIRED })
-    .trim()
-    .pipe(z.url({ error: CAMPAIGN_MESSAGES.PAYMENT_PROOF_REQUIRED })),
+    .min(2, CAMPAIGN_MESSAGES.SENDER_ACCOUNT_NAME_REQUIRED)
+    .max(CAMPAIGN_FIELD_LIMITS.TITLE_MAX_LENGTH, CAMPAIGN_MESSAGES.SENDER_ACCOUNT_NAME_MAX_EXCEEDED),
+  transferProofUrl: BuildHttpUrlSchema(CAMPAIGN_MESSAGES.PAYMENT_PROOF_REQUIRED),
+  expectedBudget: budgetField.optional(),
+  expectedTotalPayable: budgetField.optional(),
 });
 
 export const adminVerifyPaymentSchema = z.object({
@@ -174,5 +273,6 @@ export type CampaignMaterialsInput = z.infer<typeof campaignMaterialsSchema>;
 export type CampaignBriefInput = z.infer<typeof campaignBriefSchema>;
 export type CampaignEditInput = z.infer<typeof campaignEditSchema>;
 export type CampaignQueryInput = z.infer<typeof campaignQuerySchema>;
+export type WalletPaymentInput = z.infer<typeof walletPaymentSchema>;
 export type BankTransferPaymentInput = z.infer<typeof bankTransferPaymentSchema>;
 export type AdminVerifyPaymentInput = z.infer<typeof adminVerifyPaymentSchema>;

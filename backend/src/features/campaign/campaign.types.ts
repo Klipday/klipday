@@ -9,6 +9,7 @@ import type {
   CampaignMaterialsInput,
   CampaignQueryInput,
   CampaignSortOption,
+  WalletPaymentInput,
 } from './campaign.schemas.js';
 
 export type {
@@ -20,6 +21,7 @@ export type {
   CampaignMaterialsInput,
   CampaignQueryInput,
   CampaignSortOption,
+  WalletPaymentInput,
 };
 
 export interface CampaignPaginationMeta {
@@ -144,7 +146,21 @@ export interface CampaignExistingFields {
   cpm?: Prisma.Decimal | number | null;
   startDate?: Date | string | null;
   endDate?: Date | string | null;
+  campaignStatus?: CampaignStatus | string | null;
+  isPaymentApproved?: boolean;
 }
+
+export interface CampaignImageUploadOptions {
+  campaignId: string;
+  folderPrefix: 'thumbnail' | 'payment-proof';
+  allowedMimeTypes: Readonly<Record<string, string>>;
+  maxSizeBytes: number;
+  successMessage: string;
+}
+
+export type CampaignImageUploadResult =
+  | { ok: true; publicUrl: string }
+  | { ok: false; statusCode: number; message: string };
 
 export interface CampaignSubmitCheckRecord {
   title?: string | null;
@@ -165,5 +181,53 @@ export interface CampaignSubmitCheckRecord {
     purpose?: string | null;
     keyMessage?: string | null;
     callToAction?: string | null;
+  } | null;
+}
+
+export interface ExecuteCampaignSubmissionParams {
+  campaignId: string;
+  currentStatus: CampaignStatus;
+  budgetAmount: number;
+  destinationBank: string;
+  destinationAccount: string;
+}
+
+export interface ExecuteWalletPaymentParams {
+  campaignId: string;
+  campaignTitle: string | null;
+  accountId: string;
+  budget: number;
+  latestPayment: {
+    id: string;
+    paymentStatus: PaymentStatus;
+  } | null;
+}
+
+export interface ExecuteBankTransferConfirmParams {
+  campaignId: string;
+  budgetAmount: number;
+  uniqueCode: number;
+  totalPayable: number;
+  destinationBank: string;
+  destinationAccount: string;
+  senderProviderName: string;
+  senderAccountName: string;
+  transferProofUrl: string;
+  latestPaymentId: string | null;
+}
+
+export interface ExecuteVerifyCampaignPaymentParams {
+  campaignId: string;
+  campaignTitle: string | null;
+  adminId: string;
+  action: 'APPROVE' | 'REJECT';
+  rejectionReason?: string;
+  latestPayment: {
+    id: string;
+    totalPayable: Prisma.Decimal | number;
+  };
+  brandWallet?: {
+    id: string;
+    balance: Prisma.Decimal | number;
   } | null;
 }

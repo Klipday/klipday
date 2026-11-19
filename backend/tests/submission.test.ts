@@ -36,6 +36,7 @@ import {
   SaveDraftSubmissionSchema,
   SubmissionQuerySchema,
 } from '../src/features/submission/submission.validators.js';
+import { Prisma } from '../src/generated/prisma/client.js';
 import { CampaignStatus, Platform, Role, Status, SubmissionStatus } from '../src/generated/prisma/enums.js';
 import { prisma } from '../src/utils/prisma.js';
 import { CreateMockNext, CreateMockRequest, CreateMockResponse } from './helpers/mock-express.js';
@@ -466,6 +467,37 @@ describe('Submission Feature Module', () => {
         });
       });
 
+      it('handles concurrent P2002 unique violation idempotently when two tabs join simultaneously (200)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockCreator.accountId, role: Role.CREATOR },
+          params: { id: mockActiveCampaign.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(mockActiveCampaign as never);
+        jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
+        jest
+          .spyOn(prisma.submission, 'findFirst')
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({ id: 'sub-concurrent', submissionStatus: SubmissionStatus.JOINED } as never);
+
+        const p2002Error = new Prisma.PrismaClientKnownRequestError(
+          'Unique constraint failed on the fields: (`campaignId`, `creatorId`)',
+          { code: 'P2002', clientVersion: '7.9.1' },
+        );
+        jest.spyOn(prisma.submission, 'create').mockRejectedValue(p2002Error);
+
+        await JoinCampaign(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'success',
+          data: null,
+          message: SUBMISSION_MESSAGES.JOIN_SUCCESS,
+        });
+      });
+
       it('is idempotent: skips duplicate insert if creator already joined (200 Edge Case)', async () => {
         const req = CreateMockRequest({
           account: { sub: mockCreator.accountId, role: Role.CREATOR },
@@ -483,6 +515,37 @@ describe('Submission Feature Module', () => {
 
         expect(statusMock).toHaveBeenCalledWith(200);
         expect(createSpy).not.toHaveBeenCalled();
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'success',
+          data: null,
+          message: SUBMISSION_MESSAGES.JOIN_SUCCESS,
+        });
+      });
+
+      it('handles concurrent P2002 unique violation idempotently when two tabs join simultaneously (200)', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockCreator.accountId, role: Role.CREATOR },
+          params: { id: mockActiveCampaign.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.campaign, 'findFirst').mockResolvedValue(mockActiveCampaign as never);
+        jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
+        jest
+          .spyOn(prisma.submission, 'findFirst')
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({ id: 'sub-concurrent', submissionStatus: SubmissionStatus.JOINED } as never);
+
+        const p2002Error = new Prisma.PrismaClientKnownRequestError(
+          'Unique constraint failed on the fields: (`campaignId`, `creatorId`)',
+          { code: 'P2002', clientVersion: '7.9.1' },
+        );
+        jest.spyOn(prisma.submission, 'create').mockRejectedValue(p2002Error);
+
+        await JoinCampaign(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(200);
         expect(jsonMock).toHaveBeenCalledWith({
           status: 'success',
           data: null,
@@ -971,23 +1034,39 @@ describe('Submission Feature Module', () => {
         const next = CreateMockNext();
 
         jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
-        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue({
+        const initialSubmission = {
           ...mockSubmissionRow,
           submissionStatus: SubmissionStatus.JOINED,
-        } as never);
-        jest.spyOn(prisma.creatorSocialAccount, 'findFirst').mockResolvedValue(mockSocialAccount as never);
-
-        const updateSpy = jest.spyOn(prisma.submission, 'update').mockResolvedValue({
+        };
+        const finalizedSubmissionRow = {
           ...mockSubmissionRow,
           ...validSubmitPayload,
           submissionStatus: SubmissionStatus.PENDING_REVIEW,
           submittedAt: new Date(),
-        } as never);
+        };
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(initialSubmission as never);
+        jest.spyOn(prisma.creatorSocialAccount, 'findFirst').mockResolvedValue(mockSocialAccount as never);
+
+        const updateManySpy = jest.fn().mockResolvedValue({ count: 1 });
+        const mockTx = {
+          submission: {
+            findFirst: jest
+              .fn()
+              .mockResolvedValueOnce(initialSubmission)
+              .mockResolvedValueOnce(finalizedSubmissionRow),
+            updateMany: updateManySpy,
+          },
+        };
+
+        jest.spyOn(prisma, '$transaction').mockImplementation(async (cb: unknown) => {
+          return (cb as (tx: unknown) => Promise<unknown>)(mockTx);
+        });
 
         await FinalSubmitVideo(req, res, next);
 
         expect(statusMock).toHaveBeenCalledWith(200);
-        expect(updateSpy).toHaveBeenCalledWith(
+        expect(updateManySpy).toHaveBeenCalledWith(
           expect.objectContaining({
             data: expect.objectContaining({
               submissionStatus: SubmissionStatus.PENDING_REVIEW,
@@ -1014,17 +1093,33 @@ describe('Submission Feature Module', () => {
         const next = CreateMockNext();
 
         jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
-        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue({
+        const revisionSubmission = {
           ...mockSubmissionRow,
           submissionStatus: SubmissionStatus.REVISION_REQUESTED,
-        } as never);
-        jest.spyOn(prisma.creatorSocialAccount, 'findFirst').mockResolvedValue(mockSocialAccount as never);
-        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
+        };
+        const finalizedSubmissionRow = {
           ...mockSubmissionRow,
           ...validSubmitPayload,
           submissionStatus: SubmissionStatus.PENDING_REVIEW,
           submittedAt: new Date(),
-        } as never);
+        };
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(revisionSubmission as never);
+        jest.spyOn(prisma.creatorSocialAccount, 'findFirst').mockResolvedValue(mockSocialAccount as never);
+
+        const mockTx = {
+          submission: {
+            findFirst: jest
+              .fn()
+              .mockResolvedValueOnce(revisionSubmission)
+              .mockResolvedValueOnce(finalizedSubmissionRow),
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          },
+        };
+
+        jest.spyOn(prisma, '$transaction').mockImplementation(async (cb: unknown) => {
+          return (cb as (tx: unknown) => Promise<unknown>)(mockTx);
+        });
 
         await FinalSubmitVideo(req, res, next);
 
@@ -1035,6 +1130,44 @@ describe('Submission Feature Module', () => {
             submissionStatus: SubmissionStatus.PENDING_REVIEW,
           }),
           message: SUBMISSION_MESSAGES.SUBMIT_SUCCESS,
+        });
+      });
+
+      it('returns 409 SUBMISSION_RACE_CONFLICT when two creator tabs submit video simultaneously', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockCreator.accountId, role: Role.CREATOR },
+          params: { id: mockActiveCampaign.id },
+          body: validSubmitPayload,
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
+        const initialSubmission = {
+          ...mockSubmissionRow,
+          submissionStatus: SubmissionStatus.JOINED,
+        };
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(initialSubmission as never);
+        jest.spyOn(prisma.creatorSocialAccount, 'findFirst').mockResolvedValue(mockSocialAccount as never);
+
+        const mockTx = {
+          submission: {
+            findFirst: jest.fn().mockResolvedValueOnce(initialSubmission),
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+          },
+        };
+
+        jest.spyOn(prisma, '$transaction').mockImplementation(async (cb: unknown) => {
+          return (cb as (tx: unknown) => Promise<unknown>)(mockTx);
+        });
+
+        await FinalSubmitVideo(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(409);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.SUBMISSION_RACE_CONFLICT,
         });
       });
 

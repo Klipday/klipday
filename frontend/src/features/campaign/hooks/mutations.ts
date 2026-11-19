@@ -1,11 +1,10 @@
-import { useMutation, useQueryClient, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type QueryClient, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import {
   ConfirmBankTransferPayment,
   DeleteCampaign,
   EditCampaign,
-  GetCampaignById,
   InitializeCampaign,
   PayCampaignWithWallet,
   SubmitCampaign,
@@ -17,10 +16,15 @@ import type {
   Campaign,
   CampaignEditInput,
   InitializeCampaignResponse,
+  WalletPaymentPayload,
   WizardStepSlug,
 } from '../types';
 import { GetWizardStepPath } from '../config/wizard-steps';
-import { ResolveCampaignWizardStepPath } from '../utils';
+import {
+  IsCampaignConflictError,
+  NotifyCampaignUpdatedAcrossTabs,
+  ResolveCampaignWizardStepPath,
+} from '../utils';
 
 export type InitializeCampaignMutationOptions = Omit<UseMutationOptions<InitializeCampaignResponse, Error, void>, 'mutationFn'>;
 
@@ -30,9 +34,30 @@ export type EditCampaignMutationOptions = Omit<UseMutationOptions<Campaign, Erro
 };
 
 /**
+ * Refetches campaign and payment caches immediately when a concurrent 409 Conflict occurs
+ * so the user sees the latest saved state without manual reload.
+ *
+ * @param queryClient - Active TanStack QueryClient instance.
+ * @param error - Mutation error thrown by API call.
+ * @param campaignId - Optional campaign identifier to revalidate.
+ */
+function HandleConflictStateRefresh(queryClient: QueryClient, error: unknown, campaignId?: string): void {
+  if (!IsCampaignConflictError(error)) {
+    return;
+  }
+
+  if (campaignId) {
+    void queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] });
+    void queryClient.invalidateQueries({ queryKey: ['campaign-payment', campaignId] });
+  }
+  void queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+  void queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
+}
+
+/**
  * Mutation hook for initiating a new draft campaign.
- * Calls `POST /campaigns`, shows a success toast, retrieves campaign details via
- * `GET /campaigns/:id`, and navigates to the appropriate wizard step based on campaign data.
+ * Calls `POST /campaigns`, seeds minimal draft cache, and navigates directly to Step 1
+ * without executing an extra blocking `GET /campaigns/:id` roundtrip.
  *
  * @param options - Optional mutation options to extend default behavior.
  * @returns TanStack Query mutation object for initializing a campaign.
@@ -47,26 +72,24 @@ export function UseInitializeCampaignMutation(
   const mutation = useMutation({
     ...restOptions,
     mutationFn: InitializeCampaign,
-    onSuccess: async (data, variables, onMutateResult, context) => {
+    onSuccess: (data, variables, onMutateResult, context) => {
       onSuccess?.(data, variables, onMutateResult, context);
 
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
+      queryClient.setQueryData<Campaign>(['campaign', data.id], {
+        id: data.id,
+        campaignStatus: 'DRAFT',
+      });
+      void queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      void queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
+      void queryClient.invalidateQueries({ queryKey: ['brand', 'dashboard'] });
+      NotifyCampaignUpdatedAcrossTabs(data.id);
+
       toast.success('Draf kampanye baru berhasil dibuat.');
 
-      try {
-        const campaign = await GetCampaignById(data.id);
-
-        queryClient.setQueryData(['campaign', data.id], campaign);
-        const targetPath = ResolveCampaignWizardStepPath(campaign);
-
-        navigate(targetPath, {
-          state: { campaignId: data.id },
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Gagal memuat detail kampanye.';
-        toast.error(message);
-      }
+      const targetPath = GetWizardStepPath('step-1', data.id);
+      navigate(targetPath, {
+        state: { campaignId: data.id },
+      });
     },
 
     onError: (error, variables, onMutateResult, context) => {
@@ -81,7 +104,7 @@ export function UseInitializeCampaignMutation(
 /**
  * Mutation hook for editing an existing campaign.
  * Calls `PATCH /campaigns/:id/edit`, updates the query cache, shows user feedback,
- * and navigates to the next appropriate wizard step based on updated campaign state.
+ * broadcasts cross-tab sync, and navigates to the next appropriate wizard step.
  *
  * @param campaignId - The UUID of the campaign being edited.
  * @param options - Optional mutation options to extend default behavior.
@@ -106,8 +129,12 @@ export function UseEditCampaignMutation(
     onSuccess: (updatedCampaign, variables, onMutateResult, context) => {
       if (campaignId) {
         queryClient.setQueryData(['campaign', campaignId], updatedCampaign);
+        void queryClient.invalidateQueries({ queryKey: ['campaign-payment', campaignId] });
       }
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      void queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      void queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
+      void queryClient.invalidateQueries({ queryKey: ['brand', 'dashboard'] });
+      NotifyCampaignUpdatedAcrossTabs(updatedCampaign.id);
 
       const message = options?.successMessage ?? 'Informasi dasar berhasil disimpan.';
       toast.success(message);
@@ -125,6 +152,7 @@ export function UseEditCampaignMutation(
 
     onError: (error, variables, onMutateResult, context) => {
       toast.error(error.message);
+      HandleConflictStateRefresh(queryClient, error, campaignId);
       onError?.(error, variables, onMutateResult, context);
     },
   });
@@ -136,8 +164,8 @@ export type SubmitCampaignMutationOptions = Omit<UseMutationOptions<Campaign, Er
 
 /**
  * Mutation hook for submitting a campaign for admin review.
- * Calls `POST /campaigns/:id/submit`, updates the query cache, shows user feedback,
- * and navigates to the campaigns list.
+ * Calls `POST /campaigns/:id/submit`, updates query cache, synchronizes other tabs,
+ * and navigates cleanly to Step 6 payment or IN_REVIEW status view.
  *
  * @param campaignId - The UUID of the campaign being submitted.
  * @param options - Optional mutation options to extend default behavior.
@@ -163,9 +191,11 @@ export function UseSubmitCampaignMutation(
       if (campaignId) {
         queryClient.setQueryData(['campaign', campaignId], submittedCampaign);
       }
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
-      queryClient.invalidateQueries({ queryKey: ['campaign-payment', campaignId] });
+      void queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      void queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
+      void queryClient.invalidateQueries({ queryKey: ['campaign-payment', campaignId] });
+      void queryClient.invalidateQueries({ queryKey: ['brand', 'dashboard'] });
+      NotifyCampaignUpdatedAcrossTabs(campaignId);
 
       if (submittedCampaign.campaignStatus === 'IN_REVIEW') {
         toast.success('Perubahan kampanye berhasil diajukan untuk review admin.');
@@ -179,6 +209,7 @@ export function UseSubmitCampaignMutation(
     },
     onError: (error, variables, onMutateResult, context) => {
       toast.error(error.message);
+      HandleConflictStateRefresh(queryClient, error, campaignId);
       onError?.(error, variables, onMutateResult, context);
     },
   });
@@ -186,7 +217,10 @@ export function UseSubmitCampaignMutation(
   return mutation;
 }
 
-export type PayCampaignWithWalletMutationOptions = Omit<UseMutationOptions<Campaign, Error, void>, 'mutationFn'>;
+export type PayCampaignWithWalletMutationOptions = Omit<
+  UseMutationOptions<Campaign, Error, WalletPaymentPayload | undefined>,
+  'mutationFn'
+>;
 
 /**
  * Mutation hook for paying campaign budget using brand wallet balance.
@@ -198,26 +232,30 @@ export type PayCampaignWithWalletMutationOptions = Omit<UseMutationOptions<Campa
 export function UsePayCampaignWithWalletMutation(
   campaignId?: string,
   options?: PayCampaignWithWalletMutationOptions
-): UseMutationResult<Campaign, Error, void> {
+): UseMutationResult<Campaign, Error, WalletPaymentPayload | undefined> {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { onSuccess, onError, ...restOptions } = options ?? {};
 
   const mutation = useMutation({
     ...restOptions,
-    mutationFn: () => {
+    mutationFn: (payload?: WalletPaymentPayload) => {
       if (!campaignId) {
         throw new Error('Campaign ID is required.');
       }
-      return PayCampaignWithWallet(campaignId);
+      return PayCampaignWithWallet(campaignId, payload);
     },
     onSuccess: (updatedCampaign, variables, onMutateResult, context) => {
       if (campaignId) {
         queryClient.setQueryData(['campaign', campaignId], updatedCampaign);
       }
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
-      queryClient.invalidateQueries({ queryKey: ['campaign-payment', campaignId] });
+      void queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      void queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
+      void queryClient.invalidateQueries({ queryKey: ['campaign-payment', campaignId] });
+      void queryClient.invalidateQueries({ queryKey: ['brand-wallet-summary'] });
+      void queryClient.invalidateQueries({ queryKey: ['brand-transactions'] });
+      void queryClient.invalidateQueries({ queryKey: ['brand', 'dashboard'] });
+      NotifyCampaignUpdatedAcrossTabs(campaignId);
 
       toast.success('Pembayaran menggunakan saldo dompet berhasil. Kampanye diteruskan untuk review.');
       navigate('/brand-dashboard/brand-campaigns?status=IN_REVIEW', { replace: true });
@@ -226,6 +264,7 @@ export function UsePayCampaignWithWalletMutation(
     },
     onError: (error, variables, onMutateResult, context) => {
       toast.error(error.message);
+      HandleConflictStateRefresh(queryClient, error, campaignId);
       onError?.(error, variables, onMutateResult, context);
     },
   });
@@ -262,9 +301,11 @@ export function UseConfirmBankTransferPaymentMutation(
       if (campaignId) {
         queryClient.setQueryData(['campaign', campaignId], updatedCampaign);
       }
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
-      queryClient.invalidateQueries({ queryKey: ['campaign-payment', campaignId] });
+      void queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      void queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
+      void queryClient.invalidateQueries({ queryKey: ['campaign-payment', campaignId] });
+      void queryClient.invalidateQueries({ queryKey: ['brand', 'dashboard'] });
+      NotifyCampaignUpdatedAcrossTabs(campaignId);
 
       toast.success('Bukti pembayaran berhasil dikirim. Menunggu verifikasi admin.');
       navigate('/brand-dashboard/brand-campaigns?status=IN_REVIEW', { replace: true });
@@ -273,6 +314,7 @@ export function UseConfirmBankTransferPaymentMutation(
     },
     onError: (error, variables, onMutateResult, context) => {
       toast.error(error.message);
+      HandleConflictStateRefresh(queryClient, error, campaignId);
       onError?.(error, variables, onMutateResult, context);
     },
   });
@@ -308,9 +350,10 @@ export function UseVerifyCampaignPaymentMutation(
       if (campaignId) {
         queryClient.setQueryData(['campaign', campaignId], updatedCampaign);
       }
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
-      queryClient.invalidateQueries({ queryKey: ['campaign-payment', campaignId] });
+      void queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      void queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
+      void queryClient.invalidateQueries({ queryKey: ['campaign-payment', campaignId] });
+      NotifyCampaignUpdatedAcrossTabs(campaignId);
 
       const msg = variables.action === 'APPROVE'
         ? 'Pembayaran berhasil diverifikasi. Kampanye kini berstatus AKTIF.'
@@ -321,6 +364,7 @@ export function UseVerifyCampaignPaymentMutation(
     },
     onError: (error, variables, onMutateResult, context) => {
       toast.error(error.message);
+      HandleConflictStateRefresh(queryClient, error, campaignId);
       onError?.(error, variables, onMutateResult, context);
     },
   });
@@ -334,7 +378,7 @@ export type DeleteCampaignMutationOptions = Omit<UseMutationOptions<void, Error,
 
 /**
  * Mutation hook for soft-deleting a campaign.
- * Calls `DELETE /campaigns/:id`, invalidates `['campaigns']` and `['campaign-counts']`,
+ * Calls `DELETE /campaigns/:id`, invalidates campaign & dashboard queries, broadcasts cross-tab deletion,
  * and shows user feedback toast notifications.
  *
  * @param options - Optional mutation options to extend default behavior.
@@ -350,8 +394,10 @@ export function UseDeleteCampaignMutation(
     ...restOptions,
     mutationFn: (id: string) => DeleteCampaign(id),
     onSuccess: (data, variables, onMutateResult, context) => {
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
+      void queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      void queryClient.invalidateQueries({ queryKey: ['campaign-counts'] });
+      void queryClient.invalidateQueries({ queryKey: ['brand', 'dashboard'] });
+      NotifyCampaignUpdatedAcrossTabs(variables);
 
       const message = options?.successMessage ?? 'Kampanye berhasil dihapus.';
       toast.success(message);

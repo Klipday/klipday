@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import type { Prisma } from '../../generated/prisma/client.js';
+import { Prisma } from '../../generated/prisma/client.js';
 import { CampaignStatus, Platform, Role, Status, SubmissionStatus } from '../../generated/prisma/enums.js';
 import { prisma } from '../../utils/prisma.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
@@ -41,6 +41,48 @@ import {
   FormatCampaignSubmissionReviewItem,
   FormatSubmissionResponse,
 } from './submission.helper.js';
+
+/**
+ * Expected HTTP error thrown inside Prisma transactions so partial submission updates
+ * roll back cleanly before returning a standardized error response.
+ */
+class SubmissionTransactionError extends Error {
+  public readonly statusCode: number;
+
+  /**
+   * Creates a typed transaction error carrying HTTP status code and localized message.
+   *
+   * @param statusCode - HTTP response status code.
+   * @param message - Localized API error message.
+   */
+  public constructor(statusCode: number, message: string) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
+
+/**
+ * Computes remaining campaign escrow budget from approved/verified submissions.
+ *
+ * @param budget - Campaign total budget in Rupiah.
+ * @param approvedSubmissions - List of approved/verified submissions with earnings.
+ * @returns Non-negative remaining escrow budget in Rupiah.
+ */
+function ComputeRemainingCampaignEscrow(
+  budget: number,
+  approvedSubmissions?: Array<{ earnings: Prisma.Decimal | number | null }> | null,
+): number {
+  const list = Array.isArray(approvedSubmissions) ? approvedSubmissions : [];
+  const allocated = list.reduce((sum, item) => {
+    const rawEarnings = item.earnings !== null && item.earnings !== undefined
+      ? Number(item.earnings)
+      : 0;
+    const safeEarnings = Number.isFinite(rawEarnings) ? Math.max(0, Math.floor(rawEarnings)) : 0;
+    return sum + safeEarnings;
+  }, 0);
+  const remaining = Math.max(0, budget - allocated);
+  return remaining;
+}
 
 /**
  * Handles `POST /campaigns/:id/join`:
@@ -137,17 +179,7 @@ export async function JoinCampaign(req: Request, res: Response, next: NextFuncti
         return;
       }
     } else {
-      const approvedSubmissions = Array.isArray(campaign.submissions) ? campaign.submissions : [];
-      const allocatedEscrow = approvedSubmissions.reduce((sum, item) => {
-        const rawEarnings = item.earnings !== null && item.earnings !== undefined
-          ? Number(item.earnings)
-          : 0;
-        const safeEarnings = Number.isFinite(rawEarnings)
-          ? Math.max(0, Math.floor(rawEarnings))
-          : 0;
-        return sum + safeEarnings;
-      }, 0);
-      const remainingEscrow = Math.max(0, currentBudget - allocatedEscrow);
+      const remainingEscrow = ComputeRemainingCampaignEscrow(currentBudget, campaign.submissions);
 
       if (currentBudget > 0 && remainingEscrow <= 0) {
         SendError(res, SUBMISSION_MESSAGES.CAMPAIGN_BUDGET_FULL, 400);
@@ -167,7 +199,24 @@ export async function JoinCampaign(req: Request, res: Response, next: NextFuncti
           status: Status.ACTIVE,
         },
       };
-      await prisma.submission.create(createSubmissionPayload);
+
+      try {
+        await prisma.submission.create(createSubmissionPayload);
+      } catch (createError) {
+        const isUniqueViolation =
+          createError instanceof Prisma.PrismaClientKnownRequestError &&
+          createError.code === 'P2002';
+
+        if (!isUniqueViolation) {
+          throw createError;
+        }
+
+        const concurrentSubmission = await prisma.submission.findFirst(findExistingSubmissionQuery);
+        if (concurrentSubmission?.submissionStatus === SubmissionStatus.REJECTED) {
+          SendError(res, SUBMISSION_MESSAGES.REJECTED_CANNOT_RESUBMIT, 400);
+          return;
+        }
+      }
     }
 
     SendSuccess(res, null, SUBMISSION_MESSAGES.JOIN_SUCCESS);
@@ -506,19 +555,10 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
       }
 
       const campaignBudget = parentCampaign.budget ? Number(parentCampaign.budget) : 0;
-      const approvedList = Array.isArray(parentCampaign.submissions)
-        ? parentCampaign.submissions
-        : [];
-      const allocatedEscrow = approvedList.reduce((sum, item) => {
-        const rawEarnings = item.earnings !== null && item.earnings !== undefined
-          ? Number(item.earnings)
-          : 0;
-        const safeEarnings = Number.isFinite(rawEarnings)
-          ? Math.max(0, Math.floor(rawEarnings))
-          : 0;
-        return sum + safeEarnings;
-      }, 0);
-      const remainingEscrow = Math.max(0, campaignBudget - allocatedEscrow);
+      const remainingEscrow = ComputeRemainingCampaignEscrow(
+        campaignBudget,
+        parentCampaign.submissions,
+      );
 
       if (campaignBudget > 0 && remainingEscrow <= 0) {
         SendError(res, SUBMISSION_MESSAGES.CAMPAIGN_BUDGET_FULL, 400);
@@ -548,25 +588,78 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
       }
     }
 
-    const finalizeSubmissionPayload = {
-      where: { id: existingSubmission.id },
-      data: {
-        liveVideoUrl: validation.data.liveVideoUrl,
-        thumbnailUrl: resolvedThumbnailUrl,
-        videoCaption: validation.data.videoCaption,
-        socialAccountId: validation.data.socialAccountId,
-        submissionStatus: SubmissionStatus.PENDING_REVIEW,
-        submittedAt: new Date(),
-      },
-      include: {
-        socialAccount: {
-          where: { status: Status.ACTIVE },
-        },
-      },
-    };
-    const finalizedSubmission = await prisma.submission.update(finalizeSubmissionPayload);
+    const finalizedSubmission = await prisma.$transaction(async (tx) => {
+      const freshSubmission = await tx.submission.findFirst(findExistingSubmissionQuery);
+      if (!freshSubmission) {
+        throw new SubmissionTransactionError(404, SUBMISSION_MESSAGES.SUBMISSION_NOT_FOUND);
+      }
 
-    if (existingSubmission.campaign?.brand?.accountId) {
+      if (
+        freshSubmission.submissionStatus !== SubmissionStatus.JOINED &&
+        freshSubmission.submissionStatus !== SubmissionStatus.REVISION_REQUESTED
+      ) {
+        throw new SubmissionTransactionError(409, SUBMISSION_MESSAGES.SUBMISSION_RACE_CONFLICT);
+      }
+
+      if (freshSubmission.campaign) {
+        const freshCampaign = freshSubmission.campaign;
+        if (
+          freshCampaign.status !== Status.ACTIVE ||
+          freshCampaign.campaignStatus !== CampaignStatus.ACTIVE
+        ) {
+          throw new SubmissionTransactionError(404, SUBMISSION_MESSAGES.CAMPAIGN_NOT_FOUND_OR_INACTIVE);
+        }
+
+        if (freshCampaign.endDate && new Date(freshCampaign.endDate) <= new Date()) {
+          throw new SubmissionTransactionError(400, SUBMISSION_MESSAGES.CAMPAIGN_ENDED);
+        }
+
+        const freshBudget = freshCampaign.budget ? Number(freshCampaign.budget) : 0;
+        const freshRemaining = ComputeRemainingCampaignEscrow(
+          freshBudget,
+          freshCampaign.submissions,
+        );
+
+        if (freshBudget > 0 && freshRemaining <= 0) {
+          throw new SubmissionTransactionError(400, SUBMISSION_MESSAGES.CAMPAIGN_BUDGET_FULL);
+        }
+      }
+
+      const claimed = await tx.submission.updateMany({
+        where: {
+          id: freshSubmission.id,
+          status: Status.ACTIVE,
+          submissionStatus: {
+            in: [SubmissionStatus.JOINED, SubmissionStatus.REVISION_REQUESTED],
+          },
+        },
+        data: {
+          liveVideoUrl: validation.data.liveVideoUrl,
+          thumbnailUrl: resolvedThumbnailUrl,
+          videoCaption: validation.data.videoCaption,
+          socialAccountId: validation.data.socialAccountId,
+          submissionStatus: SubmissionStatus.PENDING_REVIEW,
+          submittedAt: new Date(),
+        },
+      });
+
+      if (claimed.count === 0) {
+        throw new SubmissionTransactionError(409, SUBMISSION_MESSAGES.SUBMISSION_RACE_CONFLICT);
+      }
+
+      const reloaded = await tx.submission.findFirst({
+        where: { id: freshSubmission.id, status: Status.ACTIVE },
+        include: {
+          socialAccount: {
+            where: { status: Status.ACTIVE },
+          },
+        },
+      });
+
+      return reloaded;
+    });
+
+    if (finalizedSubmission && existingSubmission.campaign?.brand?.accountId) {
       void NotifySubmissionReceived({
         brandAccountId: existingSubmission.campaign.brand.accountId,
         campaignTitle: existingSubmission.campaign.title ?? 'Kampanye',
@@ -576,9 +669,13 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
       });
     }
 
-    const formattedSubmission = FormatSubmissionResponse(finalizedSubmission);
+    const formattedSubmission = FormatSubmissionResponse(finalizedSubmission as never);
     SendSuccess(res, formattedSubmission, SUBMISSION_MESSAGES.SUBMIT_SUCCESS);
   } catch (err) {
+    if (err instanceof SubmissionTransactionError) {
+      SendError(res, err.message, err.statusCode);
+      return;
+    }
     next(err);
   }
 }

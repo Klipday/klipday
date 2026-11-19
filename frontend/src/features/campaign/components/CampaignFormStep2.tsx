@@ -101,7 +101,10 @@ export function CampaignFormStep2() {
     }
 
     editMutation.mutate(
-      { materials: values.materials },
+      {
+        materials: values.materials,
+        expectedUpdatedAt: campaign?.updatedAt,
+      },
       {
         onSuccess: () => {
           form.reset(values);

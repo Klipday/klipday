@@ -1,6 +1,39 @@
-import { CAMPAIGN_MESSAGES } from './campaign.constants.js';
-import { adminVerifyPaymentSchema, bankTransferPaymentSchema, campaignEditSchema, campaignQuerySchema } from './campaign.schemas.js';
-import type { AdminVerifyPaymentInput, BankTransferPaymentInput, CampaignEditInput, CampaignExistingFields, CampaignQueryInput, CampaignSubmitCheckRecord } from './campaign.types.js';
+import { CampaignStatus } from '../../generated/prisma/enums.js';
+import { CAMPAIGN_FIELD_LIMITS, CAMPAIGN_MESSAGES } from './campaign.constants.js';
+import {
+  adminVerifyPaymentSchema,
+  bankTransferPaymentSchema,
+  campaignEditSchema,
+  campaignQuerySchema,
+  walletPaymentSchema,
+} from './campaign.schemas.js';
+import type {
+  AdminVerifyPaymentInput,
+  BankTransferPaymentInput,
+  CampaignEditInput,
+  CampaignExistingFields,
+  CampaignQueryInput,
+  CampaignSubmitCheckRecord,
+  WalletPaymentInput,
+} from './campaign.types.js';
+
+/**
+ * Converts a timestamp to its UTC-midnight epoch milliseconds on the `Asia/Jakarta` (UTC+7) calendar date.
+ * Ensures consistent WIB date comparisons regardless of server OS timezone.
+ *
+ * @param date - Date instance to project into Asia/Jakarta calendar day.
+ * @returns Epoch milliseconds representing midnight UTC of that Jakarta calendar date.
+ */
+function ToJakartaCalendarDayMs(date: Date): number {
+  const shiftedMs = date.getTime() + CAMPAIGN_FIELD_LIMITS.JAKARTA_UTC_OFFSET_MS;
+  const shiftedDate = new Date(shiftedMs);
+  const calendarDayMs = Date.UTC(
+    shiftedDate.getUTCFullYear(),
+    shiftedDate.getUTCMonth(),
+    shiftedDate.getUTCDate(),
+  );
+  return calendarDayMs;
+}
 
 /**
  * Validates the campaign edit request body against the edit schema.
@@ -22,58 +55,97 @@ export function ValidateCampaignEditBody(body: unknown): CampaignEditInput | str
 
 /**
  * Validates reward and pricing rules for campaign edit input.
- * Ensures that maxViews is not less than minViews, and budget is not less than CPM.
+ * Ensures that maxViews is not less than minViews, budget is not less than CPM,
+ * and budget can fund at least one creator reaching minimum views.
  *
  * @param input - The parsed campaign edit input.
  * @param existing - Optional existing campaign fields from the database.
  * @returns An error message string if a rule is violated, otherwise null.
  */
 export function ValidateCampaignRewardLogic(input: CampaignEditInput, existing?: CampaignExistingFields): string | null {
-  const effectiveMinViews = input.minViews ?? existing?.minViews ?? 0;
-  const effectiveMaxViews = input.maxViews ?? existing?.maxViews ?? 0;
+  const effectiveMinViews = Number(input.minViews ?? existing?.minViews ?? 0);
+  const effectiveMaxViews = Number(input.maxViews ?? existing?.maxViews ?? 0);
 
   if (effectiveMaxViews < effectiveMinViews) {
     return CAMPAIGN_MESSAGES.REWARD_MAX_LESS_THAN_MIN;
   }
 
-  const effectiveBudget = input.budget ?? existing?.budget ?? 0;
-  const effectiveCpm = input.cpm ?? existing?.cpm ?? 0;
+  const effectiveBudget = Number(input.budget ?? existing?.budget ?? 0);
+  const effectiveCpm = Number(input.cpm ?? existing?.cpm ?? 0);
 
   if (effectiveBudget < effectiveCpm) {
     return CAMPAIGN_MESSAGES.REWARD_BUDGET_LESS_THAN_CPM;
+  }
+
+  const minRequiredPayout = Math.ceil(
+    (effectiveMinViews * effectiveCpm) / CAMPAIGN_FIELD_LIMITS.CPM_VIEW_DIVISOR,
+  );
+
+  if (effectiveBudget < minRequiredPayout) {
+    return CAMPAIGN_MESSAGES.REWARD_BUDGET_BELOW_MIN_PAYOUT;
   }
 
   return null;
 }
 
 /**
- * Validates campaign schedule and date rules for edit input.
- * Ensures that start date cannot be less than today, and end date must be strictly greater than start date.
+ * Validates campaign schedule and date rules for edit input using Asia/Jakarta calendar days.
+ * Merges incoming partial dates with existing campaign dates, allows unchanged past startDate
+ * for approved paid REVISION campaigns, and ensures endDate is both in the future and after startDate.
  *
  * @param input - The parsed campaign edit input.
  * @param existing - Optional existing campaign fields from the database.
  * @returns An error message string if a rule is violated, otherwise null.
  */
 export function ValidateCampaignDateLogic(input: CampaignEditInput, existing?: CampaignExistingFields): string | null {
-  if (!input.startDate || !input.endDate) {
+  const hasDateUpdate = input.startDate !== undefined || input.endDate !== undefined;
+  if (!hasDateUpdate) {
     return null;
   }
 
-  const effectiveStartDate = new Date(input.startDate);
-  const effectiveEndDate = new Date(input.endDate);
+  const rawStartDate = input.startDate ?? existing?.startDate;
+  const rawEndDate = input.endDate ?? existing?.endDate;
+  const todayDayMs = ToJakartaCalendarDayMs(new Date());
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  if (rawStartDate) {
+    const effectiveStartDate = new Date(rawStartDate);
+    if (Number.isNaN(effectiveStartDate.getTime())) {
+      return CAMPAIGN_MESSAGES.START_DATE_REQUIRED;
+    }
 
-  const startDateOnly = new Date(effectiveStartDate);
-  startDateOnly.setHours(0, 0, 0, 0);
+    const startDayMs = ToJakartaCalendarDayMs(effectiveStartDate);
+    const existingStartDayMs = existing?.startDate
+      ? ToJakartaCalendarDayMs(new Date(existing.startDate))
+      : null;
 
-  if (startDateOnly < today) {
-    return CAMPAIGN_MESSAGES.DATE_START_PAST;
+    const isPaidRevisionUnchangedStart =
+      existing?.campaignStatus === CampaignStatus.REVISION &&
+      Boolean(existing?.isPaymentApproved) &&
+      existingStartDayMs !== null &&
+      startDayMs === existingStartDayMs;
+
+    if (!isPaidRevisionUnchangedStart && startDayMs < todayDayMs) {
+      return CAMPAIGN_MESSAGES.DATE_START_PAST;
+    }
   }
 
-  if (effectiveEndDate <= effectiveStartDate) {
-    return CAMPAIGN_MESSAGES.DATE_END_BEFORE_START;
+  if (rawEndDate) {
+    const effectiveEndDate = new Date(rawEndDate);
+    if (Number.isNaN(effectiveEndDate.getTime())) {
+      return CAMPAIGN_MESSAGES.END_DATE_REQUIRED;
+    }
+
+    if (rawStartDate) {
+      const effectiveStartDate = new Date(rawStartDate);
+      if (effectiveEndDate.getTime() <= effectiveStartDate.getTime()) {
+        return CAMPAIGN_MESSAGES.DATE_END_BEFORE_START;
+      }
+    }
+
+    const endDayMs = ToJakartaCalendarDayMs(effectiveEndDate);
+    if (endDayMs <= todayDayMs) {
+      return CAMPAIGN_MESSAGES.DATE_END_PAST;
+    }
   }
 
   return null;
@@ -150,6 +222,14 @@ export function ValidateCampaignSubmitCompleteness(campaign: CampaignSubmitCheck
     return CAMPAIGN_MESSAGES.STEP_4_INVALID_VIEWS;
   }
 
+  const minRequiredPayout = Math.ceil(
+    (minViews * cpm) / CAMPAIGN_FIELD_LIMITS.CPM_VIEW_DIVISOR,
+  );
+
+  if (budget < minRequiredPayout) {
+    return CAMPAIGN_MESSAGES.REWARD_BUDGET_BELOW_MIN_PAYOUT;
+  }
+
   if (!campaign.startDate || !campaign.endDate) {
     return CAMPAIGN_MESSAGES.STEP_4_NO_DATES;
   }
@@ -157,8 +237,12 @@ export function ValidateCampaignSubmitCompleteness(campaign: CampaignSubmitCheck
   const startDate = new Date(campaign.startDate).getTime();
   const endDate = new Date(campaign.endDate).getTime();
 
-  if (isNaN(startDate) || isNaN(endDate) || endDate <= startDate) {
+  if (Number.isNaN(startDate) || Number.isNaN(endDate) || endDate <= startDate) {
     return CAMPAIGN_MESSAGES.STEP_4_INVALID_DATES;
+  }
+
+  if (endDate <= Date.now()) {
+    return CAMPAIGN_MESSAGES.DATE_END_PAST;
   }
 
   return null;
@@ -178,6 +262,24 @@ export function ValidateCampaignQuery(query: unknown): CampaignQueryInput | stri
   if (!parseResult.success) {
     const firstIssue = parseResult.error.issues[0];
     const errorMessage = firstIssue?.message ?? CAMPAIGN_MESSAGES.INVALID_QUERY_PARAMS;
+    return errorMessage;
+  }
+
+  return parseResult.data;
+}
+
+/**
+ * Validates the optional wallet payment confirmation payload (`expectedBudget`).
+ *
+ * @param body - Raw request body from `req.body`.
+ * @returns Parsed `WalletPaymentInput` or a validation error string when invalid.
+ */
+export function ValidateWalletPaymentBody(body: unknown): WalletPaymentInput | string {
+  const parseResult = walletPaymentSchema.safeParse(body);
+
+  if (!parseResult.success) {
+    const firstIssue = parseResult.error.issues[0];
+    const errorMessage = firstIssue?.message ?? CAMPAIGN_MESSAGES.INVALID_REQUEST_BODY;
     return errorMessage;
   }
 

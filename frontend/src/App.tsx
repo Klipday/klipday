@@ -169,23 +169,18 @@ const router = createBrowserRouter(
           <Route path="brand-campaigns/:id" element={<CampaignDetail />} />
           <Route path="wallet" element={<BrandWalletPage />} />
           <Route path="profile" element={<BrandProfilePage />} />
-          <Route path="brand-campaigns/create" element={<CampaignWizardLayout />}>
-            <Route index element={<Navigate to="step-1" replace />} />
-            <Route path="step-1" element={<CampaignStep1 />} />
-            <Route path="step-2" element={<CampaignStep2 />} />
-            <Route path="step-3" element={<CampaignStep3 />} />
-            <Route path="step-4" element={<CampaignStep4 />} />
-            <Route path="step-5" element={<CampaignStep5 />} />
-            <Route path="step-6" element={<CampaignStep6 />} />
-          </Route>
-          <Route path="brand-campaigns/:id/create" element={<CampaignWizardLayout />}>
-            <Route index element={<CampaignWizardIndexRedirect />} />
-            <Route path="step-1" element={<CampaignStep1 />} />
-            <Route path="step-2" element={<CampaignStep2 />} />
-            <Route path="step-3" element={<CampaignStep3 />} />
-            <Route path="step-4" element={<CampaignStep4 />} />
-            <Route path="step-5" element={<CampaignStep5 />} />
-            <Route path="step-6" element={<CampaignStep6 />} />
+          <Route path="brand-campaigns/create/*" element={<Navigate to="/brand-dashboard/brand-campaigns" replace />} />
+          <Route path="brand-campaigns/create" element={<Navigate to="/brand-dashboard/brand-campaigns" replace />} />
+          <Route element={<ProtectedRoute allowedRoles={['BRAND']} />}>
+            <Route path="brand-campaigns/:id/create" element={<CampaignWizardLayout />}>
+              <Route index element={<CampaignWizardIndexRedirect />} />
+              <Route path="step-1" element={<CampaignStep1 />} />
+              <Route path="step-2" element={<CampaignStep2 />} />
+              <Route path="step-3" element={<CampaignStep3 />} />
+              <Route path="step-4" element={<CampaignStep4 />} />
+              <Route path="step-5" element={<CampaignStep5 />} />
+              <Route path="step-6" element={<CampaignStep6 />} />
+            </Route>
           </Route>
           <Route path="brand-campaign" element={<Navigate to="/brand-dashboard/brand-campaigns" replace />} />
         </Route>

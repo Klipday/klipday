@@ -32,6 +32,12 @@ export function GetEmptyStateForStatus(status?: string): CampaignEmptyStateConfi
         description: 'Kampanye yang telah menyelesaikan periode penayangan atau mencapai target anggaran akan otomatis diarsipkan di sini.',
       };
 
+    case 'REJECTED':
+      return {
+        title: 'Tidak Ada Kampanye Ditolak',
+        description: 'Kampanye yang ditolak oleh tim moderasi beserta alasan penolakan dan catatan pengembalian dana akan tampil di sini.',
+      };
+
     case 'ACTIVE':
     default:
       return {

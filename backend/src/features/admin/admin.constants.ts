@@ -344,6 +344,8 @@ export const ADMIN_MESSAGES = {
   MODERATION_ACTION_INVALID: 'Tindakan moderasi tidak valid.',
   ADMIN_NOTE_REQUIRED: 'Catatan admin wajib diisi untuk tindakan ini.',
   CAMPAIGN_NOT_IN_REVIEW: 'Hanya kampanye berstatus menunggu peninjauan (IN_REVIEW) yang dapat dimoderasi.',
+  MODERATION_RACE_CONFLICT:
+    'Status kampanye atau pembayaran telah diperbarui secara bersamaan oleh admin lain. Harap muat ulang daftar.',
   PAYMENT_NOT_SUBMITTED_FOR_REJECT:
     'Hanya pembayaran transfer manual berstatus menunggu konfirmasi (SUBMITTED) yang dapat ditolak pembayarannya.',
   MODERATE_CAMPAIGN_SUCCESS: 'Keputusan moderasi kampanye berhasil disimpan.',

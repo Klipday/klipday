@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,7 +13,8 @@ import type { CampaignUnsavedChangesDialogProps } from '../types';
 
 /**
  * Confirmation dialog prompting user when attempting to navigate away
- * with unsaved campaign form changes.
+ * with unsaved campaign form changes. Guards against Radix AlertDialog's
+ * synchronous `onOpenChange(false)` firing `onCancel` after `onConfirm`.
  *
  * @param props - Dialog open state and confirm/cancel action callbacks.
  * @returns The rendered alert dialog modal.
@@ -22,8 +24,28 @@ export function CampaignUnsavedChangesDialog({
   onConfirm,
   onCancel,
 }: CampaignUnsavedChangesDialogProps) {
+  const isConfirmingRef = useRef(false);
+
+  const HandleConfirmClick = () => {
+    isConfirmingRef.current = true;
+    onConfirm();
+  };
+
+  const HandleOpenChange = (open: boolean) => {
+    if (open) {
+      return;
+    }
+
+    if (isConfirmingRef.current) {
+      isConfirmingRef.current = false;
+      return;
+    }
+
+    onCancel();
+  };
+
   return (
-    <AlertDialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
+    <AlertDialog open={isOpen} onOpenChange={HandleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Perubahan Belum Disimpan</AlertDialogTitle>
@@ -33,7 +55,7 @@ export function CampaignUnsavedChangesDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onCancel}>Tetap di Sini</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" onClick={onConfirm}>
+          <AlertDialogAction variant="destructive" onClick={HandleConfirmClick}>
             Tinggalkan Halaman
           </AlertDialogAction>
         </AlertDialogFooter>

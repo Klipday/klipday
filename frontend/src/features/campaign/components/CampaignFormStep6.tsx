@@ -137,7 +137,9 @@ export function CampaignFormStep6({ className }: CampaignFormStep6Props) {
       {/* ACTIVE METHOD VIEW */}
       {activeTab === 'transfer' ? (
         <CampaignPaymentTransferOption
+          key={`${id}-${resolvedBudget}-${totalPayable}-${payment?.updatedAt ?? ''}`}
           campaignId={id}
+          budget={resolvedBudget}
           totalPayable={totalPayable}
           uniqueCode={uniqueCode}
           bankDetails={paymentDetails.bankDetails}

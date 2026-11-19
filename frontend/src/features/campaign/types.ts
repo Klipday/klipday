@@ -133,6 +133,16 @@ export interface CampaignEditInput {
   budget?: number;
   startDate?: string | Date;
   endDate?: string | Date;
+  expectedUpdatedAt?: string;
+}
+
+export interface CampaignQueryHookOptions {
+  enabled?: boolean;
+}
+
+export interface CampaignBroadcastEvent {
+  senderTabId: string;
+  campaignId?: string;
 }
 
 export interface MaterialFieldGroupProps {
@@ -661,10 +671,16 @@ export interface CampaignPaymentDetailsResponse {
   canPayWithWallet: boolean;
 }
 
+export interface WalletPaymentPayload {
+  expectedBudget?: number;
+}
+
 export interface BankTransferPaymentPayload {
   senderProviderName: string;
   senderAccountName: string;
   transferProofUrl: string;
+  expectedBudget?: number;
+  expectedTotalPayable?: number;
 }
 
 export interface AdminVerifyPaymentPayload {
@@ -687,6 +703,7 @@ export interface CampaignPaymentWalletOptionProps {
 
 export interface CampaignPaymentTransferOptionProps {
   campaignId: string;
+  budget: number;
   totalPayable: number;
   uniqueCode: number;
   bankDetails: CampaignBankDetails;
