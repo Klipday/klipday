@@ -92,6 +92,7 @@ export interface Campaign {
   budget?: number | string | null;
   allocatedBudget?: number | null;
   remainingBudget?: number | null;
+  remainingBudgetPercent?: number | null;
   startDate?: string | null;
   endDate?: string | null;
   status?: string;
@@ -344,9 +345,10 @@ export interface CampaignCardItem {
   cpm: number | string | null;
   minViews?: number | null;
   maxViews?: number | null;
-  budget: number | string | null;
+  budget?: number | string | null;
   allocatedBudget?: number | null;
   remainingBudget?: number | null;
+  remainingBudgetPercent?: number | null;
   startDate?: string | null;
   endDate?: string | null;
   status: string;
@@ -520,6 +522,7 @@ export interface CampaignDetailBriefSectionsProps {
 
 export interface CampaignDetailRewardSidebarProps {
   campaign: Campaign;
+  userRole?: 'BRAND' | 'CREATOR' | 'ADMIN' | null;
   className?: string;
 }
 

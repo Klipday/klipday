@@ -370,8 +370,9 @@ export async function GetCampaigns(req: Request, res: Response, next: NextFuncti
       }),
     ]);
 
+    const hideBudgetAmounts = account.role === Role.CREATOR;
     const enrichedCampaigns = campaigns.map((campaign) =>
-      EnrichCampaignEscrowMetrics(campaign),
+      EnrichCampaignEscrowMetrics(campaign, { hideBudgetAmounts }),
     );
 
     const totalPages = Math.ceil(totalCount / limit);
@@ -475,16 +476,18 @@ export async function GetFeaturedCampaigns(req: Request, res: Response, next: Ne
 
       const backfillCampaigns = await prisma.campaign.findMany(backfillQuery);
       const combinedCampaigns = [...featuredCampaigns, ...backfillCampaigns];
+      const hideBudgetAmounts = account.role === Role.CREATOR;
       const enrichedCombined = combinedCampaigns.map((campaign) =>
-        EnrichCampaignEscrowMetrics(campaign),
+        EnrichCampaignEscrowMetrics(campaign, { hideBudgetAmounts }),
       );
 
       SendSuccess(res, enrichedCombined, CAMPAIGN_MESSAGES.FEATURED_RETRIEVED_SUCCESS);
       return;
     }
 
+    const hideBudgetAmounts = account.role === Role.CREATOR;
     const enrichedFeatured = featuredCampaigns.map((campaign) =>
-      EnrichCampaignEscrowMetrics(campaign),
+      EnrichCampaignEscrowMetrics(campaign, { hideBudgetAmounts }),
     );
 
     SendSuccess(res, enrichedFeatured, CAMPAIGN_MESSAGES.FEATURED_RETRIEVED_SUCCESS);
@@ -597,7 +600,8 @@ export async function GetCampaignById(req: Request, res: Response, next: NextFun
       return;
     }
 
-    const enrichedCampaign = EnrichCampaignEscrowMetrics(campaign);
+    const hideBudgetAmounts = account.role === Role.CREATOR;
+    const enrichedCampaign = EnrichCampaignEscrowMetrics(campaign, { hideBudgetAmounts });
 
     SendSuccess(res, enrichedCampaign, CAMPAIGN_MESSAGES.DETAIL_RETRIEVED_SUCCESS);
   } catch (err) {

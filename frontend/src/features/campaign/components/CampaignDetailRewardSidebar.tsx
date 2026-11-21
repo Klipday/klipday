@@ -20,9 +20,20 @@ import {
  * @param props - Component properties containing the full campaign entity.
  * @returns The rendered reward summary sidebar element.
  */
-export function CampaignDetailRewardSidebar({ campaign, className }: CampaignDetailRewardSidebarProps) {
-  const budgetPercent = CalculateBudgetPercentage(campaign.budget, campaign.allocatedBudget);
-  const totalBudgetDisplay = FormatRupiah(Number(campaign.budget) || 0);
+export function CampaignDetailRewardSidebar({
+  campaign,
+  userRole,
+  className,
+}: CampaignDetailRewardSidebarProps) {
+  const budgetPercent =
+    typeof campaign.remainingBudgetPercent === 'number'
+      ? Math.max(0, Math.min(100, Math.round(campaign.remainingBudgetPercent)))
+      : CalculateBudgetPercentage(campaign.budget, campaign.allocatedBudget);
+  const canViewBudgetAmounts = userRole !== 'CREATOR' && campaign.budget != null;
+  const totalBudgetDisplay = canViewBudgetAmounts ? FormatRupiah(Number(campaign.budget) || 0) : '';
+  const allocatedBudgetDisplay = canViewBudgetAmounts
+    ? FormatRupiah(Number(campaign.allocatedBudget) || 0)
+    : '';
   const cpmDisplay = FormatCpmDisplay(campaign.cpm);
   const minViewsDisplay = FormatNumber(campaign.minViews);
   const maxViewsDisplay = FormatNumber(campaign.maxViews);
@@ -51,12 +62,14 @@ export function CampaignDetailRewardSidebar({ campaign, className }: CampaignDet
               />
             </div>
 
-            <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between text-xs text-muted-foreground pt-0.5">
-              <span className="shrink-0">Anggaran Terpakai</span>
-              <span className="font-medium text-foreground tabular-nums">
-                {FormatRupiah(Number(campaign.allocatedBudget) || 0)} / {totalBudgetDisplay}
-              </span>
-            </div>
+            {canViewBudgetAmounts && (
+              <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between text-xs text-muted-foreground pt-0.5">
+                <span className="shrink-0">Anggaran Terpakai</span>
+                <span className="font-medium text-foreground tabular-nums">
+                  {allocatedBudgetDisplay} / {totalBudgetDisplay}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* 2x2 Reward Breakdown Grid */}

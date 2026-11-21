@@ -130,7 +130,7 @@ function CampaignDetailPage({ className }: CampaignDetailPageProps) {
 
             {/* Sticky Right Sidebar (5 cols on xl): Budget burn, 2x2 rate grid, schedule */}
             <div className="lg:col-span-6 xl:col-span-5 min-w-0">
-              <CampaignDetailRewardSidebar campaign={campaign} />
+              <CampaignDetailRewardSidebar campaign={campaign} userRole={userProfile?.role} />
             </div>
           </div>
         ) : (

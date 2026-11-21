@@ -20,6 +20,7 @@ import type {
   CampaignMaterialsInput,
   CampaignQueryInput,
   CampaignSortOption,
+  EnrichCampaignEscrowOptions,
   ExecuteBankTransferConfirmParams,
   ExecuteCampaignSubmissionParams,
   ExecuteVerifyCampaignPaymentParams,
@@ -337,28 +338,49 @@ export function GenerateWalletTransactionReferenceCode(): string {
 }
 
 /**
- * Computes real-time `allocatedBudget` and `remainingBudget` from approved/verified submission rewards
- * and strips the internal `submissions` relation array before returning the campaign DTO.
- * Safely returns records without `submissions` (such as unit test fixtures) untouched.
+ * Computes real-time `allocatedBudget`, `remainingBudget`, and `remainingBudgetPercent`
+ * from approved/verified submission rewards and strips the internal `submissions` relation array
+ * before returning the campaign DTO.
+ * When `options.hideBudgetAmounts` is true (e.g. for CREATOR accounts), raw nominal fields
+ * (`budget`, `allocatedBudget`, `remainingBudget`) are completely omitted from the payload
+ * so only `remainingBudgetPercent` (0-100%) is exposed over the network.
  *
  * @param campaign - Raw Prisma campaign payload from `CAMPAIGN_CARD_ESCROW_SELECT` or `CAMPAIGN_DETAIL_ESCROW_SELECT`.
- * @returns Enriched campaign object with `allocatedBudget` and `remainingBudget`.
+ * @param options - Optional serialization flags controlling budget amount visibility.
+ * @returns Enriched campaign object with escrow metrics (or percentage-only when hidden).
  */
 export function EnrichCampaignEscrowMetrics<
   TCampaign extends {
     budget?: Prisma.Decimal | number | null;
+    payments?: unknown;
     submissions?: Array<{ earnings: Prisma.Decimal | number }>;
   },
 >(
   campaign: TCampaign,
-): Omit<TCampaign, 'submissions'> & { allocatedBudget?: number; remainingBudget?: number } {
-  if (!('submissions' in campaign) || !Array.isArray(campaign.submissions)) {
-    return campaign;
+  options?: EnrichCampaignEscrowOptions,
+): Omit<TCampaign, 'submissions' | 'budget' | 'payments'> & {
+  budget?: Prisma.Decimal | number | null;
+  payments?: TCampaign['payments'];
+  allocatedBudget?: number;
+  remainingBudget?: number;
+  remainingBudgetPercent?: number;
+} {
+  const hideBudgetAmounts = Boolean(options?.hideBudgetAmounts);
+  const { submissions, budget, payments, ...restWithoutBudget } = campaign;
+
+  if (!Array.isArray(submissions)) {
+    if (hideBudgetAmounts) {
+      return restWithoutBudget;
+    }
+    return {
+      ...restWithoutBudget,
+      budget,
+      ...(payments !== undefined ? { payments } : {}),
+    };
   }
 
-  const { submissions, ...restCampaign } = campaign;
-  const rawBudget = restCampaign.budget !== null && restCampaign.budget !== undefined
-    ? Number(restCampaign.budget)
+  const rawBudget = budget !== null && budget !== undefined
+    ? Number(budget)
     : 0;
   const safeBudget = Number.isFinite(rawBudget) ? Math.max(0, Math.floor(rawBudget)) : 0;
 
@@ -373,11 +395,26 @@ export function EnrichCampaignEscrowMetrics<
   }, 0);
 
   const remainingBudget = Math.max(0, safeBudget - allocatedBudget);
+  const remainingBudgetPercent =
+    safeBudget > 0
+      ? Math.max(0, Math.min(100, Math.round((remainingBudget / safeBudget) * 100)))
+      : 0;
+
+  if (hideBudgetAmounts) {
+    const sanitizedForCreator = {
+      ...restWithoutBudget,
+      remainingBudgetPercent,
+    };
+    return sanitizedForCreator;
+  }
 
   const enriched = {
-    ...restCampaign,
+    ...restWithoutBudget,
+    budget,
+    ...(payments !== undefined ? { payments } : {}),
     allocatedBudget,
     remainingBudget,
+    remainingBudgetPercent,
   };
 
   return enriched;

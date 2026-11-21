@@ -24,6 +24,10 @@ export type {
   WalletPaymentInput,
 };
 
+export interface EnrichCampaignEscrowOptions {
+  hideBudgetAmounts?: boolean;
+}
+
 export interface CampaignPaginationMeta {
   page: number;
   limit: number;
@@ -55,9 +59,10 @@ export interface CampaignCardItem {
   cpm: Prisma.Decimal | number | null;
   minViews: number | null;
   maxViews: number | null;
-  budget: Prisma.Decimal | number | null;
+  budget?: Prisma.Decimal | number | null;
   allocatedBudget?: number;
   remainingBudget?: number;
+  remainingBudgetPercent?: number;
   lastMetricsSyncedAt?: Date | null;
   finalSnapshotSyncedAt?: Date | null;
   startDate: Date | null;
