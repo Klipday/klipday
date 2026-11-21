@@ -1,5 +1,9 @@
 export const VERIFICATION_CODE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 
+export const SOCIAL_ACCOUNT_SWITCH_COOLDOWN_DAYS = 30;
+export const SOCIAL_ACCOUNT_SWITCH_COOLDOWN_MS =
+  SOCIAL_ACCOUNT_SWITCH_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+
 export const TIKTOK_RECENT_VIDEOS_DEFAULT_LIMIT = 12;
 
 export const SOCIAL_ACCOUNT_MESSAGES = {
@@ -15,6 +19,8 @@ export const SOCIAL_ACCOUNT_MESSAGES = {
   USERNAME_ALREADY_CONNECTED: 'This TikTok username is already connected to another creator.',
   ACCOUNT_ALREADY_VERIFIED: (username: string) =>
     `Account @${username} is already verified and reactivated successfully.`,
+  ACCOUNT_SWITCH_COOLDOWN: (remainingDays: number, availableDateLabel: string) =>
+    `Anda baru dapat mengganti akun TikTok dalam ${remainingDays} hari lagi (${availableDateLabel}).`,
   CODE_REQUEST_SUCCESS: 'Bio verification code generated successfully.',
 
   // Verification check

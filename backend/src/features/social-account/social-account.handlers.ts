@@ -5,7 +5,11 @@ import { prisma } from '../../utils/prisma.js';
 import { PersistSocialAvatarToStorage } from '../../services/supabase.js';
 import { GetTikTokRecentVideos, GetTikTokUserProfile, GetTikTokVideoDetails, type TikTokVideoItem } from '../../services/scrape-creators.js';
 import { SOCIAL_ACCOUNT_MESSAGES, TIKTOK_RECENT_VIDEOS_DEFAULT_LIMIT, VERIFICATION_CODE_EXPIRY_MS } from './social-account.constants.js';
-import { GenerateVerificationCode } from './social-account.helper.js';
+import {
+  CalculateAccountSwitchCooldown,
+  FormatCooldownDateId,
+  GenerateVerificationCode,
+} from './social-account.helper.js';
 import type { RequestCodeResponseData } from './social-account.types.js';
 import { RequestCodeSchema, ValidateVideoUrlSchema, VerifyBioSchema } from './social-account.validators.js';
 
@@ -53,6 +57,33 @@ export async function RequestVerificationCode(req: Request, res: Response, next:
       return;
     }
 
+    // Check if creator already has an active verified TikTok account on cooldown when switching handles
+    const findCurrentActiveQuery = {
+      where: {
+        creatorId: creator.id,
+        platform: Platform.TIKTOK,
+        isVerified: true,
+        status: Status.ACTIVE,
+      },
+      orderBy: {
+        verifiedAt: 'desc' as const,
+      },
+    };
+    const currentActiveAccount = await prisma.creatorSocialAccount.findFirst(findCurrentActiveQuery);
+
+    if (currentActiveAccount && currentActiveAccount.username !== cleanUsername) {
+      const switchCooldown = CalculateAccountSwitchCooldown(currentActiveAccount.verifiedAt);
+      if (!switchCooldown.canSwitchAccount && switchCooldown.nextSwitchAvailableAt) {
+        const availableDateLabel = FormatCooldownDateId(switchCooldown.nextSwitchAvailableAt);
+        const cooldownMessage = SOCIAL_ACCOUNT_MESSAGES.ACCOUNT_SWITCH_COOLDOWN(
+          switchCooldown.remainingDays,
+          availableDateLabel,
+        );
+        SendError(res, cooldownMessage, 429);
+        return;
+      }
+    }
+
     // Check if this username is already verified in the system
     const findVerifiedAccountQuery = {
       where: {
@@ -68,6 +99,23 @@ export async function RequestVerificationCode(req: Request, res: Response, next:
       // Anti-hijacking guard: prevent linking if already verified by another creator
       if (existingVerifiedAccount.creatorId !== creator.id) {
         SendError(res, SOCIAL_ACCOUNT_MESSAGES.USERNAME_ALREADY_CONNECTED, 409);
+        return;
+      }
+
+      // Idempotent guard: if this is already the creator's active account, do NOT reset verifiedAt cooldown
+      if (currentActiveAccount && currentActiveAccount.id === existingVerifiedAccount.id) {
+        const cooldown = CalculateAccountSwitchCooldown(existingVerifiedAccount.verifiedAt);
+        const responseData: RequestCodeResponseData = {
+          username: cleanUsername,
+          alreadyVerified: true,
+          account: {
+            ...existingVerifiedAccount,
+            canSwitchAccount: cooldown.canSwitchAccount,
+            nextSwitchAvailableAt: cooldown.nextSwitchAvailableAt,
+          },
+        };
+
+        SendSuccess(res, responseData, SOCIAL_ACCOUNT_MESSAGES.ACCOUNT_ALREADY_VERIFIED(existingVerifiedAccount.username));
         return;
       }
 
@@ -97,10 +145,15 @@ export async function RequestVerificationCode(req: Request, res: Response, next:
         prisma.creatorSocialAccount.update(reactivatePayload),
       ]);
 
+      const newCooldown = CalculateAccountSwitchCooldown(updatedAccount.verifiedAt);
       const responseData: RequestCodeResponseData = {
         username: cleanUsername,
         alreadyVerified: true,
-        account: updatedAccount,
+        account: {
+          ...updatedAccount,
+          canSwitchAccount: newCooldown.canSwitchAccount,
+          nextSwitchAvailableAt: newCooldown.nextSwitchAvailableAt,
+        },
       };
 
       SendSuccess(res, responseData, SOCIAL_ACCOUNT_MESSAGES.ACCOUNT_ALREADY_VERIFIED(existingVerifiedAccount.username));
@@ -214,6 +267,33 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
     if (!creator) {
       SendError(res, SOCIAL_ACCOUNT_MESSAGES.CREATOR_NOT_FOUND, 404);
       return;
+    }
+
+    // Enforce 30-day switch cooldown before scraping TikTok if creator already has a different active account
+    const findCurrentActiveQuery = {
+      where: {
+        creatorId: creator.id,
+        platform: Platform.TIKTOK,
+        isVerified: true,
+        status: Status.ACTIVE,
+      },
+      orderBy: {
+        verifiedAt: 'desc' as const,
+      },
+    };
+    const currentActiveAccount = await prisma.creatorSocialAccount.findFirst(findCurrentActiveQuery);
+
+    if (currentActiveAccount && currentActiveAccount.username !== cleanUsername) {
+      const switchCooldown = CalculateAccountSwitchCooldown(currentActiveAccount.verifiedAt);
+      if (!switchCooldown.canSwitchAccount && switchCooldown.nextSwitchAvailableAt) {
+        const availableDateLabel = FormatCooldownDateId(switchCooldown.nextSwitchAvailableAt);
+        const cooldownMessage = SOCIAL_ACCOUNT_MESSAGES.ACCOUNT_SWITCH_COOLDOWN(
+          switchCooldown.remainingDays,
+          availableDateLabel,
+        );
+        SendError(res, cooldownMessage, 429);
+        return;
+      }
     }
 
     // Unified check: Idempotency (if verified by this creator) & Anti-hijacking (if verified by someone else)
@@ -347,8 +427,14 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
 
     const transactionResults = await prisma.$transaction(transactionSteps);
     const verifiedAccount = transactionResults[2];
+    const switchCooldown = CalculateAccountSwitchCooldown(verifiedAccount.verifiedAt);
+    const enrichedVerifiedAccount = {
+      ...verifiedAccount,
+      canSwitchAccount: switchCooldown.canSwitchAccount,
+      nextSwitchAvailableAt: switchCooldown.nextSwitchAvailableAt,
+    };
 
-    SendSuccess(res, verifiedAccount, SOCIAL_ACCOUNT_MESSAGES.VERIFY_SUCCESS);
+    SendSuccess(res, enrichedVerifiedAccount, SOCIAL_ACCOUNT_MESSAGES.VERIFY_SUCCESS);
   } catch (err) {
     next(err);
   }
@@ -401,7 +487,19 @@ export async function GetConnectedSocialAccount(req: Request, res: Response, nex
     };
     const socialAccount = await prisma.creatorSocialAccount.findFirst(findVerifiedAccountQuery);
 
-    SendSuccess(res, socialAccount, SOCIAL_ACCOUNT_MESSAGES.CONNECTED_ACCOUNT_RETRIEVED);
+    if (!socialAccount) {
+      SendSuccess(res, null, SOCIAL_ACCOUNT_MESSAGES.CONNECTED_ACCOUNT_RETRIEVED);
+      return;
+    }
+
+    const switchCooldown = CalculateAccountSwitchCooldown(socialAccount.verifiedAt);
+    const enrichedSocialAccount = {
+      ...socialAccount,
+      canSwitchAccount: switchCooldown.canSwitchAccount,
+      nextSwitchAvailableAt: switchCooldown.nextSwitchAvailableAt,
+    };
+
+    SendSuccess(res, enrichedSocialAccount, SOCIAL_ACCOUNT_MESSAGES.CONNECTED_ACCOUNT_RETRIEVED);
   } catch (err) {
     next(err);
   }

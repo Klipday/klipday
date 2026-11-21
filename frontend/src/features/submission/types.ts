@@ -16,6 +16,8 @@ export interface CreatorSocialAccount {
   verificationCode?: string | null;
   verificationExpiresAt?: string | null;
   verifiedAt?: string | null;
+  canSwitchAccount?: boolean;
+  nextSwitchAvailableAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

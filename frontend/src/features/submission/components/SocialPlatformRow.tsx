@@ -61,6 +61,19 @@ export function SocialPlatformRow({
 
   // Case 2: Platform supported and creator has a verified connected account
   if (hasConnectedAccount && connectedAccount) {
+    const isSwitchOnCooldown =
+      connectedAccount.canSwitchAccount === false &&
+      Boolean(connectedAccount.nextSwitchAvailableAt);
+
+    const cooldownDateLabel =
+      isSwitchOnCooldown && connectedAccount.nextSwitchAvailableAt
+        ? new Intl.DateTimeFormat('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          }).format(new Date(connectedAccount.nextSwitchAvailableAt))
+        : null;
+
     return (
       <div
         className={cn(
@@ -101,6 +114,11 @@ export function SocialPlatformRow({
               {' • '}
               <span>{FormatCompactCount(connectedAccount.followersCount)} Pengikut</span>
             </p>
+            {cooldownDateLabel && (
+              <p className="text-[11px] text-muted-foreground/80">
+                Ganti akun tersedia kembali pada {cooldownDateLabel}
+              </p>
+            )}
           </div>
         </div>
 
@@ -109,8 +127,14 @@ export function SocialPlatformRow({
             type="button"
             variant="outline"
             size="sm"
+            disabled={isSwitchOnCooldown}
+            title={
+              cooldownDateLabel
+                ? `Anda dapat mengganti akun kembali pada ${cooldownDateLabel}`
+                : undefined
+            }
             onClick={onSwitchAccount}
-            className="h-8 text-xs font-medium rounded-lg hover:bg-muted/80 cursor-pointer">
+            className="h-8 text-xs font-medium rounded-lg hover:bg-muted/80 cursor-pointer disabled:cursor-not-allowed">
             Ganti Akun
           </Button>
 

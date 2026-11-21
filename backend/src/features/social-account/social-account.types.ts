@@ -8,6 +8,12 @@ export interface RequestCodeResponseData {
   account?: SocialAccountDto;
 }
 
+export interface SocialAccountSwitchCooldown {
+  canSwitchAccount: boolean;
+  nextSwitchAvailableAt: string | null;
+  remainingDays: number;
+}
+
 export interface SocialAccountDto {
   id: string;
   creatorId: string;
@@ -20,6 +26,8 @@ export interface SocialAccountDto {
   verificationCode?: string | null;
   verificationExpiresAt?: Date | null;
   verifiedAt?: Date | null;
+  canSwitchAccount?: boolean;
+  nextSwitchAvailableAt?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
