@@ -810,6 +810,7 @@ model PayoutRequest {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([payoutStatus, createdAt(sort: Desc)])
+  @@index([walletId, payoutStatus, createdAt(sort: Desc)])
   @@index([payoutAccountId])
   @@map("payout_requests")
 }

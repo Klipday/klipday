@@ -220,3 +220,91 @@ export async function ProvisionAccountWallet(
     throw err;
   }
 }
+
+/**
+ * Inspects initial file bytes to identify genuine JPEG, PNG, or WEBP signatures,
+ * blocking Content-Type spoofing on payout proof image uploads.
+ *
+ * @param bytes - Leading header bytes buffered from the upload stream.
+ * @returns Detected canonical extension ('jpg' | 'png' | 'webp'), or null if unrecognized.
+ */
+export function DetectProofImageMagicBytes(bytes: Uint8Array): 'jpg' | 'png' | 'webp' | null {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return 'jpg';
+  }
+
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) {
+    return 'png';
+  }
+
+  if (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return 'webp';
+  }
+
+  return null;
+}
+
+/**
+ * Concatenates small buffered header chunks into a single Uint8Array for magic-byte verification.
+ *
+ * @param chunks - Buffered chunks captured before reaching header inspection length.
+ * @param totalLength - Combined byte count across all chunks.
+ * @returns Single contiguous Uint8Array containing the header bytes.
+ */
+export function MergeProofHeaderChunks(chunks: Uint8Array[], totalLength: number): Uint8Array {
+  const merged = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return merged;
+}
+
+/**
+ * Unwraps stream validation error tokens (including Undici `fetch` `TypeError.cause` wrappers).
+ *
+ * @param error - Unknown caught error object.
+ * @returns Known stream validation error token or null.
+ */
+export function ExtractStreamValidationErrorCode(
+  error: unknown,
+): 'FILE_SIZE_EXCEEDED' | 'INVALID_IMAGE_SIGNATURE' | null {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  if (error.message === 'FILE_SIZE_EXCEEDED' || error.message === 'INVALID_IMAGE_SIGNATURE') {
+    return error.message;
+  }
+
+  const errorWithCause = error as Error & { cause?: unknown };
+  if (errorWithCause.cause instanceof Error) {
+    const causeMsg = errorWithCause.cause.message;
+    if (causeMsg === 'FILE_SIZE_EXCEEDED' || causeMsg === 'INVALID_IMAGE_SIGNATURE') {
+      return causeMsg;
+    }
+  }
+
+  return null;
+}

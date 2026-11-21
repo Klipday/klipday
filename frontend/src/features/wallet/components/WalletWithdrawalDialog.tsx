@@ -101,15 +101,16 @@ export function WalletWithdrawalDialog({
    * Fills the withdrawal input with the entire available active balance.
    */
   const HandleWithdrawAll = () => {
-    if (activeBalance < WITHDRAWAL_LIMITS.MIN_AMOUNT) {
+    const maxWithdrawableAmount = Math.floor(activeBalance);
+    if (maxWithdrawableAmount < WITHDRAWAL_LIMITS.MIN_AMOUNT) {
       const formattedMinAmount = FormatRupiah(WITHDRAWAL_LIMITS.MIN_AMOUNT);
       toast.error(
         `Saldo aktif tidak mencukupi batas minimum penarikan (${formattedMinAmount}).`,
       );
       return;
     }
-    const formattedMax = FormatNumber(activeBalance);
-    setAmount(activeBalance);
+    const formattedMax = FormatNumber(maxWithdrawableAmount);
+    setAmount(maxWithdrawableAmount);
     setInputValue(formattedMax);
   };
 

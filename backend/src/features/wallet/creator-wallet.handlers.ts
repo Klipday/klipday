@@ -18,16 +18,21 @@ import {
   CREATOR_PAYOUT_LIMITS,
   CREATOR_WALLET_MESSAGES,
   WALLET_MESSAGES,
+  WITHDRAWAL_LIMITS,
 } from './wallet.constants.js';
 import {
+  DetectProofImageMagicBytes,
+  ExtractStreamValidationErrorCode,
   GenerateWithdrawalReferenceCode,
   MapPayoutRequestToRecord,
+  MergeProofHeaderChunks,
 } from './wallet.helper.js';
 import {
   CreateCreatorPayoutAccountSchema,
   CreateCreatorWithdrawalSchema,
   CreatorTransactionQuerySchema,
   RequestWithdrawalCancellationSchema,
+  UuidParamSchema,
 } from './wallet.schemas.js';
 import type {
   CreatorTransactionItem,
@@ -369,18 +374,63 @@ export async function UploadCreatorPayoutProof(
     }
 
     let bytesReceived = 0;
-    const sizeLimiter = new TransformStream<Uint8Array, Uint8Array>({
+    let headerValidated = false;
+    let headerBufferedLength = 0;
+    let headerChunks: Uint8Array[] = [];
+
+    const streamValidator = new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
         bytesReceived += chunk.byteLength;
         if (bytesReceived > CREATOR_PAYOUT_LIMITS.MAX_PROOF_SIZE_BYTES) {
           controller.error(new Error('FILE_SIZE_EXCEEDED'));
-        } else {
-          controller.enqueue(chunk);
+          return;
         }
+
+        if (headerValidated) {
+          controller.enqueue(chunk);
+          return;
+        }
+
+        headerChunks.push(chunk);
+        headerBufferedLength += chunk.byteLength;
+
+        if (headerBufferedLength >= CREATOR_PAYOUT_LIMITS.IMAGE_SIGNATURE_HEADER_BYTES) {
+          const mergedHeader = MergeProofHeaderChunks(headerChunks, headerBufferedLength);
+          const detectedExt = DetectProofImageMagicBytes(mergedHeader);
+          if (detectedExt !== fileExtension) {
+            controller.error(new Error('INVALID_IMAGE_SIGNATURE'));
+            return;
+          }
+
+          headerValidated = true;
+          headerChunks = [];
+          controller.enqueue(mergedHeader);
+        }
+      },
+      flush(controller) {
+        if (headerValidated) {
+          return;
+        }
+
+        if (headerBufferedLength === 0) {
+          controller.error(new Error('INVALID_IMAGE_SIGNATURE'));
+          return;
+        }
+
+        const mergedHeader = MergeProofHeaderChunks(headerChunks, headerBufferedLength);
+        const detectedExt = DetectProofImageMagicBytes(mergedHeader);
+        if (detectedExt !== fileExtension) {
+          controller.error(new Error('INVALID_IMAGE_SIGNATURE'));
+          return;
+        }
+
+        headerValidated = true;
+        headerChunks = [];
+        controller.enqueue(mergedHeader);
       },
     });
 
-    const webStream = Readable.toWeb(req).pipeThrough(sizeLimiter);
+    const webStream = Readable.toWeb(req).pipeThrough(streamValidator);
     const storagePath = `creators/${creator.id}/payout-proof-${Date.now()}.${fileExtension}`;
     const targetUrl = `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/${bucket}/${storagePath}`;
 
@@ -407,8 +457,13 @@ export async function UploadCreatorPayoutProof(
 
     SendSuccess(res, { url: publicUrl }, CREATOR_WALLET_MESSAGES.PAYOUT_PROOF_UPLOAD_SUCCESS);
   } catch (error) {
-    if (error instanceof Error && error.message === 'FILE_SIZE_EXCEEDED') {
+    const validationCode = ExtractStreamValidationErrorCode(error);
+    if (validationCode === 'FILE_SIZE_EXCEEDED') {
       SendError(res, WALLET_MESSAGES.FILE_SIZE_EXCEEDED, 400);
+      return;
+    }
+    if (validationCode === 'INVALID_IMAGE_SIGNATURE') {
+      SendError(res, CREATOR_WALLET_MESSAGES.INVALID_IMAGE_SIGNATURE, 400);
       return;
     }
     next(error);
@@ -441,7 +496,12 @@ export async function SetPrimaryCreatorPayoutAccount(
       return;
     }
 
-    const accountId = req.params.id as string;
+    const idValidation = UuidParamSchema.safeParse(req.params.id);
+    if (!idValidation.success) {
+      SendError(res, CREATOR_WALLET_MESSAGES.INVALID_ID_PARAM, 400);
+      return;
+    }
+    const accountId = idValidation.data;
 
     const wallet = await prisma.wallet.findFirst({
       where: {
@@ -537,7 +597,12 @@ export async function DeleteCreatorPayoutAccount(
       return;
     }
 
-    const accountId = req.params.id as string;
+    const idValidation = UuidParamSchema.safeParse(req.params.id);
+    if (!idValidation.success) {
+      SendError(res, CREATOR_WALLET_MESSAGES.INVALID_ID_PARAM, 400);
+      return;
+    }
+    const accountId = idValidation.data;
 
     const wallet = await prisma.wallet.findFirst({
       where: {
@@ -586,6 +651,22 @@ export async function DeleteCreatorPayoutAccount(
     }
 
     await prisma.$transaction(async (tx) => {
+      // Re-verify inside transaction to prevent concurrent withdrawal + delete race
+      if (typeof tx.payoutRequest?.findFirst === 'function') {
+        const txPendingWithdrawal = await tx.payoutRequest.findFirst({
+          where: {
+            walletId: wallet.id,
+            payoutAccountId: targetAccount.id,
+            payoutStatus: PayoutStatus.PENDING,
+            status: Status.ACTIVE,
+          },
+          select: { id: true },
+        });
+        if (txPendingWithdrawal) {
+          throw new Error('PAYOUT_ACCOUNT_HAS_PENDING_WITHDRAWAL');
+        }
+      }
+
       if (intent === 'cancel_pending' && typeof tx.brandPayoutAccount.updateMany === 'function') {
         const cancelResult = await tx.brandPayoutAccount.updateMany({
           where: {
@@ -639,6 +720,10 @@ export async function DeleteCreatorPayoutAccount(
   } catch (err) {
     if (err instanceof Error && err.message === 'PAYOUT_ACCOUNT_ALREADY_VERIFIED') {
       SendError(res, CREATOR_WALLET_MESSAGES.PAYOUT_ACCOUNT_ALREADY_VERIFIED, 409);
+      return;
+    }
+    if (err instanceof Error && err.message === 'PAYOUT_ACCOUNT_HAS_PENDING_WITHDRAWAL') {
+      SendError(res, CREATOR_WALLET_MESSAGES.PAYOUT_ACCOUNT_HAS_PENDING_WITHDRAWAL, 400);
       return;
     }
     next(err);
@@ -1026,8 +1111,43 @@ export async function CreateCreatorWithdrawal(
 
     const withdrawalReference = GenerateWithdrawalReferenceCode();
     const withdrawalAmountDecimal = new Prisma.Decimal(payload.amount);
+    const idempotencyCutoff = new Date(Date.now() - WITHDRAWAL_LIMITS.IDEMPOTENCY_WINDOW_MS);
 
     const createdPayout = await prisma.$transaction(async (tx) => {
+      // Re-verify payout account is still active and verified inside transaction
+      if (typeof tx.brandPayoutAccount?.findFirst === 'function') {
+        const txAccount = await tx.brandPayoutAccount.findFirst({
+          where: {
+            id: targetAccount.id,
+            walletId: wallet.id,
+            status: Status.ACTIVE,
+            verificationStatus: VerificationStatus.VERIFIED,
+          },
+          select: { id: true },
+        });
+        if (!txAccount) {
+          throw new Error('PAYOUT_ACCOUNT_NOT_VERIFIED');
+        }
+      }
+
+      // 60-second idempotency guard prevents accidental 2-tab or slow-network duplicate withdrawals
+      if (typeof tx.payoutRequest?.findFirst === 'function') {
+        const recentDuplicate = await tx.payoutRequest.findFirst({
+          where: {
+            walletId: wallet.id,
+            payoutAccountId: targetAccount.id,
+            amount: withdrawalAmountDecimal,
+            payoutStatus: PayoutStatus.PENDING,
+            status: Status.ACTIVE,
+            createdAt: { gte: idempotencyCutoff },
+          },
+          select: { id: true },
+        });
+        if (recentDuplicate) {
+          throw new Error('DUPLICATE_WITHDRAWAL_REQUEST');
+        }
+      }
+
       // Atomic conditional decrement prevents concurrent double-spending on the same wallet balance
       const walletDeductPayload = {
         where: {
@@ -1078,6 +1198,14 @@ export async function CreateCreatorWithdrawal(
       SendError(res, CREATOR_WALLET_MESSAGES.INSUFFICIENT_BALANCE, 400);
       return;
     }
+    if (err instanceof Error && err.message === 'PAYOUT_ACCOUNT_NOT_VERIFIED') {
+      SendError(res, CREATOR_WALLET_MESSAGES.PAYOUT_ACCOUNT_NOT_VERIFIED, 400);
+      return;
+    }
+    if (err instanceof Error && err.message === 'DUPLICATE_WITHDRAWAL_REQUEST') {
+      SendError(res, CREATOR_WALLET_MESSAGES.DUPLICATE_WITHDRAWAL_REQUEST, 409);
+      return;
+    }
     next(err);
   }
 }
@@ -1108,7 +1236,12 @@ export async function RequestCreatorWithdrawalCancellation(
       return;
     }
 
-    const withdrawalId = req.params.id as string;
+    const idValidation = UuidParamSchema.safeParse(req.params.id);
+    if (!idValidation.success) {
+      SendError(res, CREATOR_WALLET_MESSAGES.INVALID_ID_PARAM, 400);
+      return;
+    }
+    const withdrawalId = idValidation.data;
 
     const validationResult = RequestWithdrawalCancellationSchema.safeParse(req.body ?? {});
 

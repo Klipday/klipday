@@ -28,6 +28,7 @@ export const ALLOWED_PROOF_MIME_TYPES: Record<string, string> = {
 export const WITHDRAWAL_LIMITS = {
   MIN_AMOUNT: 50_000,
   MAX_AMOUNT: 100_000_000,
+  IDEMPOTENCY_WINDOW_MS: 60_000,
 } as const;
 
 export const WALLET_MESSAGES = {
@@ -77,6 +78,8 @@ export const WALLET_MESSAGES = {
 export const CREATOR_PAYOUT_LIMITS = {
   MAX_ACCOUNTS: 5,
   MAX_PROOF_SIZE_BYTES: 5 * 1024 * 1024,
+  IMAGE_SIGNATURE_HEADER_BYTES: 12,
+  MAX_SEARCH_LENGTH: 100,
   MIN_PROVIDER_LENGTH: 2,
   MIN_ACCOUNT_NUMBER_LENGTH: 4,
   MAX_ACCOUNT_NUMBER_LENGTH: 30,
@@ -105,6 +108,10 @@ export const CREATOR_WALLET_MESSAGES = {
   ACCOUNT_HOLDER_REQUIRED: 'Nama pemilik rekening wajib diisi.',
   PROOF_URL_REQUIRED: 'URL bukti kepemilikan rekening atau e-wallet wajib disertakan.',
   INVALID_PAYLOAD: 'Data akun penarikan tidak valid.',
+  INVALID_ID_PARAM: 'ID tidak valid.',
+  INVALID_IMAGE_SIGNATURE: 'Isi berkas gambar tidak sesuai dengan format yang dipilih (JPG, PNG, atau WEBP).',
+  DUPLICATE_WITHDRAWAL_REQUEST:
+    'Permintaan penarikan dengan nominal dan rekening yang sama baru saja diajukan. Harap tunggu sebentar.',
   SUMMARY_FETCH_SUCCESS: 'Informasi ringkasan dompet kreator berhasil diambil.',
   TRANSACTIONS_FETCH_SUCCESS: 'Riwayat mutasi transaksi dompet kreator berhasil diambil.',
   ACTIVE_WITHDRAWALS_FETCH_SUCCESS: 'Daftar penarikan saldo aktif kreator berhasil diambil.',

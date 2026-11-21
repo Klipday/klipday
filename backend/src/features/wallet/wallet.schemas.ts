@@ -37,6 +37,8 @@ export const CreateWithdrawalSchema = z.object({
 
 export type CreateWithdrawalInput = z.infer<typeof CreateWithdrawalSchema>;
 
+export const UuidParamSchema = z.string().uuid(CREATOR_WALLET_MESSAGES.INVALID_ID_PARAM);
+
 export const TransactionQuerySchema = z.object({
   type: z
     .enum([
@@ -50,7 +52,7 @@ export const TransactionQuerySchema = z.object({
     .default('ALL'),
   page: z.coerce.number().int().min(1).default(TOP_UP_LIMITS.DEFAULT_PAGE),
   limit: z.coerce.number().int().min(1).max(TOP_UP_LIMITS.MAX_LIMIT).default(TOP_UP_LIMITS.DEFAULT_LIMIT),
-  search: z.string().trim().optional(),
+  search: z.string().trim().max(CREATOR_PAYOUT_LIMITS.MAX_SEARCH_LENGTH).optional(),
 });
 
 export type TransactionQueryInput = z.infer<typeof TransactionQuerySchema>;
@@ -118,7 +120,7 @@ export const CreatorTransactionQuerySchema = z.object({
   type: z.enum(['ALL', 'CAMPAIGN_EARNING', 'WITHDRAWAL']).default('ALL'),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(10),
-  search: z.string().trim().optional(),
+  search: z.string().trim().max(CREATOR_PAYOUT_LIMITS.MAX_SEARCH_LENGTH).optional(),
 });
 
 export type CreatorTransactionQueryInput = z.infer<typeof CreatorTransactionQuerySchema>;

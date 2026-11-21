@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { CloseIcon, MagnifierIcon } from '@solar-icons/react/linear';
 import { Input } from '@/components/ui/input';
 import {
@@ -25,6 +26,7 @@ import type { WalletMetricItem, WalletTransactionType } from '../types';
  * @returns Rendered Creator Wallet page.
  */
 export default function CreatorWalletPage() {
+  const queryClient = useQueryClient();
   const [isWithdrawalOpen, setIsWithdrawalOpen] = useState(false);
 
   const [activeType, setActiveType] = useState<WalletTransactionType>('ALL');
@@ -117,6 +119,7 @@ export default function CreatorWalletPage() {
     refetchSummary();
     refetchTransactions();
     refetchActiveWithdrawals();
+    void queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] });
   };
 
   const activeBalance = summary?.balance ?? 0;

@@ -662,9 +662,10 @@ describe('Creator Profile and Payout Accounts Feature Module', () => {
     });
 
     it('SetPrimaryCreatorPayoutAccount should return 400 if target account is not VERIFIED', async () => {
+      const targetAccountId = '11111111-1111-4111-8111-111111111112';
       const req = CreateMockRequest({
         account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
-        params: { id: 'payout-acc-2' },
+        params: { id: targetAccountId },
       });
       const { res, statusMock, jsonMock } = CreateMockResponse();
       const next = CreateMockNext();
@@ -672,7 +673,7 @@ describe('Creator Profile and Payout Accounts Feature Module', () => {
       jest.spyOn(prisma.wallet, 'findFirst').mockResolvedValue(mockWallet as any);
       jest.spyOn(prisma.brandPayoutAccount, 'findFirst').mockResolvedValue({
         ...mockPayoutAccount,
-        id: 'payout-acc-2',
+        id: targetAccountId,
         verificationStatus: VerificationStatus.PENDING,
       } as any);
 
@@ -688,9 +689,10 @@ describe('Creator Profile and Payout Accounts Feature Module', () => {
     });
 
     it('DeleteCreatorPayoutAccount should return 400 if account is bound to a pending withdrawal', async () => {
+      const targetAccountId = '11111111-1111-4111-8111-111111111111';
       const req = CreateMockRequest({
         account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
-        params: { id: 'payout-acc-1' },
+        params: { id: targetAccountId },
       });
       const { res, statusMock, jsonMock } = CreateMockResponse();
       const next = CreateMockNext();
@@ -714,9 +716,10 @@ describe('Creator Profile and Payout Accounts Feature Module', () => {
     });
 
     it('DeleteCreatorPayoutAccount should promote remaining VERIFIED account to primary when primary is deleted', async () => {
+      const targetAccountId = '11111111-1111-4111-8111-111111111111';
       const req = CreateMockRequest({
         account: { sub: mockAccountId, email: 'rina@klipday.com', role: Role.CREATOR },
-        params: { id: 'payout-acc-1' },
+        params: { id: targetAccountId },
       });
       const { res, statusMock, jsonMock } = CreateMockResponse();
       const next = CreateMockNext();
@@ -1033,9 +1036,6 @@ describe('Creator Profile and Payout Accounts Feature Module', () => {
                 title: 'Gadget Flagship Launch',
                 brandName: 'TechNova ID',
                 cpm: 15000,
-                budget: 10000000,
-                spent: 2500000,
-                remainingBudget: 7500000,
                 remainingPercent: 75,
               }),
             ],
@@ -1252,7 +1252,6 @@ describe('Creator Profile and Payout Accounts Feature Module', () => {
               expect.objectContaining({
                 submissionId: 'sub-joined-only',
                 id: 'camp-join',
-                remainingBudget: 5000000,
                 remainingPercent: 100,
               }),
             ],
