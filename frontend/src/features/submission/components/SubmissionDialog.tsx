@@ -175,6 +175,10 @@ export function SubmissionDialog({
   })();
 
   const HandleNext = async () => {
+    if (saveDraftMutation.isPending || finalSubmitMutation.isPending) {
+      return;
+    }
+
     if (currentStep === 1) {
       if (!hasAgreed) {
         toast.error('Harap setujui brief kampanye terlebih dahulu.');
@@ -219,7 +223,10 @@ export function SubmissionDialog({
             socialAccountId: connectedAccount.id,
           });
         } catch (err) {
-          console.warn('Gagal menyimpan draf pengajuan:', err);
+          const errorMsg = err instanceof Error ? err.message : 'Gagal menyimpan draf pengajuan.';
+          toast.error(errorMsg);
+          await queryClient.invalidateQueries({ queryKey: ['my-campaign-submission', campaign.id] });
+          return;
         }
       }
 
@@ -243,14 +250,19 @@ export function SubmissionDialog({
         });
 
         toast.success('Pengajuan video berhasil dikirimkan! Menunggu persetujuan brand.');
-        await queryClient.invalidateQueries({ queryKey: ['my-campaign-submission', campaign.id] });
-        await queryClient.invalidateQueries({ queryKey: ['campaign', campaign.id] });
-        await queryClient.invalidateQueries({ queryKey: ['campaign-submissions', campaign.id] });
-        await queryClient.invalidateQueries({ queryKey: ['creator-campaigns'] });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['my-campaign-submission', campaign.id] }),
+          queryClient.invalidateQueries({ queryKey: ['campaign', campaign.id] }),
+          queryClient.invalidateQueries({ queryKey: ['campaign-submissions', campaign.id] }),
+          queryClient.invalidateQueries({ queryKey: ['creator-campaigns'] }),
+          queryClient.invalidateQueries({ queryKey: ['creator-submissions'] }),
+          queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] }),
+        ]);
         HandleForceClose();
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Gagal mengirim pengajuan video.';
         toast.error(errorMsg);
+        await queryClient.invalidateQueries({ queryKey: ['my-campaign-submission', campaign.id] });
       }
     }
   };

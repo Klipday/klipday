@@ -44,6 +44,9 @@ import { CreateMockNext, CreateMockRequest, CreateMockResponse } from './helpers
 describe('Submission Feature Module', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(prisma.submission, 'aggregate').mockResolvedValue({
+      _sum: { earnings: 0 },
+    } as never);
   });
 
   const futureEndDate = new Date();
@@ -222,12 +225,27 @@ describe('Submission Feature Module', () => {
       it('validates a valid draft payload successfully', () => {
         const result = SaveDraftSubmissionSchema.safeParse({
           liveVideoUrl: 'https://www.tiktok.com/@user/video/1234567890',
-          thumbnailUrl: 'https://example.com/thumbnail.png',
+          thumbnailUrl: 'https://p16-sign-sg.tiktokcdn.com/thumbnail.png',
           videoCaption: 'Caption for draft',
           socialAccountId: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
         });
 
         expect(result.success).toBe(true);
+      });
+
+      it('rejects non-TikTok liveVideoUrl and SSRF thumbnailUrl hosts', () => {
+        const evilVideo = SaveDraftSubmissionSchema.safeParse({
+          liveVideoUrl: 'https://evil.com/video/12345',
+          socialAccountId: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+        });
+        expect(evilVideo.success).toBe(false);
+
+        const ssrfThumb = SaveDraftSubmissionSchema.safeParse({
+          liveVideoUrl: 'https://www.tiktok.com/@user/video/1234567890',
+          thumbnailUrl: 'http://169.254.169.254/latest/meta-data/',
+          socialAccountId: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+        });
+        expect(ssrfThumb.success).toBe(false);
       });
 
       it('fails when liveVideoUrl is missing or invalid URL', () => {
@@ -280,7 +298,7 @@ describe('Submission Feature Module', () => {
       it('validates a complete valid final submission payload', () => {
         const result = FinalSubmitVideoSchema.safeParse({
           liveVideoUrl: 'https://www.tiktok.com/@budiclipper/video/7123456789012345678',
-          thumbnailUrl: 'https://example.com/thumb.jpg',
+          thumbnailUrl: 'https://p16-sign-sg.tiktokcdn.com/thumb.jpg',
           videoCaption: 'Viral marketing video #brand',
           socialAccountId: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
         });
@@ -801,7 +819,7 @@ describe('Submission Feature Module', () => {
     describe('SaveDraftSubmission Handler', () => {
       const validDraftPayload = {
         liveVideoUrl: 'https://www.tiktok.com/@budiclipper/video/7123456789012345678',
-        thumbnailUrl: 'https://example.com/thumb.jpg',
+        thumbnailUrl: 'https://p16-sign-sg.tiktokcdn.com/thumb.jpg',
         videoCaption: 'Draft video caption',
         socialAccountId: mockSocialAccount.id,
       };
@@ -816,15 +834,18 @@ describe('Submission Feature Module', () => {
         const next = CreateMockNext();
 
         jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
-        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue({
-          ...mockSubmissionRow,
-          submissionStatus: SubmissionStatus.JOINED,
-        } as never);
+        jest
+          .spyOn(prisma.submission, 'findFirst')
+          .mockResolvedValueOnce({
+            ...mockSubmissionRow,
+            submissionStatus: SubmissionStatus.JOINED,
+          } as never)
+          .mockResolvedValueOnce({
+            ...mockSubmissionRow,
+            ...validDraftPayload,
+          } as never);
         jest.spyOn(prisma.creatorSocialAccount, 'findFirst').mockResolvedValue(mockSocialAccount as never);
-        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
-          ...mockSubmissionRow,
-          ...validDraftPayload,
-        } as never);
+        jest.spyOn(prisma.submission, 'updateMany').mockResolvedValue({ count: 1 } as never);
 
         await SaveDraftSubmission(req, res, next);
 
@@ -848,15 +869,18 @@ describe('Submission Feature Module', () => {
         const next = CreateMockNext();
 
         jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
-        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue({
-          ...mockSubmissionRow,
-          submissionStatus: SubmissionStatus.REVISION_REQUESTED,
-        } as never);
+        jest
+          .spyOn(prisma.submission, 'findFirst')
+          .mockResolvedValueOnce({
+            ...mockSubmissionRow,
+            submissionStatus: SubmissionStatus.REVISION_REQUESTED,
+          } as never)
+          .mockResolvedValueOnce({
+            ...mockSubmissionRow,
+            ...validDraftPayload,
+          } as never);
         jest.spyOn(prisma.creatorSocialAccount, 'findFirst').mockResolvedValue(mockSocialAccount as never);
-        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
-          ...mockSubmissionRow,
-          ...validDraftPayload,
-        } as never);
+        jest.spyOn(prisma.submission, 'updateMany').mockResolvedValue({ count: 1 } as never);
 
         await SaveDraftSubmission(req, res, next);
 
@@ -1008,7 +1032,7 @@ describe('Submission Feature Module', () => {
         expect(jsonMock).toHaveBeenCalledWith({
           status: 'error',
           data: null,
-          message: SUBMISSION_MESSAGES.SOCIAL_ACCOUNT_INVALID,
+          message: SUBMISSION_MESSAGES.SOCIAL_ACCOUNT_NOT_VERIFIED,
         });
       });
     });
@@ -1019,12 +1043,36 @@ describe('Submission Feature Module', () => {
     describe('FinalSubmitVideo Handler', () => {
       const validSubmitPayload = {
         liveVideoUrl: 'https://www.tiktok.com/@budiclipper/video/7123456789012345678',
-        thumbnailUrl: 'https://example.com/thumb.jpg',
+        thumbnailUrl: 'https://p16-sign-sg.tiktokcdn.com/thumb.jpg',
         videoCaption: 'Final video submission',
         socialAccountId: mockSocialAccount.id,
       };
 
+      const MockScrapeCreatorsVideoOwnership = (authorUsername = mockSocialAccount.username) => {
+        process.env.SCRAPECREATORS_API_KEY = 'test-api-key';
+        return jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            success: true,
+            aweme_detail: {
+              aweme_id: '7123456789012345678',
+              desc: validSubmitPayload.videoCaption,
+              author: {
+                unique_id: authorUsername,
+                uid: 'uid-budi-1',
+              },
+              video: {
+                cover: { url_list: [validSubmitPayload.thumbnailUrl] },
+              },
+              statistics: { play_count: 1500 },
+            },
+          }),
+        } as Response);
+      };
+
       it('finalizes video submission and sets status to PENDING_REVIEW (200 Happy Path)', async () => {
+        MockScrapeCreatorsVideoOwnership();
         const req = CreateMockRequest({
           account: { sub: mockCreator.accountId, role: Role.CREATOR },
           params: { id: mockActiveCampaign.id },
@@ -1045,7 +1093,10 @@ describe('Submission Feature Module', () => {
           submittedAt: new Date(),
         };
 
-        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(initialSubmission as never);
+        jest
+          .spyOn(prisma.submission, 'findFirst')
+          .mockResolvedValueOnce(initialSubmission as never)
+          .mockResolvedValueOnce(null); // No duplicate video
         jest.spyOn(prisma.creatorSocialAccount, 'findFirst').mockResolvedValue(mockSocialAccount as never);
 
         const updateManySpy = jest.fn().mockResolvedValue({ count: 1 });
@@ -1054,7 +1105,9 @@ describe('Submission Feature Module', () => {
             findFirst: jest
               .fn()
               .mockResolvedValueOnce(initialSubmission)
+              .mockResolvedValueOnce(null) // No duplicate video in tx
               .mockResolvedValueOnce(finalizedSubmissionRow),
+            aggregate: jest.fn().mockResolvedValue({ _sum: { earnings: 0 } }),
             updateMany: updateManySpy,
           },
         };
@@ -1084,6 +1137,7 @@ describe('Submission Feature Module', () => {
       });
 
       it('resubmits a video from REVISION_REQUESTED to PENDING_REVIEW (200 Happy Path)', async () => {
+        MockScrapeCreatorsVideoOwnership();
         const req = CreateMockRequest({
           account: { sub: mockCreator.accountId, role: Role.CREATOR },
           params: { id: mockActiveCampaign.id },
@@ -1104,7 +1158,10 @@ describe('Submission Feature Module', () => {
           submittedAt: new Date(),
         };
 
-        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(revisionSubmission as never);
+        jest
+          .spyOn(prisma.submission, 'findFirst')
+          .mockResolvedValueOnce(revisionSubmission as never)
+          .mockResolvedValueOnce(null);
         jest.spyOn(prisma.creatorSocialAccount, 'findFirst').mockResolvedValue(mockSocialAccount as never);
 
         const mockTx = {
@@ -1112,7 +1169,9 @@ describe('Submission Feature Module', () => {
             findFirst: jest
               .fn()
               .mockResolvedValueOnce(revisionSubmission)
+              .mockResolvedValueOnce(null)
               .mockResolvedValueOnce(finalizedSubmissionRow),
+            aggregate: jest.fn().mockResolvedValue({ _sum: { earnings: 0 } }),
             updateMany: jest.fn().mockResolvedValue({ count: 1 }),
           },
         };
@@ -1134,6 +1193,7 @@ describe('Submission Feature Module', () => {
       });
 
       it('returns 409 SUBMISSION_RACE_CONFLICT when two creator tabs submit video simultaneously', async () => {
+        MockScrapeCreatorsVideoOwnership();
         const req = CreateMockRequest({
           account: { sub: mockCreator.accountId, role: Role.CREATOR },
           params: { id: mockActiveCampaign.id },
@@ -1147,12 +1207,19 @@ describe('Submission Feature Module', () => {
           ...mockSubmissionRow,
           submissionStatus: SubmissionStatus.JOINED,
         };
-        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(initialSubmission as never);
+        jest
+          .spyOn(prisma.submission, 'findFirst')
+          .mockResolvedValueOnce(initialSubmission as never)
+          .mockResolvedValueOnce(null);
         jest.spyOn(prisma.creatorSocialAccount, 'findFirst').mockResolvedValue(mockSocialAccount as never);
 
         const mockTx = {
           submission: {
-            findFirst: jest.fn().mockResolvedValueOnce(initialSubmission),
+            findFirst: jest
+              .fn()
+              .mockResolvedValueOnce(initialSubmission)
+              .mockResolvedValueOnce(null),
+            aggregate: jest.fn().mockResolvedValue({ _sum: { earnings: 0 } }),
             updateMany: jest.fn().mockResolvedValue({ count: 0 }),
           },
         };
@@ -1168,6 +1235,63 @@ describe('Submission Feature Module', () => {
           status: 'error',
           data: null,
           message: SUBMISSION_MESSAGES.SUBMISSION_RACE_CONFLICT,
+        });
+      });
+
+      it('returns 400 when submitted TikTok video belongs to a different author (Anti-Spoofing Guard)', async () => {
+        MockScrapeCreatorsVideoOwnership('someoneelse');
+        const req = CreateMockRequest({
+          account: { sub: mockCreator.accountId, role: Role.CREATOR },
+          params: { id: mockActiveCampaign.id },
+          body: validSubmitPayload,
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValueOnce({
+          ...mockSubmissionRow,
+          submissionStatus: SubmissionStatus.JOINED,
+        } as never);
+        jest.spyOn(prisma.creatorSocialAccount, 'findFirst').mockResolvedValue(mockSocialAccount as never);
+
+        await FinalSubmitVideo(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.VIDEO_AUTHOR_MISMATCH('someoneelse', mockSocialAccount.username),
+        });
+      });
+
+      it('returns 409 when the same TikTok video was already submitted to another campaign', async () => {
+        MockScrapeCreatorsVideoOwnership();
+        const req = CreateMockRequest({
+          account: { sub: mockCreator.accountId, role: Role.CREATOR },
+          params: { id: mockActiveCampaign.id },
+          body: validSubmitPayload,
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
+        jest
+          .spyOn(prisma.submission, 'findFirst')
+          .mockResolvedValueOnce({
+            ...mockSubmissionRow,
+            submissionStatus: SubmissionStatus.JOINED,
+          } as never)
+          .mockResolvedValueOnce({ id: 'other-sub-uuid' } as never);
+        jest.spyOn(prisma.creatorSocialAccount, 'findFirst').mockResolvedValue(mockSocialAccount as never);
+
+        await FinalSubmitVideo(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(409);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.VIDEO_ALREADY_SUBMITTED,
         });
       });
 
@@ -1290,7 +1414,7 @@ describe('Submission Feature Module', () => {
         expect(jsonMock).toHaveBeenCalledWith({
           status: 'error',
           data: null,
-          message: SUBMISSION_MESSAGES.SOCIAL_ACCOUNT_INVALID,
+          message: SUBMISSION_MESSAGES.SOCIAL_ACCOUNT_NOT_VERIFIED,
         });
       });
     });
@@ -1460,12 +1584,15 @@ describe('Submission Feature Module', () => {
         const { res, statusMock, jsonMock } = CreateMockResponse();
         const next = CreateMockNext();
 
-        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
-        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
-          ...pendingSubmission,
-          submissionStatus: SubmissionStatus.APPROVED,
-          reviewNote: null,
-        } as never);
+        jest
+          .spyOn(prisma.submission, 'findFirst')
+          .mockResolvedValueOnce(pendingSubmission as never)
+          .mockResolvedValueOnce({
+            ...pendingSubmission,
+            submissionStatus: SubmissionStatus.APPROVED,
+            reviewNote: null,
+          } as never);
+        jest.spyOn(prisma.submission, 'updateMany').mockResolvedValue({ count: 1 } as never);
 
         await AcceptSubmission(req, res, next);
 
@@ -1489,12 +1616,15 @@ describe('Submission Feature Module', () => {
         const { res, statusMock, jsonMock } = CreateMockResponse();
         const next = CreateMockNext();
 
-        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
-        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
-          ...pendingSubmission,
-          submissionStatus: SubmissionStatus.APPROVED,
-          reviewNote: null,
-        } as never);
+        jest
+          .spyOn(prisma.submission, 'findFirst')
+          .mockResolvedValueOnce(pendingSubmission as never)
+          .mockResolvedValueOnce({
+            ...pendingSubmission,
+            submissionStatus: SubmissionStatus.APPROVED,
+            reviewNote: null,
+          } as never);
+        jest.spyOn(prisma.submission, 'updateMany').mockResolvedValue({ count: 1 } as never);
 
         await AcceptSubmission(req, res, next);
 
@@ -1506,6 +1636,27 @@ describe('Submission Feature Module', () => {
             submissionStatus: SubmissionStatus.APPROVED,
           }),
           message: SUBMISSION_MESSAGES.ACCEPT_SUBMISSION_SUCCESS,
+        });
+      });
+
+      it('returns 409 SUBMISSION_RACE_CONFLICT when another reviewer modified the submission concurrently', async () => {
+        const req = CreateMockRequest({
+          account: mockBrandAccount,
+          params: { id: pendingSubmission.id },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValueOnce(pendingSubmission as never);
+        jest.spyOn(prisma.submission, 'updateMany').mockResolvedValue({ count: 0 } as never);
+
+        await AcceptSubmission(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(409);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: SUBMISSION_MESSAGES.SUBMISSION_RACE_CONFLICT,
         });
       });
 
@@ -1634,12 +1785,15 @@ describe('Submission Feature Module', () => {
         const { res, statusMock, jsonMock } = CreateMockResponse();
         const next = CreateMockNext();
 
-        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
-        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
-          ...pendingSubmission,
-          submissionStatus: SubmissionStatus.REJECTED,
-          reviewNote: 'Video tidak memenuhi kriteria durasi minimal.',
-        } as never);
+        jest
+          .spyOn(prisma.submission, 'findFirst')
+          .mockResolvedValueOnce(pendingSubmission as never)
+          .mockResolvedValueOnce({
+            ...pendingSubmission,
+            submissionStatus: SubmissionStatus.REJECTED,
+            reviewNote: 'Video tidak memenuhi kriteria durasi minimal.',
+          } as never);
+        jest.spyOn(prisma.submission, 'updateMany').mockResolvedValue({ count: 1 } as never);
 
         await RejectSubmission(req, res, next);
 
@@ -1664,12 +1818,15 @@ describe('Submission Feature Module', () => {
         const { res, statusMock, jsonMock } = CreateMockResponse();
         const next = CreateMockNext();
 
-        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
-        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
-          ...pendingSubmission,
-          submissionStatus: SubmissionStatus.REJECTED,
-          reviewNote: null,
-        } as never);
+        jest
+          .spyOn(prisma.submission, 'findFirst')
+          .mockResolvedValueOnce(pendingSubmission as never)
+          .mockResolvedValueOnce({
+            ...pendingSubmission,
+            submissionStatus: SubmissionStatus.REJECTED,
+            reviewNote: null,
+          } as never);
+        jest.spyOn(prisma.submission, 'updateMany').mockResolvedValue({ count: 1 } as never);
 
         await RejectSubmission(req, res, next);
 
@@ -1692,12 +1849,15 @@ describe('Submission Feature Module', () => {
         const { res, statusMock, jsonMock } = CreateMockResponse();
         const next = CreateMockNext();
 
-        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
-        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
-          ...pendingSubmission,
-          submissionStatus: SubmissionStatus.REJECTED,
-          reviewNote: null,
-        } as never);
+        jest
+          .spyOn(prisma.submission, 'findFirst')
+          .mockResolvedValueOnce(pendingSubmission as never)
+          .mockResolvedValueOnce({
+            ...pendingSubmission,
+            submissionStatus: SubmissionStatus.REJECTED,
+            reviewNote: null,
+          } as never);
+        jest.spyOn(prisma.submission, 'updateMany').mockResolvedValue({ count: 1 } as never);
 
         await RejectSubmission(req, res, next);
 
@@ -1880,12 +2040,15 @@ describe('Submission Feature Module', () => {
         const { res, statusMock, jsonMock } = CreateMockResponse();
         const next = CreateMockNext();
 
-        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
-        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
-          ...pendingSubmission,
-          submissionStatus: SubmissionStatus.REVISION_REQUESTED,
-          reviewNote: 'Mohon perbaiki hook di 3 detik pertama agar lebih menarik.',
-        } as never);
+        jest
+          .spyOn(prisma.submission, 'findFirst')
+          .mockResolvedValueOnce(pendingSubmission as never)
+          .mockResolvedValueOnce({
+            ...pendingSubmission,
+            submissionStatus: SubmissionStatus.REVISION_REQUESTED,
+            reviewNote: 'Mohon perbaiki hook di 3 detik pertama agar lebih menarik.',
+          } as never);
+        jest.spyOn(prisma.submission, 'updateMany').mockResolvedValue({ count: 1 } as never);
 
         await RequestSubmissionRevision(req, res, next);
 
@@ -1910,12 +2073,15 @@ describe('Submission Feature Module', () => {
         const { res, statusMock, jsonMock } = CreateMockResponse();
         const next = CreateMockNext();
 
-        jest.spyOn(prisma.submission, 'findFirst').mockResolvedValue(pendingSubmission as never);
-        jest.spyOn(prisma.submission, 'update').mockResolvedValue({
-          ...pendingSubmission,
-          submissionStatus: SubmissionStatus.REVISION_REQUESTED,
-          reviewNote: 'Admin note for creator.',
-        } as never);
+        jest
+          .spyOn(prisma.submission, 'findFirst')
+          .mockResolvedValueOnce(pendingSubmission as never)
+          .mockResolvedValueOnce({
+            ...pendingSubmission,
+            submissionStatus: SubmissionStatus.REVISION_REQUESTED,
+            reviewNote: 'Admin note for creator.',
+          } as never);
+        jest.spyOn(prisma.submission, 'updateMany').mockResolvedValue({ count: 1 } as never);
 
         await RequestSubmissionRevision(req, res, next);
 

@@ -10,12 +10,22 @@ import {
   SUBMISSION_MESSAGES,
   SUBMISSION_SORT_OPTIONS,
 } from './submission.constants.js';
+import { IsAllowedThumbnailUrl, IsAllowedTikTokVideoUrl } from './submission.helper.js';
 
 export const SaveDraftSubmissionSchema = z.object({
   liveVideoUrl: z
     .string({ error: SUBMISSION_MESSAGES.VIDEO_URL_REQUIRED })
-    .url(SUBMISSION_MESSAGES.VIDEO_URL_INVALID),
-  thumbnailUrl: z.string().url(SUBMISSION_MESSAGES.THUMBNAIL_URL_INVALID).optional(),
+    .url(SUBMISSION_MESSAGES.VIDEO_URL_INVALID)
+    .refine(IsAllowedTikTokVideoUrl, {
+      message: SUBMISSION_MESSAGES.TIKTOK_URL_HOST_INVALID,
+    }),
+  thumbnailUrl: z
+    .string()
+    .url(SUBMISSION_MESSAGES.THUMBNAIL_URL_INVALID)
+    .refine(IsAllowedThumbnailUrl, {
+      message: SUBMISSION_MESSAGES.THUMBNAIL_URL_HOST_INVALID,
+    })
+    .optional(),
   videoCaption: z.string().max(MAX_CAPTION_LENGTH, SUBMISSION_MESSAGES.CAPTION_MAX_EXCEEDED).optional(),
   socialAccountId: z
     .string({ error: SUBMISSION_MESSAGES.SOCIAL_ACCOUNT_ID_REQUIRED })
@@ -25,8 +35,17 @@ export const SaveDraftSubmissionSchema = z.object({
 export const FinalSubmitVideoSchema = z.object({
   liveVideoUrl: z
     .string({ error: SUBMISSION_MESSAGES.TIKTOK_URL_REQUIRED })
-    .url(SUBMISSION_MESSAGES.TIKTOK_URL_INVALID),
-  thumbnailUrl: z.string().url(SUBMISSION_MESSAGES.THUMBNAIL_URL_INVALID).optional(),
+    .url(SUBMISSION_MESSAGES.TIKTOK_URL_INVALID)
+    .refine(IsAllowedTikTokVideoUrl, {
+      message: SUBMISSION_MESSAGES.TIKTOK_URL_HOST_INVALID,
+    }),
+  thumbnailUrl: z
+    .string()
+    .url(SUBMISSION_MESSAGES.THUMBNAIL_URL_INVALID)
+    .refine(IsAllowedThumbnailUrl, {
+      message: SUBMISSION_MESSAGES.THUMBNAIL_URL_HOST_INVALID,
+    })
+    .optional(),
   videoCaption: z.string().max(MAX_CAPTION_LENGTH, SUBMISSION_MESSAGES.CAPTION_MAX_EXCEEDED).optional(),
   socialAccountId: z
     .string({ error: SUBMISSION_MESSAGES.SOCIAL_ACCOUNT_ID_REQUIRED })

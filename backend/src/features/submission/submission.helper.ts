@@ -1,6 +1,11 @@
 import type { Prisma } from '../../generated/prisma/client.js';
 import { Status, SubmissionStatus } from '../../generated/prisma/enums.js';
-import { ALL_STATUS_FILTER, SUBMISSION_SORT } from './submission.constants.js';
+import {
+  ALL_STATUS_FILTER,
+  ALLOWED_THUMBNAIL_HOST_SUFFIXES,
+  ALLOWED_TIKTOK_VIDEO_HOSTS,
+  SUBMISSION_SORT,
+} from './submission.constants.js';
 import type {
   CampaignSubmissionReviewItemDto,
   RawSubmissionInput,
@@ -136,4 +141,73 @@ export function BuildSubmissionsOrderBy(sort?: string): Prisma.SubmissionOrderBy
     return { submittedAt: 'asc' };
   }
   return { submittedAt: 'desc' };
+}
+
+/**
+ * Validates that a URL is an HTTPS link pointing to an official TikTok hostname.
+ * Blocks arbitrary external domains and non-HTTPS schemes.
+ *
+ * @param rawUrl - Candidate video URL string.
+ * @returns True if the URL is an allowed HTTPS TikTok video host.
+ */
+export function IsAllowedTikTokVideoUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== 'https:') {
+      return false;
+    }
+    const hostname = parsed.hostname.toLowerCase();
+    const isAllowed = ALLOWED_TIKTOK_VIDEO_HOSTS.some((host) => hostname === host);
+    return isAllowed;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validates that a thumbnail URL is an HTTPS link from an allowlisted TikTok CDN
+ * or the configured Supabase Storage host to prevent SSRF via server-side fetch.
+ *
+ * @param rawUrl - Candidate thumbnail URL string.
+ * @returns True if the thumbnail URL is safe to fetch server-side.
+ */
+export function IsAllowedThumbnailUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== 'https:') {
+      return false;
+    }
+    const hostname = parsed.hostname.toLowerCase();
+
+    const configuredSupabaseUrl = process.env.SUPABASE_URL;
+    if (configuredSupabaseUrl) {
+      try {
+        const supabaseHost = new URL(configuredSupabaseUrl).hostname.toLowerCase();
+        if (hostname === supabaseHost) {
+          return true;
+        }
+      } catch {
+        // Ignore malformed env var and fall through to static allowlist
+      }
+    }
+
+    const isAllowed = ALLOWED_THUMBNAIL_HOST_SUFFIXES.some(
+      (suffix) => hostname === suffix || hostname.endsWith(`.${suffix}`),
+    );
+    return isAllowed;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Extracts the numeric TikTok video ID from a canonical or standard TikTok video URL.
+ *
+ * @param rawUrl - TikTok video URL (e.g. "https://www.tiktok.com/@user/video/7412345678901234567").
+ * @returns Extracted numeric video ID string, or null if not found.
+ */
+export function ExtractTikTokVideoId(rawUrl: string): string | null {
+  const match = /\/(?:video|photo)\/(\d+)/i.exec(rawUrl);
+  const videoId = match?.[1] ?? null;
+  return videoId;
 }

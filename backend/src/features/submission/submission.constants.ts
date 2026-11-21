@@ -9,6 +9,24 @@ export const MAX_REVIEW_NOTE_LENGTH = 1000;
 export const CPM_VIEW_DIVISOR = 1000;
 export const BUDGET_DECIMAL_PLACES = 2;
 
+export const ALLOWED_TIKTOK_VIDEO_HOSTS = [
+  'tiktok.com',
+  'www.tiktok.com',
+  'm.tiktok.com',
+  'vm.tiktok.com',
+  'vt.tiktok.com',
+] as const;
+
+export const ALLOWED_THUMBNAIL_HOST_SUFFIXES = [
+  'tiktokcdn.com',
+  'tiktokcdn-us.com',
+  'tiktokcdn-eu.com',
+  'tiktokv.com',
+  'ibytedtos.com',
+  'muscdn.com',
+  'supabase.co',
+] as const;
+
 export const ALL_STATUS_FILTER = 'ALL' as const;
 
 export const SUBMISSION_SORT = {
@@ -68,17 +86,28 @@ export const SUBMISSION_MESSAGES = {
   SUBMISSION_RACE_CONFLICT: 'Status pengajuan video telah berubah secara bersamaan. Harap muat ulang halaman.',
   REJECTED_CANNOT_RESUBMIT: 'This submission has been rejected and cannot be modified or resubmitted.',
 
-  // Social Account Validation
+  // Social Account & Video Ownership Validation
   SOCIAL_ACCOUNT_INVALID: 'Social account is invalid or does not belong to your profile.',
+  SOCIAL_ACCOUNT_NOT_VERIFIED: 'Akun TikTok belum terverifikasi atau sudah tidak aktif.',
   SOCIAL_ACCOUNT_ID_REQUIRED: 'Social account ID is required.',
   SOCIAL_ACCOUNT_ID_INVALID: 'Invalid social account ID.',
+  VIDEO_VERIFY_FAILED:
+    'Gagal memverifikasi tautan video TikTok. Pastikan video bersifat publik dan tautan benar.',
+  VIDEO_AUTHOR_MISMATCH: (author: string, verified: string) =>
+    `Video ini milik @${author}, bukan akun TikTok terverifikasi Anda (@${verified}).`,
+  VIDEO_ALREADY_SUBMITTED:
+    'Video TikTok ini sudah pernah diajukan dan tidak dapat digunakan ulang.',
+  CAMPAIGN_NOT_ACTIVE_FOR_APPROVAL:
+    'Kampanye ini sudah tidak aktif sehingga pengajuan video tidak dapat disetujui.',
 
   // Zod Validation & Schema Constraints
   VIDEO_URL_REQUIRED: 'Video URL is required.',
   VIDEO_URL_INVALID: 'Video URL must be a valid URL.',
   TIKTOK_URL_REQUIRED: 'TikTok video URL is required.',
   TIKTOK_URL_INVALID: 'TikTok video URL must be a valid URL.',
+  TIKTOK_URL_HOST_INVALID: 'URL video harus berupa tautan TikTok yang valid (tiktok.com).',
   THUMBNAIL_URL_INVALID: 'Invalid thumbnail URL.',
+  THUMBNAIL_URL_HOST_INVALID: 'URL thumbnail tidak valid atau bukan berasal dari sumber yang diizinkan.',
   CAPTION_MAX_EXCEEDED: 'Caption is too long.',
   REVIEW_NOTE_REQUIRED: 'A review note is required when requesting a revision.',
   REVIEW_NOTE_MAX_EXCEEDED: 'Review note cannot exceed 1000 characters.',

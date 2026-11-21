@@ -3,6 +3,7 @@ import { Prisma } from '../../generated/prisma/client.js';
 import { CampaignStatus, Platform, Role, Status, SubmissionStatus } from '../../generated/prisma/enums.js';
 import { prisma } from '../../utils/prisma.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
+import { GetTikTokVideoDetails, type TikTokVideoItem } from '../../services/scrape-creators.js';
 import { IsSupabaseStorageUrl, PersistVideoThumbnailToStorage } from '../../services/supabase.js';
 import {
   NotifySubmissionApproved,
@@ -38,8 +39,10 @@ import type {
 import {
   BuildSubmissionsOrderBy,
   BuildSubmissionsWhereClause,
+  ExtractTikTokVideoId,
   FormatCampaignSubmissionReviewItem,
   FormatSubmissionResponse,
+  IsAllowedThumbnailUrl,
 } from './submission.helper.js';
 
 /**
@@ -61,27 +64,92 @@ class SubmissionTransactionError extends Error {
   }
 }
 
+type SubmissionDbClient = Pick<typeof prisma, 'submission'>;
+
 /**
- * Computes remaining campaign escrow budget from approved/verified submissions.
+ * Computes remaining campaign escrow budget in PostgreSQL using aggregate sum
+ * instead of loading every approved submission row into Node memory.
  *
+ * @param db - Prisma client or interactive transaction client.
+ * @param campaignId - Target campaign UUID.
  * @param budget - Campaign total budget in Rupiah.
- * @param approvedSubmissions - List of approved/verified submissions with earnings.
  * @returns Non-negative remaining escrow budget in Rupiah.
  */
-function ComputeRemainingCampaignEscrow(
+async function GetRemainingCampaignEscrow(
+  db: SubmissionDbClient,
+  campaignId: string,
   budget: number,
-  approvedSubmissions?: Array<{ earnings: Prisma.Decimal | number | null }> | null,
-): number {
-  const list = Array.isArray(approvedSubmissions) ? approvedSubmissions : [];
-  const allocated = list.reduce((sum, item) => {
-    const rawEarnings = item.earnings !== null && item.earnings !== undefined
-      ? Number(item.earnings)
-      : 0;
-    const safeEarnings = Number.isFinite(rawEarnings) ? Math.max(0, Math.floor(rawEarnings)) : 0;
-    return sum + safeEarnings;
-  }, 0);
-  const remaining = Math.max(0, budget - allocated);
+): Promise<number> {
+  const aggregateQuery = {
+    where: {
+      campaignId,
+      status: Status.ACTIVE,
+      submissionStatus: {
+        in: [SubmissionStatus.APPROVED, SubmissionStatus.VERIFIED],
+      },
+    },
+    _sum: {
+      earnings: true as const,
+    },
+  };
+  const aggregateResult = await db.submission.aggregate(aggregateQuery);
+  const rawAllocated = aggregateResult._sum.earnings !== null && aggregateResult._sum.earnings !== undefined
+    ? Number(aggregateResult._sum.earnings)
+    : 0;
+  const safeAllocated = Number.isFinite(rawAllocated) ? Math.max(0, Math.floor(rawAllocated)) : 0;
+  const remaining = Math.max(0, budget - safeAllocated);
   return remaining;
+}
+
+/**
+ * Checks whether the same TikTok video (by canonical URL or extracted numeric video ID)
+ * has already been submitted on another active, non-rejected submission.
+ *
+ * @param db - Prisma client or interactive transaction client.
+ * @param canonicalUrl - Canonical TikTok video URL.
+ * @param videoId - Extracted numeric TikTok video ID, if available.
+ * @param excludeSubmissionId - Current submission UUID to exclude from the check.
+ * @returns True if a duplicate active submission already exists.
+ */
+async function HasDuplicateSubmittedVideo(
+  db: SubmissionDbClient,
+  canonicalUrl: string,
+  videoId: string | null,
+  excludeSubmissionId: string,
+): Promise<boolean> {
+  const urlConditions: Prisma.SubmissionWhereInput[] = [
+    { liveVideoUrl: canonicalUrl },
+  ];
+
+  if (videoId) {
+    urlConditions.push({
+      liveVideoUrl: {
+        contains: `/video/${videoId}`,
+        mode: 'insensitive',
+      },
+    });
+    urlConditions.push({
+      liveVideoUrl: {
+        contains: `/photo/${videoId}`,
+        mode: 'insensitive',
+      },
+    });
+  }
+
+  const duplicateQuery = {
+    where: {
+      id: { not: excludeSubmissionId },
+      status: Status.ACTIVE,
+      submissionStatus: {
+        notIn: [SubmissionStatus.JOINED, SubmissionStatus.REJECTED],
+      },
+      OR: urlConditions,
+    },
+    select: { id: true },
+  };
+  const existingDuplicate = await db.submission.findFirst(duplicateQuery);
+  const hasDuplicate = Boolean(existingDuplicate);
+  return hasDuplicate;
 }
 
 /**
@@ -113,18 +181,12 @@ export async function JoinCampaign(req: Request, res: Response, next: NextFuncti
         status: Status.ACTIVE,
         campaignStatus: CampaignStatus.ACTIVE,
       },
-      include: {
-        submissions: {
-          where: {
-            status: Status.ACTIVE,
-            submissionStatus: {
-              in: [SubmissionStatus.APPROVED, SubmissionStatus.VERIFIED],
-            },
-          },
-          select: {
-            earnings: true,
-          },
-        },
+      select: {
+        id: true,
+        cpm: true,
+        minViews: true,
+        budget: true,
+        endDate: true,
       },
     };
     const campaign = await prisma.campaign.findFirst(findCampaignQuery);
@@ -179,7 +241,7 @@ export async function JoinCampaign(req: Request, res: Response, next: NextFuncti
         return;
       }
     } else {
-      const remainingEscrow = ComputeRemainingCampaignEscrow(currentBudget, campaign.submissions);
+      const remainingEscrow = await GetRemainingCampaignEscrow(prisma, campaign.id, currentBudget);
 
       if (currentBudget > 0 && remainingEscrow <= 0) {
         SendError(res, SUBMISSION_MESSAGES.CAMPAIGN_BUDGET_FULL, 400);
@@ -390,39 +452,69 @@ export async function SaveDraftSubmission(req: Request, res: Response, next: Nex
       where: {
         id: validation.data.socialAccountId,
         creatorId: creator.id,
+        isVerified: true,
         status: Status.ACTIVE,
       },
     };
     const ownedSocialAccount = await prisma.creatorSocialAccount.findFirst(findOwnedSocialAccountQuery);
 
     if (!ownedSocialAccount) {
-      SendError(res, SUBMISSION_MESSAGES.SOCIAL_ACCOUNT_INVALID, 400);
+      SendError(res, SUBMISSION_MESSAGES.SOCIAL_ACCOUNT_NOT_VERIFIED, 400);
       return;
     }
 
     let resolvedThumbnailUrl = validation.data.thumbnailUrl;
-    if (resolvedThumbnailUrl && !IsSupabaseStorageUrl(resolvedThumbnailUrl)) {
-      const storedThumbnail = await PersistVideoThumbnailToStorage(resolvedThumbnailUrl, `submission-${existingSubmission.id}`);
+    if (
+      resolvedThumbnailUrl &&
+      IsAllowedThumbnailUrl(resolvedThumbnailUrl) &&
+      !IsSupabaseStorageUrl(resolvedThumbnailUrl)
+    ) {
+      const storedThumbnail = await PersistVideoThumbnailToStorage(
+        resolvedThumbnailUrl,
+        `submission-${existingSubmission.id}`,
+      );
       if (storedThumbnail) {
         resolvedThumbnailUrl = storedThumbnail;
       }
     }
 
-    const updateDraftPayload = {
-      where: { id: existingSubmission.id },
+    // Atomic conditional write prevents a late draft save from overwriting a concurrently submitted video
+    const conditionalDraftUpdate = {
+      where: {
+        id: existingSubmission.id,
+        status: Status.ACTIVE,
+        submissionStatus: {
+          in: [SubmissionStatus.JOINED, SubmissionStatus.REVISION_REQUESTED],
+        },
+      },
       data: {
         liveVideoUrl: validation.data.liveVideoUrl,
         thumbnailUrl: resolvedThumbnailUrl,
         videoCaption: validation.data.videoCaption,
         socialAccountId: validation.data.socialAccountId,
       },
+    };
+    const draftClaim = await prisma.submission.updateMany(conditionalDraftUpdate);
+
+    if (draftClaim.count === 0) {
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_RACE_CONFLICT, 409);
+      return;
+    }
+
+    const reloadDraftQuery = {
+      where: { id: existingSubmission.id, status: Status.ACTIVE },
       include: {
         socialAccount: {
           where: { status: Status.ACTIVE },
         },
       },
     };
-    const updatedSubmission = await prisma.submission.update(updateDraftPayload);
+    const updatedSubmission = await prisma.submission.findFirst(reloadDraftQuery);
+
+    if (!updatedSubmission) {
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_NOT_FOUND, 404);
+      return;
+    }
 
     const formattedSubmission = FormatSubmissionResponse(updatedSubmission);
     SendSuccess(res, formattedSubmission, SUBMISSION_MESSAGES.DRAFT_SAVED);
@@ -494,17 +586,6 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
                 accountId: true,
               },
             },
-            submissions: {
-              where: {
-                status: Status.ACTIVE,
-                submissionStatus: {
-                  in: [SubmissionStatus.APPROVED, SubmissionStatus.VERIFIED],
-                },
-              },
-              select: {
-                earnings: true,
-              },
-            },
           },
         },
       },
@@ -555,9 +636,10 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
       }
 
       const campaignBudget = parentCampaign.budget ? Number(parentCampaign.budget) : 0;
-      const remainingEscrow = ComputeRemainingCampaignEscrow(
+      const remainingEscrow = await GetRemainingCampaignEscrow(
+        prisma,
+        parentCampaign.id,
         campaignBudget,
-        parentCampaign.submissions,
       );
 
       if (campaignBudget > 0 && remainingEscrow <= 0) {
@@ -570,23 +652,77 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
       where: {
         id: validation.data.socialAccountId,
         creatorId: creator.id,
+        isVerified: true,
         status: Status.ACTIVE,
       },
     };
     const ownedSocialAccount = await prisma.creatorSocialAccount.findFirst(findOwnedSocialAccountQuery);
 
     if (!ownedSocialAccount) {
-      SendError(res, SUBMISSION_MESSAGES.SOCIAL_ACCOUNT_INVALID, 400);
+      SendError(res, SUBMISSION_MESSAGES.SOCIAL_ACCOUNT_NOT_VERIFIED, 400);
       return;
     }
 
-    let resolvedThumbnailUrl = validation.data.thumbnailUrl;
+    // Server-side video ownership verification to prevent spoofing viral videos from other creators
+    let verifiedVideoDetails: TikTokVideoItem;
+    try {
+      verifiedVideoDetails = await GetTikTokVideoDetails(validation.data.liveVideoUrl);
+    } catch {
+      SendError(res, SUBMISSION_MESSAGES.VIDEO_VERIFY_FAILED, 400);
+      return;
+    }
+
+    const authorHandle = verifiedVideoDetails.authorUsername.toLowerCase();
+    const verifiedHandle = ownedSocialAccount.username.toLowerCase();
+    const isHandleMatch = authorHandle === verifiedHandle;
+    const isPlatformUserIdMatch =
+      Boolean(verifiedVideoDetails.authorPlatformUserId) &&
+      Boolean(ownedSocialAccount.platformUserId) &&
+      verifiedVideoDetails.authorPlatformUserId === ownedSocialAccount.platformUserId;
+
+    if (!isHandleMatch && !isPlatformUserIdMatch) {
+      const mismatchMessage = SUBMISSION_MESSAGES.VIDEO_AUTHOR_MISMATCH(
+        verifiedVideoDetails.authorUsername,
+        ownedSocialAccount.username,
+      );
+      SendError(res, mismatchMessage, 400);
+      return;
+    }
+
+    const canonicalVideoUrl = verifiedVideoDetails.url || validation.data.liveVideoUrl;
+    const extractedVideoId =
+      verifiedVideoDetails.id || ExtractTikTokVideoId(canonicalVideoUrl);
+
+    // Pre-check duplicate reuse before persisting thumbnail to storage
+    const isDuplicatePreCheck = await HasDuplicateSubmittedVideo(
+      prisma,
+      canonicalVideoUrl,
+      extractedVideoId,
+      existingSubmission.id,
+    );
+    if (isDuplicatePreCheck) {
+      SendError(res, SUBMISSION_MESSAGES.VIDEO_ALREADY_SUBMITTED, 409);
+      return;
+    }
+
+    const serverThumbnailCandidate = verifiedVideoDetails.thumbnailUrl ?? validation.data.thumbnailUrl;
+    let resolvedThumbnailUrl =
+      serverThumbnailCandidate && IsAllowedThumbnailUrl(serverThumbnailCandidate)
+        ? serverThumbnailCandidate
+        : undefined;
+
     if (resolvedThumbnailUrl && !IsSupabaseStorageUrl(resolvedThumbnailUrl)) {
-      const storedThumbnail = await PersistVideoThumbnailToStorage(resolvedThumbnailUrl, `submission-${existingSubmission.id}`);
+      const storedThumbnail = await PersistVideoThumbnailToStorage(
+        resolvedThumbnailUrl,
+        `submission-${existingSubmission.id}`,
+      );
       if (storedThumbnail) {
         resolvedThumbnailUrl = storedThumbnail;
       }
     }
+
+    const resolvedCaption =
+      verifiedVideoDetails.caption?.trim() || validation.data.videoCaption;
 
     const finalizedSubmission = await prisma.$transaction(async (tx) => {
       const freshSubmission = await tx.submission.findFirst(findExistingSubmissionQuery);
@@ -615,14 +751,25 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
         }
 
         const freshBudget = freshCampaign.budget ? Number(freshCampaign.budget) : 0;
-        const freshRemaining = ComputeRemainingCampaignEscrow(
+        const freshRemaining = await GetRemainingCampaignEscrow(
+          tx,
+          freshCampaign.id,
           freshBudget,
-          freshCampaign.submissions,
         );
 
         if (freshBudget > 0 && freshRemaining <= 0) {
           throw new SubmissionTransactionError(400, SUBMISSION_MESSAGES.CAMPAIGN_BUDGET_FULL);
         }
+      }
+
+      const isDuplicateInTx = await HasDuplicateSubmittedVideo(
+        tx,
+        canonicalVideoUrl,
+        extractedVideoId,
+        freshSubmission.id,
+      );
+      if (isDuplicateInTx) {
+        throw new SubmissionTransactionError(409, SUBMISSION_MESSAGES.VIDEO_ALREADY_SUBMITTED);
       }
 
       const claimed = await tx.submission.updateMany({
@@ -634,9 +781,9 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
           },
         },
         data: {
-          liveVideoUrl: validation.data.liveVideoUrl,
+          liveVideoUrl: canonicalVideoUrl,
           thumbnailUrl: resolvedThumbnailUrl,
-          videoCaption: validation.data.videoCaption,
+          videoCaption: resolvedCaption,
           socialAccountId: validation.data.socialAccountId,
           submissionStatus: SubmissionStatus.PENDING_REVIEW,
           submittedAt: new Date(),
@@ -830,7 +977,12 @@ export async function AcceptSubmission(req: Request, res: Response, next: NextFu
         submissionStatus: true,
         campaign: {
           select: {
+            id: true,
             title: true,
+            status: true,
+            campaignStatus: true,
+            endDate: true,
+            budget: true,
           },
         },
         creator: {
@@ -858,12 +1010,56 @@ export async function AcceptSubmission(req: Request, res: Response, next: NextFu
       return;
     }
 
-    const updateSubmissionPayload = {
-      where: { id: submissionTarget.id },
+    if (submissionTarget.campaign) {
+      const targetCampaign = submissionTarget.campaign;
+      if (
+        targetCampaign.status !== Status.ACTIVE ||
+        targetCampaign.campaignStatus !== CampaignStatus.ACTIVE
+      ) {
+        SendError(res, SUBMISSION_MESSAGES.CAMPAIGN_NOT_ACTIVE_FOR_APPROVAL, 400);
+        return;
+      }
+
+      if (targetCampaign.endDate && new Date(targetCampaign.endDate) <= new Date()) {
+        SendError(res, SUBMISSION_MESSAGES.CAMPAIGN_ENDED, 400);
+        return;
+      }
+
+      const campaignBudget = targetCampaign.budget ? Number(targetCampaign.budget) : 0;
+      const remainingEscrow = await GetRemainingCampaignEscrow(
+        prisma,
+        targetCampaign.id,
+        campaignBudget,
+      );
+      if (campaignBudget > 0 && remainingEscrow <= 0) {
+        SendError(res, SUBMISSION_MESSAGES.CAMPAIGN_BUDGET_FULL, 400);
+        return;
+      }
+    }
+
+    // Atomic conditional transition prevents concurrent Accept/Reject/Revision race conditions
+    const conditionalAcceptQuery = {
+      where: {
+        id: submissionTarget.id,
+        status: Status.ACTIVE,
+        submissionStatus: {
+          in: allowedStatuses,
+        },
+      },
       data: {
         submissionStatus: SubmissionStatus.APPROVED,
         reviewNote: null,
       },
+    };
+    const acceptClaim = await prisma.submission.updateMany(conditionalAcceptQuery);
+
+    if (acceptClaim.count === 0) {
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_RACE_CONFLICT, 409);
+      return;
+    }
+
+    const reloadAcceptedQuery = {
+      where: { id: submissionTarget.id, status: Status.ACTIVE },
       include: {
         creator: {
           select: {
@@ -882,8 +1078,12 @@ export async function AcceptSubmission(req: Request, res: Response, next: NextFu
         },
       },
     };
+    const updatedSubmission = await prisma.submission.findFirst(reloadAcceptedQuery);
 
-    const updatedSubmission = await prisma.submission.update(updateSubmissionPayload);
+    if (!updatedSubmission) {
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_NOT_FOUND, 404);
+      return;
+    }
 
     if (submissionTarget.creator?.accountId) {
       void NotifySubmissionApproved({
@@ -987,12 +1187,29 @@ export async function RejectSubmission(req: Request, res: Response, next: NextFu
 
     const note = validation.data?.reviewNote?.trim() || null;
 
-    const updateSubmissionPayload = {
-      where: { id: submissionTarget.id },
+    // Atomic conditional transition prevents concurrent Accept/Reject/Revision race conditions
+    const conditionalRejectQuery = {
+      where: {
+        id: submissionTarget.id,
+        status: Status.ACTIVE,
+        submissionStatus: {
+          in: allowedStatuses,
+        },
+      },
       data: {
         submissionStatus: SubmissionStatus.REJECTED,
         reviewNote: note,
       },
+    };
+    const rejectClaim = await prisma.submission.updateMany(conditionalRejectQuery);
+
+    if (rejectClaim.count === 0) {
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_RACE_CONFLICT, 409);
+      return;
+    }
+
+    const reloadRejectedQuery = {
+      where: { id: submissionTarget.id, status: Status.ACTIVE },
       include: {
         creator: {
           select: {
@@ -1011,8 +1228,12 @@ export async function RejectSubmission(req: Request, res: Response, next: NextFu
         },
       },
     };
+    const updatedSubmission = await prisma.submission.findFirst(reloadRejectedQuery);
 
-    const updatedSubmission = await prisma.submission.update(updateSubmissionPayload);
+    if (!updatedSubmission) {
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_NOT_FOUND, 404);
+      return;
+    }
 
     if (submissionTarget.creator?.accountId) {
       void NotifySubmissionRejected({
@@ -1118,12 +1339,29 @@ export async function RequestSubmissionRevision(req: Request, res: Response, nex
 
     const note = validation.data.reviewNote.trim();
 
-    const updateSubmissionPayload = {
-      where: { id: submissionTarget.id },
+    // Atomic conditional transition prevents concurrent Accept/Reject/Revision race conditions
+    const conditionalRevisionQuery = {
+      where: {
+        id: submissionTarget.id,
+        status: Status.ACTIVE,
+        submissionStatus: {
+          in: allowedStatuses,
+        },
+      },
       data: {
         submissionStatus: SubmissionStatus.REVISION_REQUESTED,
         reviewNote: note,
       },
+    };
+    const revisionClaim = await prisma.submission.updateMany(conditionalRevisionQuery);
+
+    if (revisionClaim.count === 0) {
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_RACE_CONFLICT, 409);
+      return;
+    }
+
+    const reloadRevisedQuery = {
+      where: { id: submissionTarget.id, status: Status.ACTIVE },
       include: {
         creator: {
           select: {
@@ -1142,8 +1380,12 @@ export async function RequestSubmissionRevision(req: Request, res: Response, nex
         },
       },
     };
+    const updatedSubmission = await prisma.submission.findFirst(reloadRevisedQuery);
 
-    const updatedSubmission = await prisma.submission.update(updateSubmissionPayload);
+    if (!updatedSubmission) {
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_NOT_FOUND, 404);
+      return;
+    }
 
     if (submissionTarget.creator?.accountId) {
       void NotifySubmissionRevision({
