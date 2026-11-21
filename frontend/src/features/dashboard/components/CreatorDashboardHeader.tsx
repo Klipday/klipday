@@ -7,8 +7,8 @@ import type { CreatorDashboardHeaderProps } from '../types';
 
 /**
  * Top header banner for the Creator Monitoring Dashboard.
- * Displays creator greeting and monitoring subtitle on the left, paired with
- * a clean connected TikTok status indicator or connection link on the right.
+ * Matches BrandDashboardHeader typography and spacing on the left, paired with
+ * a subtle connected TikTok indicator or connection action on the right.
  *
  * @param props - Header properties including creator name and verified TikTok account summary.
  * @returns Rendered header element.
@@ -31,11 +31,11 @@ export function CreatorDashboardHeader({
         className,
       )}
     >
-      <div className="space-y-1">
-        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
+      <div className="space-y-1.5 min-w-0">
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground truncate">
           {displayTitle}
         </h1>
-        <p className="text-sm text-muted-foreground max-w-2xl">
+        <p className="text-sm text-muted-foreground">
           {CREATOR_DASHBOARD_MESSAGES.SUBTITLE}
         </p>
       </div>
@@ -47,20 +47,22 @@ export function CreatorDashboardHeader({
             className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-border transition-colors"
           >
             <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
-            <span className="text-foreground font-medium">@{tiktokAccount.username}</span>
-            <span>•</span>
-            <span>{CREATOR_DASHBOARD_MESSAGES.TIKTOK_VERIFIED_SUFFIX}</span>
+            <span className="text-foreground font-medium truncate max-w-[140px]">
+              @{tiktokAccount.username}
+            </span>
+            <span aria-hidden="true">•</span>
+            <span className="shrink-0">{CREATOR_DASHBOARD_MESSAGES.TIKTOK_VERIFIED_SUFFIX}</span>
           </Link>
         ) : (
           <Button
             asChild
             variant="outline"
             size="sm"
-            className="h-8 gap-1.5 text-xs font-medium border-border/80 text-foreground hover:bg-muted/50"
+            className="h-8 gap-1.5 text-xs font-medium border-border/70 text-foreground hover:bg-muted/50"
           >
             <Link to="/creator-dashboard/profile?tab=social-accounts">
               <span>{CREATOR_DASHBOARD_MESSAGES.CONNECT_TIKTOK_ACTION}</span>
-              <ArrowRightUpIcon className="size-3.5" />
+              <ArrowRightUpIcon className="size-3.5" aria-hidden="true" />
             </Link>
           </Button>
         )}

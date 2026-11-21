@@ -382,6 +382,14 @@ export interface CreatorDashboardMetrics {
 }
 
 /**
+ * Single KPI item displayed in the CreatorDashboardMetricsGrid summary strip.
+ */
+export interface CreatorDashboardMetricItem {
+  label: string;
+  value: string;
+}
+
+/**
  * Submitted campaign item displayed in the creator's recent submissions list.
  */
 export interface CreatorDashboardSubmissionItem {
@@ -401,6 +409,7 @@ export interface CreatorDashboardSubmissionItem {
 
 /**
  * Active joined campaign that the creator has joined (JOINED) and not yet submitted a video for.
+ * Exposes only remaining budget percentage (0-100%) to prevent raw campaign budget leakage.
  */
 export interface CreatorDashboardJoinedCampaign {
   submissionId: string;
@@ -410,9 +419,6 @@ export interface CreatorDashboardJoinedCampaign {
   category: string;
   brandIndustry: string | null;
   cpm: number;
-  budget: number;
-  spent: number;
-  remainingBudget: number;
   remainingPercent: number;
   joinedAt: string;
   endDate: string | null;

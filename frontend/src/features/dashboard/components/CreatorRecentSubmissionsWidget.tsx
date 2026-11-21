@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { ArrowRightUpIcon, VideocameraIcon } from '@solar-icons/react/linear';
+import { ArrowRightUpIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { FormatCompactCount } from '@/features/submission/utils/submission-utils';
 import { FormatRupiah } from '@/features/wallet/utils/wallet-format';
@@ -12,11 +12,9 @@ import type { CreatorRecentSubmissionsWidgetProps } from '../types';
 import { GetDashboardCategoryLabel } from '../utils/dashboard-format';
 
 /**
- * Left Bento widget displaying the creator's submitted campaigns.
- * Each card is a clean, noise-free, whole-card clickable link navigating directly
- * to the campaign detail page (`?tab=my-videos`), showing strictly 5 data points:
- * Campaign Title, Brand & Industry Category, right-aligned Status Pill Badge,
- * Views on the bottom-left, and Estimasi Earning on the bottom-right.
+ * Minimalist left Bento widget displaying the creator's submitted campaigns.
+ * Styled identically to BrandActiveCampaignsWidget using flat hairline-divided rows
+ * with whole-row navigation, status badge, verified views, and estimated earnings.
  *
  * @param props - Recent submitted campaign items and optional styling className.
  * @returns Rendered recent submissions widget.
@@ -26,45 +24,44 @@ export function CreatorRecentSubmissionsWidget({
   className,
 }: CreatorRecentSubmissionsWidgetProps) {
   const hasSubmissions = submissions.length > 0;
+  const headerActionHref = hasSubmissions
+    ? '/creator-dashboard/submissions'
+    : '/creator-dashboard/creator-campaigns';
+  const headerActionLabel = hasSubmissions
+    ? CREATOR_DASHBOARD_MESSAGES.ACTION_VIEW_ALL
+    : CREATOR_DASHBOARD_MESSAGES.ACTION_EXPLORE_CAMPAIGNS;
 
   return (
     <div
       className={cn(
-        'rounded-xl border border-border/60 bg-card p-5 flex flex-col',
+        'rounded-xl border border-border/60 bg-card flex flex-col overflow-hidden',
         className,
       )}
     >
-      <div className="flex items-center justify-between pb-4 border-b border-border/40">
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold tracking-tight text-foreground">
+      <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-sm font-medium text-foreground truncate">
             {CREATOR_DASHBOARD_MESSAGES.RECENT_SUBMISSIONS_TITLE}
           </h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground tabular-nums mt-0.5 truncate">
             {hasSubmissions
               ? `${submissions.length} submisi kampanye terbaru`
               : CREATOR_DASHBOARD_MESSAGES.RECENT_SUBMISSIONS_SUBTITLE}
           </p>
         </div>
 
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground gap-1"
+        <Link
+          to={headerActionHref}
+          className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 shrink-0"
         >
-          <Link to={hasSubmissions ? '/creator-dashboard/submissions' : '/creator-dashboard/creator-campaigns'}>
-            <span>{hasSubmissions ? 'Lihat Semua' : CREATOR_DASHBOARD_MESSAGES.ACTION_EXPLORE_CAMPAIGNS}</span>
-            <ArrowRightUpIcon className="size-3.5" />
-          </Link>
-        </Button>
+          <span>{headerActionLabel}</span>
+          <ArrowRightUpIcon className="size-3.5" aria-hidden="true" />
+        </Link>
       </div>
 
-      <div className="flex-1 mt-4">
+      <div className="flex-1 flex flex-col">
         {!hasSubmissions ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="size-10 rounded-full border border-border/60 bg-muted/30 flex items-center justify-center text-muted-foreground mb-3">
-              <VideocameraIcon className="size-5" />
-            </div>
+          <div className="flex-1 flex flex-col items-center justify-center py-12 px-5 text-center">
             <p className="text-sm font-medium text-foreground">
               {CREATOR_DASHBOARD_MESSAGES.RECENT_SUBMISSIONS_EMPTY_TITLE}
             </p>
@@ -78,12 +75,12 @@ export function CreatorRecentSubmissionsWidget({
             >
               <Link to="/creator-dashboard/creator-campaigns">
                 <span>{CREATOR_DASHBOARD_MESSAGES.ACTION_EXPLORE_CAMPAIGNS}</span>
-                <ArrowRightUpIcon className="size-3.5" />
+                <ArrowRightUpIcon className="size-3.5" aria-hidden="true" />
               </Link>
             </Button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-border/40">
             {submissions.map((item) => {
               const rawCategory =
                 item.brandIndustry && item.brandIndustry !== 'OTHER'
@@ -104,14 +101,14 @@ export function CreatorRecentSubmissionsWidget({
                 <Link
                   key={item.id}
                   to={targetHref}
-                  className="block p-4 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/30 hover:border-border transition-colors group space-y-3"
+                  className="block px-5 py-4 hover:bg-muted/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset space-y-2.5"
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {item.campaignTitle || CREATOR_DASHBOARD_MESSAGES.DEFAULT_CAMPAIGN_TITLE}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                      <p className="text-xs text-muted-foreground mt-1 truncate">
                         {item.brandName} • {categoryLabel}
                       </p>
                     </div>
@@ -126,11 +123,11 @@ export function CreatorRecentSubmissionsWidget({
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2.5 border-t border-border/40 text-xs">
-                    <span className="text-muted-foreground font-medium tabular-nums">
+                  <div className="flex items-center justify-between gap-3 text-xs tabular-nums">
+                    <span className="text-muted-foreground shrink-0">
                       {formattedViews} {CREATOR_DASHBOARD_MESSAGES.VIEWS_LABEL}
                     </span>
-                    <span className="font-semibold text-foreground tabular-nums">
+                    <span className="font-medium text-foreground truncate">
                       {CREATOR_DASHBOARD_MESSAGES.ESTIMATED_EARNING_PREFIX}
                       {formattedEstimate}
                     </span>

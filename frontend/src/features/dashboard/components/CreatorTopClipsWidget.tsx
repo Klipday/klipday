@@ -7,8 +7,9 @@ import { CREATOR_DASHBOARD_MESSAGES } from '../constants';
 import type { CreatorTopClipsWidgetProps } from '../types';
 
 /**
- * Full-width Row 2 Bento widget displaying the creator's highest-performing verified clips.
- * Formatted with calm, high-contrast typography and neutral accent links for dark mode readability.
+ * Minimalist full-width Row 2 Bento widget displaying the creator's highest-performing verified clips.
+ * Synchronized 1:1 with BrandTopClipsWidget using a frameless 4-column editorial media grid
+ * with calm, high-contrast typography and neutral external links.
  *
  * @param props - Top verified clips array and optional styling className.
  * @returns Rendered creator top clips widget.
@@ -22,36 +23,31 @@ export function CreatorTopClipsWidget({
   return (
     <div
       className={cn(
-        'rounded-xl border border-border/60 bg-card p-5 flex flex-col',
+        'rounded-xl border border-border/60 bg-card flex flex-col overflow-hidden',
         className,
       )}
     >
-      <div className="flex items-center justify-between pb-4 border-b border-border/40">
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold tracking-tight text-foreground">
-            {CREATOR_DASHBOARD_MESSAGES.TOP_CLIPS_TITLE}
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            {CREATOR_DASHBOARD_MESSAGES.TOP_CLIPS_SUBTITLE}
-          </p>
-        </div>
+      <div className="px-5 py-4 border-b border-border/50">
+        <h2 className="text-sm font-medium text-foreground">
+          {CREATOR_DASHBOARD_MESSAGES.TOP_CLIPS_TITLE}
+        </h2>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {CREATOR_DASHBOARD_MESSAGES.TOP_CLIPS_SUBTITLE}
+        </p>
       </div>
 
-      <div className="flex-1 mt-4">
+      <div className="flex-1">
         {!hasClips ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="size-10 rounded-full border border-border/60 bg-muted/30 flex items-center justify-center text-muted-foreground mb-3">
-              <VideocameraIcon className="size-5" />
-            </div>
+          <div className="py-12 px-5 text-center">
             <p className="text-sm font-medium text-foreground">
               {CREATOR_DASHBOARD_MESSAGES.TOP_CLIPS_EMPTY_TITLE}
             </p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
               {CREATOR_DASHBOARD_MESSAGES.TOP_CLIPS_EMPTY_DESC}
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {topClips.map((clip) => {
               const cleanThumbnail = SanitizeHttpUrl(clip.videoThumbnailUrl);
               const cleanVideoUrl = SanitizeHttpUrl(clip.liveVideoUrl);
@@ -59,15 +55,19 @@ export function CreatorTopClipsWidget({
               const displayReward =
                 clip.earnings > 0 ? clip.earnings : clip.estimatedEarnings;
               const formattedReward = FormatRupiah(displayReward);
+              const campaignHref = `/campaigns/${clip.campaignId}?tab=my-videos`;
 
               return (
                 <div
                   key={clip.id}
-                  className="rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/30 transition-colors p-3.5 flex flex-col justify-between space-y-3"
+                  className="flex flex-col justify-between gap-3 min-w-0"
                 >
                   {/* Vertical Video Thumbnail */}
-                  <div className="w-full h-48 sm:h-52 rounded-lg overflow-hidden bg-muted/40 border border-border/60 shrink-0 relative flex items-center justify-center">
-                    <VideocameraIcon className="size-8 text-muted-foreground/60 shrink-0" />
+                  <div className="w-full aspect-[4/5] max-h-56 rounded-lg overflow-hidden bg-muted/40 border border-border/50 shrink-0 relative flex items-center justify-center">
+                    <VideocameraIcon
+                      className="size-7 text-muted-foreground/60 shrink-0"
+                      aria-hidden="true"
+                    />
                     {cleanThumbnail && (
                       <img
                         src={cleanThumbnail}
@@ -82,11 +82,11 @@ export function CreatorTopClipsWidget({
                   </div>
 
                   {/* Campaign Info & Performance Footer */}
-                  <div className="space-y-3 flex-1 flex flex-col justify-between">
+                  <div className="space-y-3 flex-1 flex flex-col justify-between min-w-0">
                     <div className="min-w-0">
                       <Link
-                        to={`/campaigns/${clip.campaignId}?tab=my-videos`}
-                        className="text-xs font-semibold text-foreground hover:text-primary transition-colors line-clamp-1"
+                        to={campaignHref}
+                        className="text-xs font-medium text-foreground hover:text-foreground/80 transition-colors truncate block"
                       >
                         {clip.campaignTitle || CREATOR_DASHBOARD_MESSAGES.DEFAULT_CAMPAIGN_TITLE}
                       </Link>
@@ -98,11 +98,10 @@ export function CreatorTopClipsWidget({
 
                     <div className="flex items-end justify-between gap-2 pt-2.5 border-t border-border/40">
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground tracking-tight truncate tabular-nums">
+                        <p className="text-xs font-semibold text-foreground tabular-nums truncate">
                           {formattedViews} {CREATOR_DASHBOARD_MESSAGES.VIEWS_LABEL}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate mt-0.5 tabular-nums">
-                          {CREATOR_DASHBOARD_MESSAGES.REWARD_PREFIX}
+                        <p className="text-xs text-muted-foreground tabular-nums truncate mt-0.5">
                           {formattedReward}
                         </p>
                       </div>
@@ -115,7 +114,7 @@ export function CreatorTopClipsWidget({
                           className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 shrink-0 pb-0.5"
                         >
                           <span>TikTok</span>
-                          <SquareTopDownIcon className="size-3.5" />
+                          <SquareTopDownIcon className="size-3.5" aria-hidden="true" />
                         </a>
                       )}
                     </div>

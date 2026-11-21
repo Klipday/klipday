@@ -66,9 +66,6 @@ export interface CreatorDashboardJoinedCampaign {
   category: string;
   brandIndustry: string | null;
   cpm: number;
-  budget: number;
-  spent: number;
-  remainingBudget: number;
   remainingPercent: number;
   joinedAt: string;
   endDate: string | null;

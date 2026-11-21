@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { ArrowRightUpIcon, MegaphoneIcon } from '@solar-icons/react/linear';
+import { ArrowRightUpIcon } from '@solar-icons/react/linear';
 import { Button } from '@/components/ui/button';
 import { FormatRupiah } from '@/features/wallet/utils/wallet-format';
 import { cn } from '@/lib/utils';
@@ -8,10 +8,10 @@ import type { CreatorJoinedCampaignsWidgetProps } from '../types';
 import { GetDashboardCategoryLabel } from '../utils/dashboard-format';
 
 /**
- * Right Bento widget displaying active campaigns that the creator has joined (`submissionStatus: 'JOINED'`)
- * and has not yet submitted a video for.
- * Each campaign card is a clean, whole-card clickable link to `/campaigns/:id`, showing:
- * Campaign Title, Brand & Industry Category, right-aligned CPM badge, and a Budget Tersisa progress bar.
+ * Minimalist right Bento widget displaying active campaigns that the creator has joined
+ * (`submissionStatus: 'JOINED'`) and has not yet submitted a video for.
+ * Styled consistently with Brand dashboard widgets using flat hairline-divided rows
+ * and strictly showing budget remaining percentage (0-100%) without exposing raw campaign budgets.
  *
  * @param props - Active joined campaigns list and optional styling className.
  * @returns Rendered joined campaigns widget.
@@ -25,45 +25,38 @@ export function CreatorJoinedCampaignsWidget({
   return (
     <div
       className={cn(
-        'rounded-xl border border-border/60 bg-card p-5 flex flex-col',
+        'rounded-xl border border-border/60 bg-card flex flex-col overflow-hidden',
         className,
       )}
     >
-      <div className="flex items-center justify-between pb-4 border-b border-border/40">
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold tracking-tight text-foreground">
+      <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-sm font-medium text-foreground truncate">
             {CREATOR_DASHBOARD_MESSAGES.JOINED_CAMPAIGNS_TITLE}
           </h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground mt-0.5 tabular-nums truncate">
             {hasCampaigns
-              ? `${campaigns.length} kampanye menunggu pengajuan video`
+              ? `${campaigns.length} kampanye menunggu video`
               : CREATOR_DASHBOARD_MESSAGES.JOINED_CAMPAIGNS_SUBTITLE}
           </p>
         </div>
 
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground gap-1"
+        <Link
+          to="/creator-dashboard/creator-campaigns"
+          className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 shrink-0"
         >
-          <Link to="/creator-dashboard/creator-campaigns">
-            <span>{CREATOR_DASHBOARD_MESSAGES.ACTION_FIND_CAMPAIGNS}</span>
-            <ArrowRightUpIcon className="size-3.5" />
-          </Link>
-        </Button>
+          <span>{CREATOR_DASHBOARD_MESSAGES.ACTION_FIND_CAMPAIGNS}</span>
+          <ArrowRightUpIcon className="size-3.5" aria-hidden="true" />
+        </Link>
       </div>
 
-      <div className="flex-1 mt-4">
+      <div className="flex-1 flex flex-col">
         {!hasCampaigns ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="size-10 rounded-full border border-border/60 bg-muted/30 flex items-center justify-center text-muted-foreground mb-3">
-              <MegaphoneIcon className="size-5" />
-            </div>
+          <div className="flex-1 flex flex-col items-center justify-center py-12 px-5 text-center">
             <p className="text-sm font-medium text-foreground">
               {CREATOR_DASHBOARD_MESSAGES.JOINED_CAMPAIGNS_EMPTY_TITLE}
             </p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs mb-4">
+            <p className="text-xs text-muted-foreground mt-1 max-w-[240px] mb-4">
               {CREATOR_DASHBOARD_MESSAGES.JOINED_CAMPAIGNS_EMPTY_DESC}
             </p>
             <Button
@@ -73,12 +66,12 @@ export function CreatorJoinedCampaignsWidget({
             >
               <Link to="/creator-dashboard/creator-campaigns">
                 <span>{CREATOR_DASHBOARD_MESSAGES.ACTION_EXPLORE_CAMPAIGNS}</span>
-                <ArrowRightUpIcon className="size-3.5" />
+                <ArrowRightUpIcon className="size-3.5" aria-hidden="true" />
               </Link>
             </Button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-border/40">
             {campaigns.map((camp) => {
               const rawCategory =
                 camp.brandIndustry && camp.brandIndustry !== 'OTHER'
@@ -86,44 +79,47 @@ export function CreatorJoinedCampaignsWidget({
                   : camp.category;
               const categoryLabel = GetDashboardCategoryLabel(rawCategory);
               const formattedCpm = FormatRupiah(camp.cpm);
-              const formattedRemaining = FormatRupiah(camp.remainingBudget);
-              const formattedBudget = FormatRupiah(camp.budget);
+              const clampedPercent = Math.min(
+                100,
+                Math.max(0, Math.round(camp.remainingPercent)),
+              );
+              const campaignHref = `/campaigns/${camp.id}`;
 
               return (
                 <Link
                   key={camp.submissionId}
-                  to={`/campaigns/${camp.id}`}
-                  className="block p-4 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/30 hover:border-border transition-colors group space-y-3"
+                  to={campaignHref}
+                  className="block px-5 py-4 hover:bg-muted/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset space-y-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {camp.title || CREATOR_DASHBOARD_MESSAGES.DEFAULT_CAMPAIGN_TITLE}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                      <p className="text-xs text-muted-foreground mt-1 truncate">
                         {camp.brandName} • {categoryLabel}
                       </p>
                     </div>
 
-                    <span className="inline-flex items-center rounded-full border border-border/60 bg-muted/40 px-2.5 py-0.5 text-[11px] font-medium text-foreground tabular-nums shrink-0">
+                    <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-foreground tabular-nums shrink-0">
                       CPM {formattedCpm}
                     </span>
                   </div>
 
-                  {/* Native Tailwind Progress Bar for Remaining Budget */}
+                  {/* Progress bar showing strictly 0-100% remaining budget without exposing nominal rupiah */}
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground tabular-nums">
-                      <span>
-                        {CREATOR_DASHBOARD_MESSAGES.BUDGET_REMAINING_LABEL} ({camp.remainingPercent}%)
+                    <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground tabular-nums">
+                      <span className="truncate">
+                        {CREATOR_DASHBOARD_MESSAGES.BUDGET_REMAINING_LABEL}
                       </span>
-                      <span className="font-medium text-foreground">
-                        {formattedRemaining} / {formattedBudget}
+                      <span className="font-medium text-foreground shrink-0">
+                        {clampedPercent}%
                       </span>
                     </div>
                     <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
                       <div
                         className="h-full bg-primary rounded-full transition-all duration-300"
-                        style={{ width: `${camp.remainingPercent}%` }}
+                        style={{ width: `${clampedPercent}%` }}
                       />
                     </div>
                   </div>
