@@ -51,7 +51,7 @@ function FormatAccountType(role?: string | null): string {
 
 /**
  * Resolves the role-specific profile route for the top bar profile badge.
- * Returns null for roles without a dedicated profile page (e.g. ADMIN).
+ * Returns null for unrecognized roles without a dedicated profile page.
  *
  * @param role - The authenticated user's role identifier.
  * @returns Profile route path or null if unavailable.
@@ -62,6 +62,9 @@ function GetProfileRouteByRole(role?: string | null): string | null {
   }
 
   const normalizedRole = role.trim().toUpperCase();
+  if (normalizedRole === 'ADMIN') {
+    return '/admin-dashboard/profile';
+  }
   if (normalizedRole === 'BRAND') {
     return '/brand-dashboard/profile';
   }

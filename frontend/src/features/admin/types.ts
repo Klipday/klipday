@@ -813,5 +813,49 @@ export interface AdminKycSkeletonProps {
   count?: number;
 }
 
+// Administrator Profile DTOs & Payloads
+export interface AdminProfileDto {
+  id: string;
+  accountId: string;
+  fullName: string;
+  email: string;
+  role: 'ADMIN' | 'BRAND' | 'CREATOR';
+  isEmailVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateAdminProfilePayload {
+  fullName: string;
+}
+
+export interface ChangeAdminPasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+// Administrator Profile Component Props
+export interface AdminProfileHeaderProps {
+  profile: AdminProfileDto;
+}
+
+export interface AdminProfileInfoFormProps {
+  profile: AdminProfileDto;
+}
+
+export interface AdminChangePasswordFormProps {
+  className?: string;
+}
+
+export interface AdminProfileSkeletonProps {
+  className?: string;
+}
+
+export interface AdminProfileErrorStateProps {
+  message?: string;
+  onRetry: () => void;
+}
+
 
 

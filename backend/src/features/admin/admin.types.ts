@@ -498,5 +498,16 @@ export interface AdminDashboardSummaryDto {
   actionItems: AdminDashboardActionItemsDto;
 }
 
+export interface AdminProfileDto {
+  id: string;
+  accountId: string;
+  fullName: string;
+  email: string;
+  role: Role;
+  isEmailVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 
 

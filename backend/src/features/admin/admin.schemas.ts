@@ -9,11 +9,15 @@ import {
   KYC_REVIEW_ACTION_OPTIONS,
   KYC_ROLE_FILTER,
   KYC_ROLE_FILTER_OPTIONS,
+  MAX_ADMIN_NAME_LENGTH,
+  MAX_ADMIN_PASSWORD_LENGTH,
   MAX_FEATURED_ORDER,
   MAX_LIMIT,
   MAX_REJECTION_REASON_LENGTH,
   MAX_REVIEW_NOTE_LENGTH,
   MAX_SEARCH_LENGTH,
+  MIN_ADMIN_NAME_LENGTH,
+  MIN_ADMIN_PASSWORD_LENGTH,
   MIN_FEATURED_ORDER,
   MIN_REJECTION_REASON_LENGTH,
   MODERATION_ACTION_OPTIONS,
@@ -337,4 +341,46 @@ export const ToggleFeaturedCampaignSchema = z.object({
 });
 
 export type ToggleFeaturedCampaignInput = z.infer<typeof ToggleFeaturedCampaignSchema>;
+
+export const UpdateAdminProfileSchema = z.object({
+  fullName: z
+    .string({ error: ADMIN_MESSAGES.FULL_NAME_MIN })
+    .trim()
+    .min(MIN_ADMIN_NAME_LENGTH, ADMIN_MESSAGES.FULL_NAME_MIN)
+    .max(MAX_ADMIN_NAME_LENGTH, ADMIN_MESSAGES.FULL_NAME_MAX),
+});
+
+export type UpdateAdminProfileInput = z.infer<typeof UpdateAdminProfileSchema>;
+
+export const ChangeAdminPasswordSchema = z
+  .object({
+    currentPassword: z
+      .string({ error: ADMIN_MESSAGES.CURRENT_PASSWORD_REQUIRED })
+      .min(1, ADMIN_MESSAGES.CURRENT_PASSWORD_REQUIRED),
+    newPassword: z
+      .string({ error: ADMIN_MESSAGES.NEW_PASSWORD_MIN })
+      .min(MIN_ADMIN_PASSWORD_LENGTH, ADMIN_MESSAGES.NEW_PASSWORD_MIN)
+      .max(MAX_ADMIN_PASSWORD_LENGTH, ADMIN_MESSAGES.NEW_PASSWORD_MAX),
+    confirmPassword: z
+      .string({ error: ADMIN_MESSAGES.CONFIRM_PASSWORD_REQUIRED })
+      .min(1, ADMIN_MESSAGES.CONFIRM_PASSWORD_REQUIRED),
+  })
+  .superRefine((data, ctx) => {
+    if (data.newPassword !== data.confirmPassword) {
+      ctx.addIssue({
+        code: 'custom',
+        message: ADMIN_MESSAGES.PASSWORD_CONFIRM_MISMATCH,
+        path: ['confirmPassword'],
+      });
+    }
+    if (data.newPassword === data.currentPassword) {
+      ctx.addIssue({
+        code: 'custom',
+        message: ADMIN_MESSAGES.PASSWORD_SAME_AS_CURRENT,
+        path: ['newPassword'],
+      });
+    }
+  });
+
+export type ChangeAdminPasswordInput = z.infer<typeof ChangeAdminPasswordSchema>;
 

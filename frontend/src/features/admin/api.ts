@@ -7,12 +7,14 @@ import type {
   AdminModerateCampaignPayload,
   AdminModerationCampaignsPaginatedDto,
   AdminModerationQueryParams,
+  AdminProfileDto,
   AdminSettlementCampaignsPaginatedDto,
   AdminSettlementQueryParams,
   AdminTopUpItem,
   AdminTopUpsPaginated,
   AdminWithdrawalItem,
   AdminWithdrawalsPaginated,
+  ChangeAdminPasswordPayload,
   DisqualifySettlementSubmissionPayload,
   GetAdminKycParams,
   GetAdminTopUpsParams,
@@ -22,6 +24,7 @@ import type {
   ReviewBrandTopUpPayload,
   ReviewKycPayload,
   ToggleCampaignFeaturedPayload,
+  UpdateAdminProfilePayload,
   UpdateSettlementSubmissionViewsPayload,
 } from './types';
 
@@ -442,6 +445,56 @@ export async function TriggerCampaignMetricsSync(
       error,
       'Gagal menyinkronkan tayangan video kampanye.',
     );
+    throw apiError;
+  }
+}
+
+/**
+ * Fetches the currently authenticated administrator profile (`GET /admin/profile`).
+ *
+ * @returns Administrator profile details including identity, email, and timestamps.
+ */
+export async function GetAdminProfile(): Promise<AdminProfileDto> {
+  try {
+    const response = await apiClient.get<ApiResponse<AdminProfileDto>>('/admin/profile');
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal memuat profil administrator.');
+    throw apiError;
+  }
+}
+
+/**
+ * Updates the authenticated administrator's full name (`PATCH /admin/profile`).
+ *
+ * @param payload - Updated profile data containing `fullName`.
+ * @returns Updated administrator profile record.
+ */
+export async function UpdateAdminProfile(payload: UpdateAdminProfilePayload): Promise<AdminProfileDto> {
+  try {
+    const response = await apiClient.patch<ApiResponse<AdminProfileDto>>('/admin/profile', payload);
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal memperbarui profil administrator.');
+    throw apiError;
+  }
+}
+
+/**
+ * Updates the authenticated administrator's password (`PATCH /admin/profile/password`).
+ *
+ * @param payload - Current password, new password, and confirmation password.
+ * @returns Confirmation flag indicating password update completion.
+ */
+export async function ChangeAdminPassword(payload: ChangeAdminPasswordPayload): Promise<{ updated: boolean }> {
+  try {
+    const response = await apiClient.patch<ApiResponse<{ updated: boolean }>>('/admin/profile/password', payload);
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal memperbarui kata sandi.');
     throw apiError;
   }
 }

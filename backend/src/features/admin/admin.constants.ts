@@ -11,6 +11,11 @@ export const DASHBOARD_PREVIEW_LIMIT = 5;
 export const MIN_FEATURED_ORDER = 1;
 export const MAX_FEATURED_ORDER = 99;
 export const DEFAULT_FEATURED_ORDER = 1;
+export const MIN_ADMIN_NAME_LENGTH = 2;
+export const MAX_ADMIN_NAME_LENGTH = 100;
+export const MIN_ADMIN_PASSWORD_LENGTH = 8;
+export const MAX_ADMIN_PASSWORD_LENGTH = 128;
+export const ADMIN_PASSWORD_SALT_ROUNDS = 10;
 
 export const FIFO_SUBMISSION_ORDER_BY = [
   { submittedAt: { sort: 'asc' as const, nulls: 'last' as const } },
@@ -434,4 +439,18 @@ export const ADMIN_MESSAGES = {
   FINALIZE_SETTLEMENT_SUCCESS:
     'Settlement kampanye berhasil diselesaikan. Reward kreator dan sisa budget brand telah didistribusikan.',
   GET_ADMIN_DASHBOARD_SUCCESS: 'Ringkasan dashboard admin berhasil dimuat.',
+
+  // Admin Profile & Password
+  PROFILE_FETCHED: 'Profil administrator berhasil dimuat.',
+  PROFILE_UPDATED: 'Profil administrator berhasil diperbarui.',
+  PASSWORD_CHANGED: 'Kata sandi administrator berhasil diperbarui.',
+  FULL_NAME_MIN: 'Nama lengkap minimal 2 karakter.',
+  FULL_NAME_MAX: 'Nama lengkap maksimal 100 karakter.',
+  CURRENT_PASSWORD_REQUIRED: 'Kata sandi saat ini wajib diisi.',
+  NEW_PASSWORD_MIN: 'Kata sandi baru minimal 8 karakter.',
+  NEW_PASSWORD_MAX: 'Kata sandi baru maksimal 128 karakter.',
+  CONFIRM_PASSWORD_REQUIRED: 'Konfirmasi kata sandi wajib diisi.',
+  PASSWORD_CONFIRM_MISMATCH: 'Konfirmasi kata sandi baru tidak cocok.',
+  PASSWORD_SAME_AS_CURRENT: 'Kata sandi baru tidak boleh sama dengan kata sandi saat ini.',
+  CURRENT_PASSWORD_INCORRECT: 'Kata sandi saat ini tidak sesuai.',
 } as const;

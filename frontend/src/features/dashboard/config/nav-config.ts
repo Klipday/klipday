@@ -111,6 +111,11 @@ export const ADMIN_NAV_ITEMS: DashboardNavItem[] = [
     href: '/notifications',
     icon: BellIcon,
   },
+  {
+    title: 'Profil Akun',
+    href: '/admin-dashboard/profile',
+    icon: UserIcon,
+  },
 ];
 
 export const DEFAULT_NAV_ITEMS: DashboardNavItem[] = [

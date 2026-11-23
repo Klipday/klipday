@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import type { NextFunction, Request, Response } from 'express';
 import { Prisma, type PrismaClient } from '../../generated/prisma/client.js';
 import {
@@ -36,6 +37,7 @@ import {
 import {
   ADMIN_KYC_SELECT,
   ADMIN_MESSAGES,
+  ADMIN_PASSWORD_SALT_ROUNDS,
   ADMIN_TOPUP_SELECT,
   ADMIN_WITHDRAWAL_SELECT,
   DASHBOARD_PREVIEW_LIMIT,
@@ -73,11 +75,13 @@ import {
   AdminSettlementQuerySchema,
   AdminTopUpQuerySchema,
   AdminWithdrawalQuerySchema,
+  ChangeAdminPasswordSchema,
   DisqualifySubmissionSchema,
   ReviewBrandTopUpSchema,
   ReviewKycSchema,
   ReviewWithdrawalSchema,
   ToggleFeaturedCampaignSchema,
+  UpdateAdminProfileSchema,
   UpdateSubmissionViewsSchema,
 } from './admin.schemas.js';
 import type {
@@ -104,6 +108,7 @@ import type {
   AdminDashboardTopUpActionItemDto,
   AdminDashboardTransactionActionItemDto,
   AdminDashboardWithdrawalActionItemDto,
+  AdminProfileDto,
   FifoSubmissionAllocationInput,
 } from './admin.types.js';
 
@@ -4112,6 +4117,247 @@ export async function GetAdminDashboardSummary(
     };
 
     SendSuccess(res, summary, ADMIN_MESSAGES.GET_ADMIN_DASHBOARD_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+const ADMIN_PROFILE_SELECT = {
+  id: true,
+  accountId: true,
+  fullName: true,
+  createdAt: true,
+  updatedAt: true,
+  account: {
+    select: {
+      email: true,
+      role: true,
+      isEmailVerified: true,
+    },
+  },
+} satisfies Prisma.AdminSelect;
+
+/**
+ * Validates that the incoming request is authenticated with the ADMIN role from JWT claims.
+ * Writes a 401 or 403 fast-fail error response directly when validation fails.
+ *
+ * @param req - Express request carrying optional decoded JWT account claims.
+ * @param res - Express response object.
+ * @returns Authenticated JWT account payload, or null after sending an error response.
+ */
+function ExtractAdminAccountClaims(req: Request, res: Response): NonNullable<Request['account']> | null {
+  const account = req.account;
+  if (!account) {
+    SendError(res, ADMIN_MESSAGES.AUTH_REQUIRED, 401);
+    return null;
+  }
+
+  if (account.role !== Role.ADMIN) {
+    SendError(res, ADMIN_MESSAGES.ADMIN_ONLY, 403);
+    return null;
+  }
+
+  return account;
+}
+
+/**
+ * Builds the soft-delete-safe Prisma filter matching an active admin linked to an active account.
+ *
+ * @param accountId - Authenticated account UUID from JWT claims.
+ * @returns Prisma Admin where condition filtering both Admin and Account to ACTIVE status.
+ */
+function BuildActiveAdminWhere(accountId: string): Prisma.AdminWhereInput {
+  const whereClause: Prisma.AdminWhereInput = {
+    accountId,
+    status: Status.ACTIVE,
+    account: {
+      status: Status.ACTIVE,
+    },
+  };
+  return whereClause;
+}
+
+/**
+ * Maps an active Prisma Admin record with joined account identity into an AdminProfileDto.
+ *
+ * @param adminRecord - Active Admin record selected with `ADMIN_PROFILE_SELECT`.
+ * @returns Serializable administrator profile DTO.
+ */
+function MapAdminProfileToDto(adminRecord: {
+  id: string;
+  accountId: string;
+  fullName: string;
+  createdAt: Date;
+  updatedAt: Date;
+  account: {
+    email: string;
+    role: Role;
+    isEmailVerified: boolean;
+  };
+}): AdminProfileDto {
+  const profileDto: AdminProfileDto = {
+    id: adminRecord.id,
+    accountId: adminRecord.accountId,
+    fullName: adminRecord.fullName,
+    email: adminRecord.account.email,
+    role: adminRecord.account.role,
+    isEmailVerified: adminRecord.account.isEmailVerified,
+    createdAt: adminRecord.createdAt.toISOString(),
+    updatedAt: adminRecord.updatedAt.toISOString(),
+  };
+  return profileDto;
+}
+
+/**
+ * Retrieves the currently authenticated administrator's profile (`GET /admin/profile`).
+ *
+ * @param req - Express request carrying authenticated JWT claims.
+ * @param res - Express response returning `{ status, data: AdminProfileDto, message }`.
+ * @param next - Express error middleware continuation callback.
+ * @returns Promise resolving after sending the HTTP response.
+ */
+export async function GetAdminProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const account = ExtractAdminAccountClaims(req, res);
+    if (!account) {
+      return;
+    }
+
+    const activeWhere = BuildActiveAdminWhere(account.sub);
+    const adminProfileQuery = {
+      where: activeWhere,
+      select: ADMIN_PROFILE_SELECT,
+    } satisfies Prisma.AdminFindFirstArgs;
+
+    const adminRecord = await prisma.admin.findFirst(adminProfileQuery);
+    if (!adminRecord) {
+      SendError(res, ADMIN_MESSAGES.ADMIN_ACCOUNT_NOT_FOUND, 404);
+      return;
+    }
+
+    const profileDto = MapAdminProfileToDto(adminRecord);
+    SendSuccess(res, profileDto, ADMIN_MESSAGES.PROFILE_FETCHED);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Updates the currently authenticated administrator's full name (`PATCH /admin/profile`).
+ *
+ * @param req - Express request carrying `{ fullName }` in the body.
+ * @param res - Express response returning the updated `AdminProfileDto`.
+ * @param next - Express error middleware continuation callback.
+ * @returns Promise resolving after updating the database record and sending the response.
+ */
+export async function UpdateAdminProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const account = ExtractAdminAccountClaims(req, res);
+    if (!account) {
+      return;
+    }
+
+    const activeWhere = BuildActiveAdminWhere(account.sub);
+    const existingQuery = {
+      where: activeWhere,
+      select: { id: true },
+    } satisfies Prisma.AdminFindFirstArgs;
+
+    const existingAdmin = await prisma.admin.findFirst(existingQuery);
+    if (!existingAdmin) {
+      SendError(res, ADMIN_MESSAGES.ADMIN_ACCOUNT_NOT_FOUND, 404);
+      return;
+    }
+
+    const parsedBody = UpdateAdminProfileSchema.safeParse(req.body ?? {});
+    if (!parsedBody.success) {
+      const firstIssue = parsedBody.error.issues[0];
+      const message = firstIssue ? firstIssue.message : ADMIN_MESSAGES.INVALID_PAYLOAD;
+      SendError(res, message, 400);
+      return;
+    }
+
+    const updateData: Prisma.AdminUpdateInput = {
+      fullName: parsedBody.data.fullName,
+    };
+    const updateQuery = {
+      where: { id: existingAdmin.id },
+      data: updateData,
+      select: ADMIN_PROFILE_SELECT,
+    } satisfies Prisma.AdminUpdateArgs;
+
+    const updatedAdmin = await prisma.admin.update(updateQuery);
+    const profileDto = MapAdminProfileToDto(updatedAdmin);
+    SendSuccess(res, profileDto, ADMIN_MESSAGES.PROFILE_UPDATED);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Changes the password of the currently authenticated administrator (`PATCH /admin/profile/password`).
+ * Verifies the current password with bcrypt before hashing and saving the new password.
+ *
+ * @param req - Express request carrying `{ currentPassword, newPassword, confirmPassword }`.
+ * @param res - Express response returning `{ updated: true }` upon completion.
+ * @param next - Express error middleware continuation callback.
+ * @returns Promise resolving after updating `Account.passwordHash` and sending the response.
+ */
+export async function ChangeAdminPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const account = ExtractAdminAccountClaims(req, res);
+    if (!account) {
+      return;
+    }
+
+    const activeWhere = BuildActiveAdminWhere(account.sub);
+    const adminLookupQuery = {
+      where: activeWhere,
+      select: {
+        id: true,
+        accountId: true,
+        account: {
+          select: {
+            id: true,
+            passwordHash: true,
+          },
+        },
+      },
+    } satisfies Prisma.AdminFindFirstArgs;
+
+    const adminRecord = await prisma.admin.findFirst(adminLookupQuery);
+    if (!adminRecord) {
+      SendError(res, ADMIN_MESSAGES.ADMIN_ACCOUNT_NOT_FOUND, 404);
+      return;
+    }
+
+    const parsedBody = ChangeAdminPasswordSchema.safeParse(req.body ?? {});
+    if (!parsedBody.success) {
+      const firstIssue = parsedBody.error.issues[0];
+      const message = firstIssue ? firstIssue.message : ADMIN_MESSAGES.INVALID_PAYLOAD;
+      SendError(res, message, 400);
+      return;
+    }
+
+    const { currentPassword, newPassword } = parsedBody.data;
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, adminRecord.account.passwordHash);
+    if (!isCurrentPasswordValid) {
+      SendError(res, ADMIN_MESSAGES.CURRENT_PASSWORD_INCORRECT, 400);
+      return;
+    }
+
+    const nextPasswordHash = await bcrypt.hash(newPassword, ADMIN_PASSWORD_SALT_ROUNDS);
+    const accountUpdateData: Prisma.AccountUpdateInput = {
+      passwordHash: nextPasswordHash,
+    };
+
+    await prisma.account.update({
+      where: { id: adminRecord.account.id },
+      data: accountUpdateData,
+    });
+
+    const responsePayload = { updated: true };
+    SendSuccess(res, responsePayload, ADMIN_MESSAGES.PASSWORD_CHANGED);
   } catch (err) {
     next(err);
   }

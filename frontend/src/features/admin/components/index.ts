@@ -46,3 +46,10 @@ export { AdminKycProofDialog } from './AdminKycProofDialog';
 export { AdminKycReviewDialog } from './AdminKycReviewDialog';
 export { AdminKycSkeleton } from './AdminKycSkeleton';
 export { AdminKycStatusTabs } from './AdminKycStatusTabs';
+
+// Administrator Profile Components
+export { AdminChangePasswordForm } from './AdminChangePasswordForm';
+export { AdminProfileErrorState } from './AdminProfileErrorState';
+export { AdminProfileHeader } from './AdminProfileHeader';
+export { AdminProfileInfoForm } from './AdminProfileInfoForm';
+export { AdminProfileSkeleton } from './AdminProfileSkeleton';

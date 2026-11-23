@@ -16,12 +16,20 @@ import {
   ReviewKycRequest,
   ReviewWithdrawalRequest,
   ToggleCampaignFeaturedStatus,
+  ChangeAdminPassword,
+  GetAdminProfile,
+  UpdateAdminProfile,
   UpdateSettlementSubmissionViews,
 } from './admin.handlers.js';
 
 export const adminRouter = Router();
 
 adminRouter.use(RequireAuth);
+
+// Administrator Profile & Password
+adminRouter.get('/profile', GetAdminProfile);
+adminRouter.patch('/profile', UpdateAdminProfile);
+adminRouter.patch('/profile/password', ChangeAdminPassword);
 
 // Operational Admin Dashboard (Phase 6)
 adminRouter.get('/dashboard', GetAdminDashboardSummary);

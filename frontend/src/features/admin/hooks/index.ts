@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
+  ChangeAdminPassword,
   DisqualifySettlementSubmission,
   FinalizeCampaignSettlement,
   GetAdminCampaignSettlementSummary,
   GetAdminKycList,
   GetAdminModerationCampaigns,
+  GetAdminProfile,
   GetAdminSettlementCampaigns,
   GetAdminTopUps,
   GetAdminWithdrawals,
@@ -16,12 +18,14 @@ import {
   ReviewBrandTopUp,
   ToggleCampaignFeatured,
   TriggerCampaignMetricsSync,
+  UpdateAdminProfile,
   UpdateSettlementSubmissionViews,
 } from '../api';
 import type {
   AdminModerateCampaignPayload,
   AdminModerationQueryParams,
   AdminSettlementQueryParams,
+  ChangeAdminPasswordPayload,
   DisqualifySettlementSubmissionPayload,
   GetAdminKycParams,
   GetAdminTopUpsParams,
@@ -30,6 +34,7 @@ import type {
   ReviewBrandTopUpPayload,
   ReviewKycPayload,
   ToggleCampaignFeaturedPayload,
+  UpdateAdminProfilePayload,
   UpdateSettlementSubmissionViewsPayload,
 } from '../types';
 
@@ -39,6 +44,61 @@ export const ADMIN_TOPUPS_QUERY_KEY = ['admin-top-ups'] as const;
 export const ADMIN_WITHDRAWALS_QUERY_KEY = ['admin-withdrawals'] as const;
 export const ADMIN_KYC_QUERY_KEY = ['admin', 'kyc'] as const;
 export const ADMIN_DASHBOARD_QUERY_KEY = ['admin', 'dashboard'] as const;
+export const ADMIN_PROFILE_QUERY_KEY = ['admin', 'profile'] as const;
+
+/**
+ * Queries the currently authenticated administrator's profile (`GET /admin/profile`).
+ *
+ * @returns TanStack Query result containing the admin's identity details.
+ */
+export function UseAdminProfileQuery() {
+  return useQuery({
+    queryKey: ADMIN_PROFILE_QUERY_KEY,
+    queryFn: () => GetAdminProfile(),
+  });
+}
+
+/**
+ * Updates the currently authenticated administrator's full name (`PATCH /admin/profile`).
+ * Invalidates profile, dashboard header, and shared current-account queries on success.
+ *
+ * @returns TanStack Mutation result wrapping `UpdateAdminProfile`.
+ */
+export function UseUpdateAdminProfileMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: UpdateAdminProfilePayload) => UpdateAdminProfile(payload),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ADMIN_PROFILE_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: ADMIN_DASHBOARD_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: ['current-account'] }),
+      ]);
+      toast.success('Profil administrator berhasil diperbarui.');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal memperbarui profil administrator.');
+    },
+  });
+}
+
+/**
+ * Changes the currently authenticated administrator's password (`PATCH /admin/profile/password`).
+ *
+ * @returns TanStack Mutation result wrapping `ChangeAdminPassword`.
+ */
+export function UseChangeAdminPasswordMutation() {
+  return useMutation({
+    mutationFn: (payload: ChangeAdminPasswordPayload) => ChangeAdminPassword(payload),
+    onSuccess: () => {
+      toast.success('Kata sandi berhasil diperbarui.');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal memperbarui kata sandi.');
+    },
+  });
+}
 
 /**
  * Queries the paginated list of campaigns ready for settlement review (`GET /admin/settlements`).
