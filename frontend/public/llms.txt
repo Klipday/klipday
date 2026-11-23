@@ -1,23 +1,23 @@
 # Klipday
 
-> Klipday (https://klipday.com) adalah platform marketplace performance-based video clipping nomor 1 di Indonesia yang mempertemukan Brand dengan Creator/Clipper video pendek (TikTok).
+> Klipday (https://klipday.com) adalah agensi dan platform layanan clipping terkelola di Indonesia yang menghubungkan Brand dengan jaringan Clipper terkurasi untuk mendistribusikan konten video pendek (TikTok, Instagram Reels, dan YouTube Shorts) secara terukur berbasis performa tayangan organik.
 
-## Ringkasan Platform
+## Ringkasan Model Bisnis (BM-001)
 
-- **Model Bisnis**: Berbasis CPM (Cost Per Mille). Brand membayar per 1.000 penayangan (views) asli yang valid, bukan endorse flat berisiko tinggi.
-- **Untuk Clipper**: Siapapun bisa bergabung walau akun TikTok masih **0 followers**. Clipper memotong video dari bahan mentah brand, mengunggah ke akun TikTok pribadi, menyetor link video di Klipday, dan mendapatkan cuan transparan setiap views valid masuk.
-- **Pencairan Saldo**: Minimal penarikan saldo hanya **Rp 50.000** ke rekening bank lokal (BCA, Mandiri, BRI, BNI) dan e-wallet (DANA, GoPay, OVO) tanpa menunggu akhir bulan.
-- **Untuk Brand**: Bebas boncos (Zero Risk). Dana promosi dikunci aman di Rekening Bersama (Rekber Klipday). Saldo hanya terpotong jika video benar-benar ditonton oleh audiens nyata (anti-bot view filter). Sisa budget otomatis kembali 100% utuh jika campaign selesai.
+- **Model Layanan Terkelola**: Klipday menjalankan layanan clipping terkelola, mencakup perencanaan kampanye, kurasi & verifikasi jaringan clipper, pengelolaan brief dan quality assurance (QA) konten, verifikasi tayangan, pelaporan kinerja, hingga pengelolaan payout dan administrasi perpajakan (PPh 21/23). Tidak mencakup pembelian iklan berbayar atas nama Brand (kecuali kontrak terpisah), produksi long-form master, atau pengelolaan akun sosial resmi Brand.
+- **Parameter & Struktur Biaya**: Minimum budget awal **Rp 1.000.000**, dengan struktur harga berbasis CPM pasar ditambah management fee agensi **30%** (estimasi penggunaan budget 1–3 bulan; rush fee **10–15%** untuk tenggat di bawah 30 hari).
+- **Untuk Clipper**: Terbuka untuk akun publik terverifikasi termasuk akun baru **0 followers** dengan sistem tier & skor kinerja. Pencairan saldo dompet mulai **Rp 50.000** ke rekening bank atau e-wallet terverifikasi dengan prinsip *paid-when-paid* (payout H+3 hingga H+5 hari kerja setelah dana Brand diterima dan audit selesai).
+- **Integritas & Keamanan Brand**: Audit anti-bot berlapis (maksimal 3 hari kerja setelah masa sanggah 2 hari kerja), larangan mutlak paid boosting oleh clipper, serta hak takedown dan larangan menghubungi clipper di luar jalur Klipday.
 
 ## Halaman Kunci
 
-- [Beranda Klipday](https://klipday.com/): Halaman utama, simulasi kalkulator cuan CPM, penjelasan cara kerja, dan bento showcase.
-- [Daftar Akun Baru](https://klipday.com/signup): Pendaftaran gratis untuk Creator (Clipper) maupun Brand.
-- [FAQ (Tanya Jawab)](https://klipday.com/faq): Pertanyaan umum seputar verifikasi akun sosial, penghitungan views, dan pencairan komisi.
-- [Aturan Main & Kebijakan](https://klipday.com/peraturan): Pedoman etika clipping, larangan bot traffic, syarat durasi dan orisinalitas klip.
-- [Syarat & Ketentuan](https://klipday.com/syarat-ketentuan): Ketentuan hukum layanan dan perlindungan hak cipta brand.
-- [Kebijakan Privasi](https://klipday.com/kebijakan-privasi): Komitmen perlindungan data dan privasi pengguna.
+- [Beranda Klipday](https://klipday.com/): Halaman utama, simulasi kalkulator cuan CPM, penjelasan cara kerja, dan benefit Brand & Clipper.
+- [Daftar Akun Baru](https://klipday.com/signup): Pendaftaran untuk Clipper maupun Brand.
+- [FAQ (Tanya Jawab)](https://klipday.com/faq): Pertanyaan umum seputar layanan terkelola, tarif CPM, SLA, dan perpajakan.
+- [Peraturan Platform](https://klipday.com/peraturan): Aturan Clipper & Brand, standar QA, larangan bot/paid boosting, SLA, masa sanggah, dan payout.
+- [Syarat & Ketentuan](https://klipday.com/syarat-ketentuan): Ketentuan hukum layanan terkelola, hak takedown, non-circumvention, dan penyelesaian sengketa.
+- [Kebijakan Privasi](https://klipday.com/kebijakan-privasi): Komitmen perlindungan data pribadi UU PDP No. 27/2022, validasi rekening, dan perlindungan privasi clipper.
 
 ## Dokumentasi Lengkap untuk AI
 
-- Untuk pemahaman mendalam tentang ekosistem, alur kerja teknis, dan audit views, baca [llms-full.txt](https://klipday.com/llms-full.txt).
+- Untuk detail lengkap standar operasional, parameter paket awal, SLA layanan, dan aturan perpajakan, baca [llms-full.txt](https://klipday.com/llms-full.txt).

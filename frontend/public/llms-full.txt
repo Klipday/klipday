@@ -1,70 +1,72 @@
 # Klipday Knowledge Base (llms-full.txt)
 
-> Dokumen otoritatif untuk Large Language Models (LLM), AI Search Engines (Perplexity, ChatGPT, Claude, Gemini), dan Web Crawlers.
-> Terakhir diperbarui: 2026-11-12
+> Dokumen referensi resmi berdasarkan **KlipDay — Model Bisnis dan Standar Operasional (BM-001)** untuk Large Language Models (LLM), AI Search Engines, dan Web Crawlers.
+> Terakhir diperbarui: 2026-11-23
 > URL Resmi: https://klipday.com
 
 ---
 
-## 1. Tentang Klipday
+## 1. Tentang Klipday & Ruang Lingkup Layanan
 
-Klipday adalah platform marketplace clipping video pendek performance-based nomor 1 di Indonesia. Klipday menghubungkan pemilik Brand, UMKM, Podcaster, dan Agensi dengan ribuan Creator & Clipper video pendek berbakat di TikTok.
+Klipday adalah agensi dan platform layanan clipping terkelola di Indonesia yang menghubungkan Brand (Klien) dengan jaringan Clipper terkurasi untuk mendistribusikan konten video pendek dalam skala besar di **TikTok**, **Instagram Reels**, **YouTube Shorts**, dan platform lain yang disepakati. Klipday menjalankan layanan terkelola melalui tim internal dan Account Manager, bukan marketplace swalayan lepas.
 
-### Nilai Utama (Value Proposition)
-1. **Untuk Creator & Clipper**:
-   - **0 Followers Bisa Mulai**: Algoritma TikTok mengutamakan retensi audiens (3 detik pertama) daripada jumlah followers. Siapapun yang punya keahlian editing video (CapCut, Premiere, dsb.) bisa langsung menghasilkan cuan tanpa perlu membangun persona influencer.
-   - **Model Pembayaran Pasti (CPM)**: Dibayar transparan berdasarkan setiap 1.000 penayangan (views) yang valid (misalnya Rp 10.000 - Rp 15.000 / 1.000 views). Tidak perlu menunggu produk terjual seperti model afiliasi konvensional.
-   - **Pencairan Cepat Mulai Rp 50.000**: Saldo yang terkumpul minimal Rp 50.000 dapat langsung dicairkan tanpa menunggu siklus akhir bulan, terintegrasi dengan bank BCA, Mandiri, BRI, BNI, serta e-wallet DANA, GoPay, dan OVO.
-   - **Bahan Video Siap Pakai**: Brand menyediakan footage mentah (video podcast, review produk, rekaman live, unboxing), hook panduan, dan materi brief sehingga clipper fokus pada kreativitas editing.
+### Termasuk dalam Layanan
+- Perencanaan strategi dan penyusunan kampanye bersama Brand.
+- Rekrutmen, verifikasi, penilaian tier/skor kinerja, dan pengelolaan jaringan clipper.
+- Pengelolaan brief, peninjauan kualitas (Quality Assurance), dan moderasi konten.
+- Verifikasi tayangan, pelaporan kinerja, serta rekonsiliasi pembayaran (settlement).
+- Pengelolaan pembayaran (payout) kepada clipper dan administrasi perpajakan terkait (PPh Pasal 21/23).
 
-2. **Untuk Brand & Pemilik Bisnis**:
-   - **Bebas Boncos (100% Zero-Risk Marketing)**: Brand tidak lagi membayar biaya endorsement mahal di depan tanpa jaminan penonton. Biaya hanya terpotong jika video klip benar-benar ditonton oleh audiens nyata.
-   - **Proteksi Rekening Bersama (Rekber Klipday)**: Budget promosi yang disetor dikunci aman di Rekber. Jika kuota views tidak terpenuhi hingga akhir masa campaign, sisa saldo dikembalikan 100% utuh tanpa potongan.
-   - **Jangkauan Multi-Akun (1 to Many Multiplier)**: 1 video materi brand dapat dipotong menjadi puluhan hingga ratusan klip berbeda dengan variasi hook unik oleh ratusan clipper, mendominasi For You Page (FYP) TikTok secara organik.
-   - **Audit Views Valid & Anti-Bot**: Sistem Klipday memfilter tayangan palsu atau bot traffic sehingga brand hanya membayar penayangan organik berkualitas tinggi.
-
----
-
-## 2. Cara Kerja (Workflows)
-
-### Alur Kerja Clipper (Creator)
-1. **Daftar Akun & Hubungkan TikTok**: Daftar gratis di https://klipday.com/signup dan verifikasi akun TikTok melalui kode verifikasi bio 1 kali.
-2. **Pilih Campaign**: Telusuri daftar campaign aktif di marketplace Klipday, pilih brand yang sesuai, dan unduh materi video mentah serta brief.
-3. **Edit & Upload**: Buat potongan klip paling engaging (30-60 detik) dengan hook menarik, unggah ke akun TikTok sendiri dengan hashtag yang ditentukan brand.
-4. **Setor Link Video**: Tempel link video TikTok di Klipday. Begitu disetujui brand, penghitungan views otomatis berjalan.
-5. **Cairkan Saldo**: Pantau saldo terakumulasi secara real-time dan tarik dana begitu mencapai Rp 50.000.
-
-### Alur Kerja Brand
-1. **Buat Campaign**: Tentukan judul, deskripsi brief, upload bahan video, tentukan rate CPM per 1.000 views, dan alokasikan total budget.
-2. **Kunci Dana di Rekber**: Setor deposit budget ke Rekber Klipday agar campaign tayang di marketplace.
-3. **Review Setoran Klip**: Tinjau klip yang disetor oleh clipper, setujui klip yang memenuhi syarat atau minta revisi.
-4. **Pembayaran Otomatis Sesuai Views**: Saldo otomatis terpotong proporsional dengan views yang terverifikasi. Sisa dana dapat ditarik kembali sewaktu-waktu setelah campaign selesai.
+### Tidak Termasuk dalam Layanan Standar
+- Pembelian media/iklan berbayar atas nama Brand (kecuali disepakati secara terpisah).
+- Produksi konten long-form asli, termasuk syuting dan penyuntingan master.
+- Pengelolaan akun media sosial resmi milik Brand.
 
 ---
 
-## 3. Pertanyaan yang Sering Diajukan (FAQ)
+## 2. Struktur Harga & Parameter Kampanye
 
-### Q: Apakah akun TikTok baru dengan 0 followers benar-benar bisa menghasilkan uang?
-A: Ya, bisa. Algoritma TikTok modern berbasis minat audiens dan retensi tayangan. Klip yang memiliki hook kuat dan ditonton hingga selesai akan direkomendasikan ke FYP terlepas dari riwayat jumlah pengikut akun.
-
-### Q: Berapa tarif CPM rata-rata di Klipday?
-A: Tarif CPM rata-rata berkisar antara Rp 8.000 hingga Rp 20.000 per 1.000 penayangan, tergantung kategori produk, kompleksitas brief, dan penawaran dari brand pemilik campaign.
-
-### Q: Bagaimana Klipday melindungi dana brand?
-A: Semua dana disimpan di Rekening Bersama resmi Klipday. Klipday menggunakan sistem verifikasi API dan scraping untuk memverifikasi keaslian penayangan serta mendeteksi lonjakan views tidak wajar yang dihasilkan oleh bot. Brand hanya membayar views sah.
-
-### Q: Saldo bisa dicairkan ke mana saja?
-A: Pencairan mendukung transfer ke rekening Bank Central Asia (BCA), Bank Mandiri, Bank Rakyat Indonesia (BRI), Bank Negara Indonesia (BNI), serta dompet digital DANA, GoPay, dan OVO.
+- **Minimum Budget**: Rp 1.000.000 (estimasi penggunaan budget 1–3 bulan).
+- **Management Fee Agensi**: 30% ditambah tarif CPM pasar per 1.000 tayangan (CPM payout paket awal Rp 5.000 – Rp 20.000 per 1.000 tayangan, atau ditetapkan per kampanye sesuai tingkat kesulitan, platform, dan tenggat).
+- **Rush Fee**: 10–15% untuk kampanye dengan tenggat kurang dari 30 hari.
+- **Kepatuhan Vertikal**: Vertikal berisiko kepatuhan tinggi (fintech, kesehatan) dikenai evaluasi/premi risiko khusus atau ditolak; judi terlarang dan produk ilegal ditolak mutlak.
 
 ---
 
-## 4. Informasi Perusahaan & Kontak
+## 3. Standar Layanan (SLA — Hari Kerja Senin s/d Jumat)
+
+### SLA Akun Clipper
+- Pendaftaran & pemeriksaan awal: maksimal **2 hari kerja** setelah data lengkap.
+- Verifikasi akun sosial (termasuk kode bio `KD-XXXX` / bukti akses): maksimal **2 hari kerja**.
+- Perubahan data akun / rekening pembayaran: maksimal **2 hari kerja** (berlaku setelah lolos validasi kesesuaian nama pemilik).
+- Banding penangguhan akun: tanggapan awal maksimal **3 hari kerja**.
+
+### SLA Review Konten Clipper
+- Pemeriksaan kelengkapan otomatis/manual: maksimal **1 hari kerja** sejak pengajuan lengkap.
+- Review substantif konten (brief, hak guna, brand safety, orisinalitas, hukum): maksimal **2 hari kerja**.
+- Perbaikan & pengajuan ulang: clipper mengirim ulang dalam **2 hari kerja** (atau sesuai brief), review ulang maksimal **1 hari kerja**.
+- Eskalasi / permintaan Brand: target maksimal **3 hari kerja**.
+
+### SLA Keuangan & Payout
+- **Brand**: Cut-off data tanggal 25 atau akhir bulan sesuai kontrak; invoice & BAST/laporan maksimal **H+2 hari kerja**; verifikasi Brand maksimal **3 hari kerja**; pembayaran sesuai term kontrak (*Net 7*, *Net 14*, atau deposit di muka).
+- **Clipper**: Pernyataan pendapatan sementara maksimal **H+2 hari kerja** setelah cut-off; **Masa Sanggah 2 hari kerja** disertai bukti; **Audit fraud & anti-bot maksimal 3 hari kerja** setelah masa sanggah; **Eksekusi Payout H+3 hingga H+5 hari kerja** setelah dana Brand diterima dan rekonsiliasi selesai (*paid-when-paid*).
+- **Penarikan Mandiri**: Batas minimal penarikan saldo dompet **Rp 50.000** ke rekening bank atau e-wallet terverifikasi.
+
+---
+
+## 4. Aturan Kunci & Perpajakan
+
+- **Aturan Clipper**: Satu akun per pengguna; patuhi brief & disclosure iklan; wajib orisinal & tidak mengklaim ulang video sama; Collab/Duet/Stitch hanya oleh pengunggah asli; larangan bot, view farm, engagement pods, dan **iklan/boosting berbayar**; larangan logo kompetitor/klaim tidak disetujui; dilarang menghapus/memprivatkan/mengubah caption selama kampanye & masa pengukuran.
+- **Aturan Brand**: Serahkan brief final sebelum tayang; tanggung jawab hukum atas aset & klaim; PIC tunggal (SLA 3 hari kerja); hormati privasi clipper dan dilarang menghubungi clipper di luar jalur Klipday (*non-circumvention*); pahami hak takedown lewat Account Manager.
+- **Perpajakan Indonesia**: Brand badan usaha memotong **PPh Pasal 23 sebesar 2%** atas jasa agensi disertai bukti potong; honor kepada clipper perorangan bukan pegawai dikenai pemotongan **PPh Pasal 21** sesuai peraturan berlaku dengan slip rincian potongan.
+
+---
+
+## 5. Informasi Kontak
 
 - **Nama Platform**: Klipday
 - **Situs Web Resmi**: https://klipday.com
-- **Negara Operasi**: Indonesia (ID)
-- **Bahasa Layanan**: Bahasa Indonesia
-- **Mata Uang**: Rupiah (IDR / Rp)
 - **Komunitas Discord**: https://discord.gg/zzMgga7eZ
-- **Dukungan Pelanggan**: https://wa.me/628998732627 (08998732627)
+- **Dukungan Pelanggan (WhatsApp)**: https://wa.me/628998732627 (08998732627)
+- **Kontak Privasi**: privacy@klipday.com
 - **Akun Resmi**: TikTok (@klipday), Instagram (@klipday)

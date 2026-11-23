@@ -1,137 +1,135 @@
 import type { AccordionGroupSection } from '../types';
 
 /**
- * Complete, structured FAQ sections for Klipday.
- * Covers Creator inquiries, Brand & Advertiser inquiries, and Wallet/Payouts inquiries
- * with zero mentions of bot systems, focusing on genuine organic views and escrow mechanics.
+ * Complete FAQ sections aligned with KlipDay — Model Bisnis dan Standar Operasional (BM-001).
  */
 export const PLATFORM_FAQ_SECTIONS: readonly AccordionGroupSection[] = [
   {
     id: 'faq-creator',
-    title: '1. Seputar Creator & Clipper',
+    title: '1. Seputar Clipper & Pengerjaan Kampanye',
     itemCountText: '7 Tanya Jawab',
     items: [
       {
         id: 'faq-c-1',
-        title: 'Apakah saya harus memiliki ribuan followers untuk ikutan campaign?',
+        title: 'Apa peran Klipday dan bagaimana cara kerja clipper di dalamnya?',
         content:
-          'Sama sekali tidak! Anda bisa bergabung dan menghasilkan cuan bahkan dengan 0 followers. Algoritma TikTok modern menilai kualitas hook video, tingkat retensi, dan interaksi audiens, bukan sekadar jumlah followers akun. Selama video Anda menarik dan ditonton banyak orang, setiap penayangan organik yang sah tetap dibayar penuh.',
+          'Klipday adalah agensi dan platform layanan clipping terkelola yang menghubungkan Brand dengan jaringan clipper terkurasi. Brand menyerahkan materi sumber dan tujuan kampanye, lalu Klipday menyusun brief, menyeleksi clipper, melakukan quality assurance (QA) klip, memantau tayangan di TikTok, Instagram Reels, atau YouTube Shorts, dan mengelola pencairan honor berdasarkan performa tayangan.',
       },
       {
         id: 'faq-c-2',
-        title: 'Bagaimana cara menghitung pendapatan komisi Cost Per Mille (CPM)?',
+        title: 'Apakah saya harus memiliki ribuan followers untuk mulai menjadi clipper?',
         content:
-          'CPM adalah tarif rupiah yang dibayarkan untuk setiap 1.000 penayangan (views) video yang sah. Rumus perhitungan komisi adalah: (Jumlah Views ÷ 1.000) × Tarif CPM Campaign. Sebagai contoh, jika video Anda mencapai 50.000 views pada campaign dengan rate CPM Rp 12.000, maka komisi yang Anda peroleh adalah (50.000 ÷ 1.000) × Rp 12.000 = Rp 600.000.',
+          'Tidak harus. Algoritma konten pendek modern menilai kekuatan hook awal, retensi penonton, dan kualitas penyuntingan dibandingkan sekadar jumlah pengikut. Selama akun sosial Anda lolos verifikasi kepemilikan (SLA maksimal 2 hari kerja), bersifat publik, dan memenuhi brief kampanye, setiap tayangan organik yang sah tetap dihitung.',
       },
       {
         id: 'faq-c-3',
-        title: 'Mengapa saya harus memasukkan kode KD-XXXX di bio TikTok saya?',
+        title: 'Mengapa diperlukan verifikasi akun sosial & kode bio KD-XXXX?',
         content:
-          'Kode tersebut adalah proses verifikasi kepemilikan akun satu kali (one-time handshake) untuk memastikan bahwa akun TikTok yang didaftarkan benar-benar milik Anda dan bukan milik orang lain. Begitu sistem berhasil mendeteksi kode dan memverifikasi profil Anda, kode tersebut bisa langsung Anda hapus dari bio TikTok.',
+          'Setiap clipper hanya boleh menggunakan satu akun Klipday dan dilarang memakai akun sosial milik orang lain atau akun ganda. Verifikasi kode bio sementara (KD-XXXX) atau bukti kepemilikan memastikan akun TikTok/Reels/Shorts yang ditautkan benar-benar Anda kendalikan. Setelah verifikasi berhasil (SLA maksimal 2 hari kerja sejak bukti diterima), kode di bio dapat langsung dihapus.',
       },
       {
         id: 'faq-c-4',
-        title: 'Kapan komisi views saya mulai dihitung dan masuk ke saldo?',
+        title: 'Bagaimana penghitungan komisi CPM dan sistem tier kinerja clipper?',
         content:
-          'Perhitungan penayangan dan komisi dimulai segera setelah video yang Anda setorkan berstatus Disetujui (Approved) oleh pihak Brand. Dana campaign sudah dikunci di sistem Escrow sejak awal, sehingga bayaran Anda 100% terjamin selama masa campaign berlangsung.',
+          'Pendapatan dihitung berdasarkan tarif Cost Per Mille (CPM) per 1.000 tayangan valid yang ditetapkan di tiap kampanye sesuai tingkat kesulitan, platform, dan tenggat (parameter paket awal Rp 5.000 – Rp 20.000 per 1.000 views atau nilai spesifik brief). Clipper yang konsisten menjaga kualitas juga memperoleh skor kinerja dan tier yang membuka akses ke kampanye bernilai lebih tinggi.',
       },
       {
         id: 'faq-c-5',
-        title: 'Apa yang harus saya lakukan jika video saya diminta revisi oleh Brand?',
+        title: 'Berapa lama proses review dan revisi klip yang sudah saya ajukan?',
         content:
-          'Buka halaman campaign terkait dan periksa catatan revisi yang ditinggalkan oleh Brand. Lakukan perbaikan pada video Anda sesuai arahan, unggah ulang video hasil revisi ke akun TikTok Anda, kemudian perbarui tautan video pada tombol "Kirim Revisi" di Klipday sebelum batas waktu berakhir.',
+          'Mengacu pada SLA Klipday (hari kerja Senin–Jumat di luar libur nasional): pemeriksaan kelengkapan teknis memakan waktu maksimal 1 hari kerja, dilanjutkan review substantif konten maksimal 2 hari kerja sejak pengajuan lengkap. Jika diminta revisi, Anda perlu mengirimkan klip perbaikan dalam 2 hari kerja (atau sesuai brief), lalu review ulang selesai maksimal 1 hari kerja.',
       },
       {
         id: 'faq-c-6',
-        title: 'Bisakah saya mengedit video menggunakan aplikasi apa saja?',
+        title: 'Apakah saya boleh mempromosikan klip dengan paid ads / boosting berbayar?',
         content:
-          'Tentu saja! Anda bebas menggunakan aplikasi editing favorit Anda seperti CapCut, Premiere Pro, VN Video Editor, DaVinci Resolve, atau software lainnya, asalkan video akhir berformat vertikal (9:16) dan memiliki audio serta visual yang jernih.',
+          'Dilarang keras. Klipday hanya membayar tayangan organik murni. Memanipulasi metrik menggunakan bot, pembelian views, view farm, script/makro, engagement pods, atau iklan/boosting berbayar melanggar aturan platform dan mengakibatkan penolakan klip, pembatalan pendapatan, hingga penangguhan akun.',
       },
       {
         id: 'faq-c-7',
-        title: 'Berapa banyak campaign yang bisa saya ikuti sekaligus?',
+        title: 'Bagaimana aturan untuk Collab Post, Duet, Stitch, dan menghapus video?',
         content:
-          'Tidak ada batasan jumlah campaign. Anda bebas bergabung dan menyetorkan video ke semua campaign aktif yang tersedia di marketplace, selama Anda mematuhi brief dan aturan masing-masing campaign.',
+          'Untuk Collab Post, Duet, atau Stitch, hanya pengunggah asli yang berhak mengajukan klip kecuali brief menyatakan lain. Setelah klip diajukan, Anda dilarang menghapus, memprivatkan, atau mengubah caption selama masa kampanye dan periode pengukuran berlangsung tanpa izin tertulis.',
       },
     ],
   },
   {
     id: 'faq-brand',
-    title: '2. Seputar Brand & Pengiklan',
+    title: '2. Seputar Brand, Layanan Terkelola & Anggaran',
     itemCountText: '6 Tanya Jawab',
     items: [
       {
         id: 'faq-b-1',
-        title: 'Apa bedanya Klipday dengan endorse influencer konvensional?',
+        title: 'Apa perbedaan Klipday dibanding marketplace swalayan atau endorse biasa?',
         content:
-          'Pada endorse konvensional, Brand membayar biaya mahal di depan tanpa jaminan bahwa video tersebut akan viral atau ditonton audiens target. Di Klipday, Anda hanya membayar berdasarkan hasil nyata penayangan organik yang terverifikasi (pay-per-verified-view), dengan konten kreatif yang diproduksi oleh puluhan hingga ratusan kreator berbeda.',
+          'Klipday menjalankan model layanan terkelola (managed agency service), bukan sekadar marketplace lepas tanpa pendampingan. Brand didampingi Account Manager sebagai satu titik kontak, mendapatkan bantuan penyusunan brief, kurasi jaringan clipper, moderasi QA setiap klip, verifikasi tayangan berlapis, serta laporan performa resmi sehingga tidak perlu mengelola puluhan kreator satu per satu.',
       },
       {
         id: 'faq-b-2',
-        title: 'Bagaimana sistem Escrow menjamin anggaran kampanye saya anti-boncos?',
+        title: 'Berapa minimum budget kampanye dan bagaimana struktur biayanya?',
         content:
-          'Dana campaign Anda dikunci secara aman di rekening Escrow terpisah sebelum campaign tayang. Budget Anda hanya akan terpotong secara bertahap saat video yang sudah Anda setujui (Approved) beneran ditonton orang. Jika durasi campaign selesai dan anggaran masih bersisa, sisa dana tersebut 100% otomatis kembali ke saldo dompet Anda.',
+          'Minimum budget kampanye pada parameter awal dimulai dari Rp 1.000.000 dengan estimasi penggunaan budget 1–3 bulan. Struktur harga terdiri dari biaya tayangan berbasis performa (CPM pasar) ditambah management fee agensi sebesar 30%. Untuk kampanye dengan tenggat ketat di bawah 30 hari, berlaku rush fee tambahan sebesar 10–15%.',
       },
       {
         id: 'faq-b-3',
-        title: 'Bagaimana cara Klipday melacak views video kreator?',
+        title: 'Apa saja yang termasuk dan tidak termasuk dalam layanan Klipday untuk Brand?',
         content:
-          'Klipday secara berkala mencatat metrik penayangan publik langsung dari tautan video TikTok resmi yang disetorkan oleh kreator yang telah disetujui, memastikan seluruh views yang dihitung adalah penayangan nyata selama campaign aktif.',
+          'Layanan mencakup strategi & penyusunan kampanye, kurasi & pengelolaan clipper, pengelolaan brief & QA konten, pelacakan tayangan, pelaporan performa, hingga administrasi payout & pajak clipper. Layanan standar tidak mencakup pembelian media berbayar atas nama Brand (kecuali kontrak terpisah), syuting/produksi video long-form asli dari nol, maupun pengelolaan harian akun media sosial resmi milik Brand.',
       },
       {
         id: 'faq-b-4',
-        title: 'Apakah ada batasan views per video (Max Views Cap)?',
+        title: 'Berapa lama waktu peninjauan oleh Brand dan bagaimana jika ada konten menyimpang?',
         content:
-          'Ya. Setiap campaign dilengkapi pengaturan batas maksimum penayangan per video (Max Views Cap). Hal ini dirancang agar anggaran iklan Anda terdistribusi secara merata ke berbagai variasi hook dan angle konten, serta mencegah seluruh budget habis hanya oleh satu video saja.',
+          'Brand menunjuk satu pengambil keputusan dengan SLA review maksimal 3 hari kerja agar timeline kampanye tetap terjaga. Apabila terdapat klip yang melanggar brief atau menimbulkan risiko keamanan merek, Brand berhak meminta takedown segera melalui Account Manager dengan menyertakan tautan, alasan, dan tingkat urgensinya.',
       },
       {
         id: 'faq-b-5',
-        title: 'Berapa lama waktu yang saya miliki untuk menyetujui atau meminta revisi video?',
+        title: 'Apakah ada pembatasan kategori bisnis atau industri tertentu?',
         content:
-          'Brand memiliki batas waktu Service Level Agreement (SLA) maksimal 3 hari kerja (3x24 jam) untuk menentukan status klip yang disetorkan kreator (Setujui, Minta Revisi, atau Tolak dengan alasan).',
+          'Ya. Produk dan layanan ilegal, judi terlarang/slot, obat/kosmetik tanpa izin resmi, atau penipuan investasi ditolak mutlak. Sementara vertikal dengan risiko kepatuhan tinggi seperti fintech atau kesehatan tertentu akan melalui peninjauan kepatuhan dan dapat dikenakan premi risiko khusus.',
       },
       {
         id: 'faq-b-6',
-        title: 'Bagaimana jika durasi campaign selesai namun budget saya belum habis?',
+        title: 'Bagaimana jika budget kampanye masih tersisa saat periode berakhir?',
         content:
-          'Seluruh sisa saldo yang belum terserap akan secara otomatis dikembalikan 100% ke saldo dompet Brand seketika saat status campaign berubah menjadi Selesai (Finished), dan saldo tersebut dapat Anda gunakan kembali untuk campaign berikutnya atau ditarik ke rekening perusahaan Anda.',
+          'Seluruh dana kampanye yang disetorkan melalui mekanisme deposit/Rekber hanya diperhitungkan untuk tayangan sah dari klip yang lolos QA dan verifikasi Brand. Sisa saldo anggaran yang tidak terpakai saat penutupan kampanye (settlement) akan direkonsiliasi dan dikembalikan utuh ke dompet atau rekening Brand sesuai kontrak.',
       },
     ],
   },
   {
     id: 'faq-wallet',
-    title: '3. Seputar Keuangan, Dompet & Penarikan Saldo',
+    title: '3. Seputar Rekonsiliasi, SLA Payout & Perpajakan',
     itemCountText: '5 Tanya Jawab',
     items: [
       {
         id: 'faq-w-1',
-        title: 'Berapa batas minimal penarikan saldo (withdraw)?',
+        title: 'Bagaimana alur cut-off data, masa sanggah, dan audit tayangan bekerja?',
         content:
-          'Batas minimal penarikan saldo di Klipday adalah Rp 50.000. Saldo dapat ditarik kapan saja begitu mencapai batas ini tanpa perlu menunggu tanggal gajian di akhir bulan.',
+          'Pada tanggal cut-off (tanggal 25, akhir bulan, atau penutupan kampanye sesuai kontrak), Klipday mengunci statistik tayangan dan bukti dashboard. Dalam H+2 hari kerja, statement pendapatan sementara dikirim ke clipper (dan BAST/invoice dikirim ke Brand). Clipper lalu memiliki Masa Sanggah 2 hari kerja untuk mengajukan keberatan beserta bukti, disusul audit fraud & anti-bot maksimal 3 hari kerja.',
       },
       {
         id: 'faq-w-2',
-        title: 'Bank dan e-wallet apa saja yang bisa digunakan untuk mencairkan saldo?',
+        title: 'Kapan pembayaran (payout) dicairkan kepada clipper?',
         content:
-          'Klipday mendukung penarikan ke seluruh jaringan perbankan nasional (seperti BCA, Mandiri, BRI, BNI, Permata, Jago, SeaBank) serta akun e-wallet resmi terkemuka (DANA, GoPay, OVO, ShopeePay).',
+          'Klipday menerapkan prinsip paid-when-paid: payout disalurkan H+3 hingga H+5 hari kerja setelah dana pembayaran dari Brand diterima dan seluruh proses rekonsiliasi serta audit selesai (kecuali untuk kampanye retainer tertentu dengan cadangan modal kerja yang disetujui). Untuk penarikan saldo dompet mandiri di dashboard, batas minimumnya adalah Rp 50.000.',
       },
       {
         id: 'faq-w-3',
-        title: 'Berapa lama proses transfer penarikan dana sampai masuk ke rekening/e-wallet?',
+        title: 'Mengapa data bank / e-wallet harus divalidasi terpusat dengan nama yang cocok?',
         content:
-          'Proses penarikan dana diproses dalam kurun waktu maksimal 1x24 jam pada hari kerja setelah diverifikasi oleh tim keuangan Klipday.',
+          'Untuk mencegah salah transfer dan penyalahgunaan akun, setiap bank tujuan atau e-wallet (seperti BCA, Mandiri, BRI, BNI, DANA, GoPay, OVO, atau ShopeePay) wajib diverifikasi melalui unggahan bukti kepemilikan dengan nama pemilik yang identik dengan profil terdaftar. Perubahan data rekening diproses dengan SLA maksimal 2 hari kerja.',
       },
       {
         id: 'faq-w-4',
-        title: 'Apakah ada biaya admin saat melakukan deposit atau penarikan saldo?',
+        title: 'Bagaimana perlakuan pajak (PPh 21 & PPh 23) di Klipday?',
         content:
-          'Klipday tidak membebankan potongan komisi tersembunyi pada saat penarikan saldo. Biaya transfer antar-bank standar mengikuti ketentuan jaringan kliring perbankan nasional (misalnya BI-FAST Rp 2.500 jika berlaku antar-bank berbeda).',
+          'Dalam administrasi operasional Indonesia, klien Brand berbentuk badan usaha pada umumnya memotong PPh Pasal 23 sebesar 2% atas jasa agensi dan menyediakan bukti potong untuk kredit pajak tahunan. Sementara atas honor kepada clipper perorangan bukan pegawai, Klipday melakukan pemotongan PPh Pasal 21 sesuai aturan perpajakan yang berlaku dan mengirimkan rincian potongan melalui slip pembayaran.',
       },
       {
         id: 'faq-w-5',
-        title: 'Mengapa rekening bank atau e-wallet saya membutuhkan verifikasi KYC?',
+        title: 'Apakah pengajuan penarikan yang sudah masuk bisa dibatalkan?',
         content:
-          'Verifikasi rekening KYC (pemeriksaan foto buku tabungan atau screenshot akun e-wallet) diwajibkan untuk menjamin bahwa dana penarikan benar-benar terkirim ke pemilik akun yang sah dan mencegah terjadinya kesalahan transfer.',
+          'Untuk menjaga akurasi rekonsiliasi mass transfer / corporate banking serta mencegah risiko pembayaran ganda (double payout), penarikan yang telah diajukan berstatus terkunci. Permohonan pembatalan harus melewati pemeriksaan dan persetujuan Admin terlebih dahulu sebelum saldo dikembalikan ke dompet.',
       },
     ],
   },

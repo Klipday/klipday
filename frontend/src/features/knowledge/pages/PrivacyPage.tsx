@@ -64,7 +64,7 @@ export default function PrivacyPage({ className = '' }: PrivacyPageProps) {
     UpdatePageSeo({
       title: 'Kebijakan Privasi - Klipday',
       description:
-        'Kebijakan privasi resmi Klipday sesuai UU PDP: perlindungan data pribadi kreator dan brand, data sosial TikTok, enkripsi transaksi finansial, dan hak pengguna.',
+        'Kebijakan privasi resmi Klipday sesuai UU PDP No. 27/2022: perlindungan data pribadi clipper dan brand, validasi rekening pembayaran, bukti tayangan, serta administrasi pajak.',
       canonicalPath: '/kebijakan-privasi',
     });
 
@@ -157,9 +157,8 @@ export default function PrivacyPage({ className = '' }: PrivacyPageProps) {
         {/* Document Header */}
         <LegalHeader
           title="Kebijakan Privasi"
-          description="Kebijakan pelindungan data pribadi Klipday yang disusun berdasarkan Undang-Undang Republik Indonesia Nomor 27 Tahun 2022 (UU PDP), menjamin transparansi pengumpulan, pemrosesan, keamanan, dan hak subjek data pengguna."
+          description="Kebijakan pelindungan data pribadi Klipday berdasarkan Undang-Undang Nomor 27 Tahun 2022 (UU PDP) dan standar operasional BM-001, menjamin kerahasiaan data clipper, validasi rekening pencairan, serta pelaporan perpajakan."
           lastUpdated={PRIVACY_LAST_UPDATED}
-          badgeLabel="Kepatuhan UU PDP No. 27/2022"
         />
 
         {/* 2-Column Responsive Layout: Sidebar TOC on Desktop, Main Clauses on Right */}

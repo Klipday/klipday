@@ -3,259 +3,251 @@ import type { LegalDocumentSection } from '../types';
 /**
  * Last revision date for the Terms of Service.
  */
-export const TERMS_LAST_UPDATED = '7 November 2026';
+export const TERMS_LAST_UPDATED = '23 November 2026';
 
 /**
- * Structured sections for Klipday Terms of Service (Syarat & Ketentuan Layanan).
- * Fully aligned with Indonesian contract law, UU PDP No. 27/2022, and Klipday's
- * two-sided marketplace architecture.
+ * Structured sections for Klipday Terms of Service (Syarat & Ketentuan Layanan)
+ * aligned with KlipDay — Model Bisnis dan Standar Operasional (BM-001).
  */
 export const TERMS_SECTIONS: readonly LegalDocumentSection[] = [
   {
     id: 'definisi-platform',
-    title: '1. Definisi & Ketentuan Umum Platform',
-    shortTitle: '1. Definisi Platform',
+    title: '1. Definisi, Model Layanan Terkelola & Ruang Lingkup',
+    shortTitle: '1. Ruang Lingkup Layanan',
     description:
-      'Ketentuan umum dan batasan peran platform Klipday sebagai marketplace video clipping dua sisi.',
+      'Ketentuan umum mengenai peran Klipday sebagai agensi dan platform layanan clipping terkelola bagi Brand dan Clipper.',
     clauses: [
       {
         id: 'terms-1-1',
-        title: '1.1 Marketplace Video Clipping Dua Sisi',
+        title: '1.1 Layanan Clipping Terkelola (Managed Service Agency)',
         content:
-          'Klipday adalah platform marketplace teknologi dua sisi (two-sided marketplace) yang memfasilitasi kolaborasi promosi digital antara Brand (pengiklan pemilik produk/layanan) dan Kreator atau Clipper (pembuat dan penyunting konten video pendek). Klipday bertindak sebagai perantara berbasis sistem teknologi dan bukan merupakan agensi periklanan langsung maupun pemberi kerja.',
+          'Klipday adalah agensi dan platform layanan clipping terkelola yang menghubungkan Brand (Klien) dengan jaringan Clipper terkurasi untuk mendistribusikan konten video pendek dalam skala besar di TikTok, Instagram Reels, YouTube Shorts, dan platform lain yang disepakati. Klipday menjalankan operasi terkelola melalui tim internal dan Account Manager, bukan sekadar marketplace swalayan lepas.',
       },
       {
         id: 'terms-1-2',
-        title: '1.2 Pengguna Platform',
+        title: '1.2 Cakupan Layanan yang Disediakan',
         content:
-          'Pengguna Klipday mencakup Brand dan Kreator/Clipper yang telah menyelesaikan proses registrasi akun resmi. Setiap Pengguna tunduk pada seluruh syarat, pedoman komunitas, serta kebijakan operasional yang berlaku di Klipday.',
+          'Layanan Klipday mencakup penyelenggaraan kampanye secara menyeluruh sejak perencanaan hingga pelunasan imbalan:',
+        bulletPoints: [
+          'Perencanaan strategi dan penyusunan kampanye serta brief bersama Brand.',
+          'Rekrutmen, verifikasi kepemilikan akun, penilaian tier/kinerja, dan pengelolaan jaringan clipper.',
+          'Peninjauan kualitas (Quality Assurance), kelengkapan brief, dan moderasi konten yang masuk.',
+          'Verifikasi tayangan, pelaporan kinerja berkala/akhir, dan rekonsiliasi pembayaran.',
+          'Pengelolaan penyaluran pembayaran (payout) kepada clipper beserta administrasi perpajakan terkait.',
+        ],
       },
       {
         id: 'terms-1-3',
-        title: '1.3 Persetujuan atas Syarat & Ketentuan',
+        title: '1.3 Batasan & Pengecualian Ruang Lingkup',
         content:
-          'Dengan mendaftar, mengakses, atau menggunakan layanan Klipday, Anda menyatakan telah membaca, memahami, dan menyetujui seluruh isi Syarat & Ketentuan ini secara sadar dan tanpa paksaan. Jika Anda tidak menyetujui ketentuan ini, Anda tidak diperkenankan menggunakan platform Klipday.',
+          'Kecuali disepakati secara tertulis dalam perjanjian terpisah, layanan standar Klipday tidak mencakup pembelian media/iklan berbayar (paid ads) atas nama Brand, produksi konten long-form asli (seperti syuting dan penyuntingan video master), maupun pengelolaan akun media sosial resmi milik Brand.',
       },
     ],
   },
   {
     id: 'ketentuan-akun',
-    title: '2. Ketentuan Akun & Batas Usia 18+',
-    shortTitle: '2. Ketentuan Akun',
+    title: '2. Ketentuan Akun, Verifikasi & SLA Akun Clipper',
+    shortTitle: '2. Ketentuan & SLA Akun',
     description:
-      'Kriteria kelayakan pendaftaran, kepatuhan batas usia dewasa legal, dan integritas akun tunggal.',
+      'Kriteria kelayakan akun tunggal, batas usia dewasa 18+, validasi kepemilikan media sosial, dan waktu layanan akun.',
     clauses: [
       {
         id: 'terms-2-1',
-        title: '2.1 Batas Usia Minimum 18 Tahun (UU PDP No. 27/2022 & KUHPerdata)',
+        title: '2.1 Batas Usia Minimal 18 Tahun & Kecakapan Hukum',
         content:
-          'Setiap pengguna Klipday wajib berusia minimal 18 (delapan belas) tahun atau telah cakap menurut hukum yang berlaku di Republik Indonesia. Ketentuan ini diberlakukan demi mematuhi ketentuan perlindungan data anak di bawah umur dalam UU No. 27/2022 tentang Pelindungan Data Pribadi (UU PDP) serta keabsahan perjanjian hukum perdata.',
+          'Setiap pengguna Klipday wajib berusia minimal 18 (delapan belas) tahun dan cakap bertindak menurut hukum Republik Indonesia guna mematuhi ketentuan perlindungan data anak dalam UU No. 27/2022 tentang Pelindungan Data Pribadi (UU PDP).',
       },
       {
         id: 'terms-2-2',
-        title: '2.2 Larangan Akun Ganda (Anti-Multi Accounting)',
+        title: '2.2 Kebijakan Satu Akun per Pengguna & Larangan Akun Ganda',
         content:
-          'Setiap individu atau badan hukum hanya berhak memiliki dan mengoperasikan 1 (satu) akun terdaftar di Klipday. Dilarang keras membuat banyak akun untuk tujuan memanipulasi kuota kampanye, menduplikasi penyerahan video, atau merekayasa sistem referral.',
+          'Setiap individu maupun badan usaha hanya diperbolehkan mendaftarkan dan mengoperasikan 1 (satu) akun Klipday dengan data identitas serta kontak yang benar dan terbaru. Dilarang memakai akun media sosial milik pihak lain, membuat akun palsu/ganda untuk menggandakan klaim pendapatan, atau menghindari pembatasan sistem.',
       },
       {
         id: 'terms-2-3',
-        title: '2.3 Keamanan Kredensial & Tanggung Jawab Akun',
+        title: '2.3 SLA Pendaftaran, Verifikasi Akun & Banding Penangguhan',
         content:
-          'Pengguna bertanggung jawab penuh atas kerahasiaan kata sandi, kode OTP, dan akses akun masing-masing. Seluruh aktivitas yang terjadi di bawah akun pengguna dianggap sebagai tindakan sah dari pemilik akun yang bersangkutan.',
+          'Seluruh target SLA menggunakan hari kerja (Senin–Jumat, di luar hari libur nasional) terhitung sejak data atau materi lengkap diterima:',
+        bulletPoints: [
+          'Pendaftaran dan pemeriksaan awal kelengkapan akun: maksimal 2 hari kerja.',
+          'Verifikasi kepemilikan akun sosial (kode bio KD-XXXX / bukti akses): maksimal 2 hari kerja sejak bukti diterima.',
+          'Perubahan data akun atau rekening pembayaran: maksimal 2 hari kerja (efektif setelah lolos validasi kecocokan identitas).',
+          'Banding atas penangguhan akun: tanggapan awal maksimal 3 hari kerja dengan rincian dasar tindakan yang dapat dibagikan.',
+        ],
       },
     ],
   },
   {
     id: 'hak-kewajiban-brand',
-    title: '3. Hak & Kewajiban Brand',
-    shortTitle: '3. Ketentuan Brand',
+    title: '3. Hak, Kewajiban & Aturan Brand / Klien',
+    shortTitle: '3. Aturan Brand & Klien',
     description:
-      'Ketentuan alokasi anggaran escrow, standar kurasi klip, dan pengembalian sisa dana promosi.',
+      'Ketentuan brief, struktur biaya agensi, SLA verifikasi laporan, hak takedown, dan larangan transaksi di luar platform.',
     clauses: [
       {
         id: 'terms-3-1',
-        title: '3.1 Alokasi Anggaran Escrow Terkunci 100% di Muka',
+        title: '3.1 Kelengkapan Brief Final & Legalitas Materi Sumber',
         content:
-          'Brand wajib menyetorkan dan mengunci 100% anggaran kampanye ke dalam sistem Escrow Klipday sebelum kampanye dipublikasikan ke marketplace. Anggaran promosi ini dijamin aman dan hanya dicairkan kepada kreator atas views organik video yang telah disetujui.',
+          'Sebelum kampanye diluncurkan, Brand wajib menyerahkan brief final, tujuan, target audiens, platform, aset beserta hak penggunaannya, klaim produk yang disetujui, larangan, hashtag, disclosure, durasi, KPI, anggaran, dan tenggat. Brand menjamin seluruh materi, merek dagang, musik, rekaman, serta klaim produk dapat digunakan secara sah dan membebaskan Klipday dari tuntutan pihak ketiga atas aset yang diserahkan Brand.',
       },
       {
         id: 'terms-3-2',
-        title: '3.2 Hak dan Batas Kurasi Submisi (Maksimal Revisi 2 Kali)',
+        title: '3.2 Struktur Harga, Minimum Anggaran & Biaya Tambahan',
         content:
-          'Brand berhak meninjau, menyetujui, menolak dengan alasan objektif, atau meminta revisi atas video yang diajukan oleh kreator. Demi keadilan kerja kreator, permintaan revisi dibatasi maksimal sebanyak 2 (dua) kali per submisi dengan catatan instruksi yang terukur.',
+          'Brand menyetujui secara tertulis anggaran, tarif CPM, management fee agensi (paket awal 30%), batas payout per klip bila ada, ambang kelayakan, serta term pembayaran sebelum peluncuran. Minimum budget paket awal adalah Rp 1.000.000 untuk estimasi durasi 1–3 bulan. Kampanye dengan tenggat di bawah 30 hari dikenakan rush fee 10–15%, dan vertikal kepatuhan tinggi (seperti fintech atau kesehatan) dapat dikenai premi risiko atau ditolak.',
       },
       {
         id: 'terms-3-3',
-        title: '3.3 Standar Waktu Kurasi Brand (SLA 3x24 Jam Kerja)',
+        title: '3.3 PIC Pengambil Keputusan & SLA Verifikasi Brand',
         content:
-          'Brand berkewajiban melakukan kurasi terhadap klip video yang masuk dalam waktu maksimal 3x24 jam kerja. Apabila Brand tidak merespons dalam batas waktu tersebut, sistem Klipday berhak melakukan persetujuan otomatis demi melindungi hak kreator.',
+          'Brand menunjuk 1 (satu) pengambil keputusan utama dan menyampaikan umpan balik atau verifikasi laporan serta klip secara terkonsolidasi maksimal dalam 3 hari kerja. Keterlambatan persetujuan atau perubahan brief setelah peluncuran memerlukan persetujuan kedua belah pihak dan dapat menggeser jadwal serta capaian kampanye.',
       },
       {
         id: 'terms-3-4',
-        title: '3.4 Larangan Konten & Produk Ilegal',
+        title: '3.4 SLA Keuangan Brand & Pengembalian Sisa Deposit',
         content:
-          'Brand dilarang keras membuat kampanye atau membagikan materi video yang memuat produk atau muatan terlarang berikut:',
-        bulletPoints: [
-          'Judi online, kasino virtual, taruhan, atau permainan slot.',
-          'Obat keras atau suplemen tanpa izin edar resmi BPOM dan Kementerian Kesehatan RI.',
-          'Skema ponzi, investasi ilegal, atau penggandaan uang tanpa izin OJK.',
-          'Pornografi, muatan asusila, atau kekerasan eksplisit.',
-          'Ujaran kebencian, diskriminasi SARA, atau pencemaran nama baik.',
-          'Pelanggaran hak cipta, merek dagang, atau kekayaan intelektual pihak ketiga.',
-        ],
+          'Cut-off dan penguncian statistik tayangan dilakukan pada tanggal 25, akhir bulan, atau penutupan kampanye sesuai kontrak. Klipday mengirimkan invoice beserta BAST/laporan performa maksimal H+2 hari kerja setelah cut-off, diikuti verifikasi Brand maksimal 3 hari kerja, dan pelunasan sesuai term (deposit di muka atau Net 7 / Net 14, maksimum 14 hari kerja). Untuk skema dana deposit di muka (Rekber), sisa saldo yang tidak terpakai saat penutupan kampanye dikembalikan 100% sesuai rekonsiliasi.',
       },
       {
         id: 'terms-3-5',
-        title: '3.5 Pengembalian Otomatis Sisa Anggaran (Auto-Refund 100%)',
+        title: '3.5 Hak Takedown, Privasi Clipper & Larangan Non-Circumvention',
         content:
-          'Ketika masa tayang kampanye berakhir atau ditutup (settlement), seluruh sisa anggaran yang belum terserap oleh views kreator akan secara otomatis dikembalikan 100% ke saldo dompet Brand tanpa potongan penalti administrasi.',
+          'Brand dapat mengajukan permintaan takedown atas klip yang melanggar brief atau merugikan keamanan merek melalui Account Manager dengan menyertakan tautan, alasan, dan urgensi (takedown akhir tetap tunduk pada kebijakan platform sosial). Brand wajib menghormati privasi data clipper dan dilarang keras menghubungi clipper untuk mengubah kesepakatan kampanye di luar jalur Klipday tanpa persetujuan tertulis.',
+      },
+      {
+        id: 'terms-3-6',
+        title: '3.6 Larangan Produk Ilegal & Ketentuan Performa Algoritma',
+        content:
+          'Brand dilarang mempromosikan judi online/terlarang, obat/kosmetik ilegal tanpa izin edar, skema penipuan/ponzi, pornografi, atau muatan SARA. Brand memahami bahwa jangkauan konten dipengaruhi algoritma dan kebijakan platform sosial; proyeksi tayangan bukan merupakan jaminan mutlak kecuali target dan kompensasinya tercantum eksplisit dalam kontrak.',
       },
     ],
     callout: {
-      title: 'Jaminan Proteksi Escrow 100%',
+      title: 'Kejelasan Kontrak & Keamanan Merek',
       description:
-        'Seluruh anggaran promosi Brand tersimpan aman di escrow Klipday dan hanya dicairkan atas penayangan organik yang valid. Sisa anggaran yang belum terserap dijamin kembali utuh 100% ke saldo dompet Brand saat settlement.',
+        'Setiap kampanye berjalan berdasarkan brief tertulis, penguncian statistik saat cut-off dengan bukti performa dashboard, serta hak eskalasi takedown terkelola melalui Account Manager.',
     },
   },
   {
     id: 'hak-kewajiban-kreator',
-    title: '4. Hak & Kewajiban Kreator (Clipper)',
-    shortTitle: '4. Ketentuan Kreator',
+    title: '4. Hak, Kewajiban & Aturan Clipper',
+    shortTitle: '4. Aturan Clipper',
     description:
-      'Tata cara penyerahan video post-first, verifikasi kepemilikan akun sosial, dan imbalan komisi.',
+      'Kewajiban kepatuhan brief, orisinalitas karya, aturan Collab/Duet/Stitch, larangan penghapusan video, dan SLA review konten.',
     clauses: [
       {
         id: 'terms-4-1',
-        title: '4.1 Model Post-First ke Akun TikTok Pribadi',
+        title: '4.1 Pelaksanaan Brief, Akun Terverifikasi & Post-First',
         content:
-          'Klipday menggunakan model Post-First: kreator wajib mempublikasikan video editan secara publik ke akun TikTok pribadi mereka terlebih dahulu, kemudian menyetorkan tautan video aktif (live video URL) ke halaman kampanye di platform Klipday.',
+          'Clipper wajib mematuhi brief secara lengkap (tema, aset resmi, durasi, caption, hashtag, disclosure iklan, format, platform, dan tenggat) dan hanya boleh menyetorkan tautan setelah kampanye aktif menggunakan akun media sosial pribadi yang telah terverifikasi.',
       },
       {
         id: 'terms-4-2',
-        title: '4.2 Verifikasi Kepemilikan Akun Sosial via Kode Bio (KD-XXXX)',
+        title: '4.2 Orisinalitas Karya, Konten Lintas Platform & Collab/Duet/Stitch',
         content:
-          'Guna membuktikan kepemilikan akun dan mencegah pembajakan username orang lain, kreator wajib mencantumkan kode token sementara (contoh: KD-XXXX, berlaku 10 menit) di bio profil TikTok saat menghubungkan akun. Setelah verifikasi sukses, kode dapat langsung dihapus dari bio.',
+          'Klip wajib merupakan karya suntingan orisinal. Clipper dilarang menjiplak, mengunduh ulang karya clipper lain, atau mengunggah ulang video yang secara substansial sama untuk memperoleh klaim tambahan. Konten lintas platform wajib diedit secara khusus. Untuk Collab Post, Duet, atau Stitch, hanya pengunggah asli yang berhak mengajukan klip kecuali brief menyatakan lain.',
       },
       {
         id: 'terms-4-3',
-        title: '4.3 Larangan Menghapus atau Memprivat Video Disetujui',
+        title: '4.3 Brand Safety & Larangan Penghapusan atau Pengubahan Klip',
         content:
-          'Video yang telah disetujui oleh Brand dilarang keras untuk dihapus, diarsipkan, atau diubah status privasinya (menjadi private atau friends-only) selama masa kampanye aktif. Pelanggaran ketentuan ini berakibat penghentian kalkulasi views dan pembatalan komisi terkait.',
+          'Clipper dilarang menampilkan logo kompetitor atau membuat klaim produk yang tidak disetujui brief. Selama masa kampanye dan periode pengukuran yang ditetapkan, klip yang diajukan dilarang dihapus, diprivatkan, atau diubah caption maupun isinya. Perubahan sebelum persetujuan dapat memicu review ulang, sedangkan perubahan setelah persetujuan memerlukan izin tertulis.',
       },
       {
         id: 'terms-4-4',
-        title: '4.4 Standar Kreativitas Editing & Anti-Reupload Mentahan',
+        title: '4.4 SLA Review Konten & Mekanisme Perbaikan (Revisi)',
         content:
-          'Video yang disetorkan wajib melalui proses penyuntingan kreatif nyata (seperti penambahan hook pembuka, pemotongan ritme, subtitle narasi, atau sound effect pendukung). Dilarang keras mengunggah ulang mentahan video tanpa proses edit atau mencuri klip editan milik kreator lain.',
-      },
-      {
-        id: 'terms-4-5',
-        title: '4.5 Perhitungan Imbalan Komisi Berbasis CPM Views Organik',
-        content:
-          'Imbalan kreator dihitung secara transparan berdasarkan tarif Cost Per Mille (CPM) per 1.000 penayangan valid yang ditetapkan oleh Brand, dikalikan dengan akumulasi penayangan organik yang diverifikasi secara berkala oleh sistem penjejak Klipday.',
+          'Pemeriksaan kelengkapan otomatis/manual dilakukan maksimal 1 hari kerja dan review substantif konten maksimal 2 hari kerja sejak pengajuan lengkap diterima. Jika ditolak dengan catatan perbaikan, clipper mengirimkan ulang revisi dalam 2 hari kerja (atau sesuai jadwal brief) dan review ulang diselesaikan maksimal 1 hari kerja. Kasus sensitif yang memerlukan eskalasi ke Brand memiliki target penyelesaian maksimal 3 hari kerja. Persetujuan menilai versi yang dikirim dan tidak menjamin performa algoritma platform.',
       },
     ],
   },
   {
     id: 'anti-fraud',
-    title: '5. Anti-Fraud & Integritas Metrik Penayangan',
-    shortTitle: '5. Anti-Fraud & Metrik',
+    title: '5. Integritas Tayangan, Larangan Boosting & Audit Anti-Fraud',
+    shortTitle: '5. Anti-Fraud & Audit',
     description:
-      'Larangan manipulasi penayangan artifisial, deteksi kecurangan otomatis, dan sanksi diskualifikasi.',
+      'Larangan mutlak manipulasi metrik, larangan boosting/iklan berbayar oleh clipper, audit anti-bot, serta sanksi pelanggaran.',
     clauses: [
       {
         id: 'terms-5-1',
-        title: '5.1 Keharusan Views Organik Nyata',
+        title: '5.1 Keharusan Penayangan Organik Nyata',
         content:
-          'Seluruh penayangan (views) yang dihitung sebagai dasar komisi wajib berasal dari penonton manusia nyata di platform TikTok melalui distribusi algoritma FYP dan penjelajahan organik.',
+          'Seluruh tayangan yang dihitung untuk imbalan wajib berasal dari distribusi organik penonton nyata pada platform media sosial terkait tanpa rekayasa trafik dalam bentuk apa pun.',
       },
       {
         id: 'terms-5-2',
-        title: '5.2 Larangan Praktik Manipulatif & Rekayasa Trafik',
+        title: '5.2 Larangan Bot, View Farm & Boosting Berbayar',
         content:
-          'Kreator dilarang keras merekayasa penayangan video dengan metode manipulatif apa pun, termasuk namun tidak terbatas pada:',
+          'Clipper dilarang keras melakukan manipulasi tayangan maupun interaksi melalui cara berikut:',
         bulletPoints: [
-          'Penggunaan bot views otomatis atau generator lalu lintas palsu.',
-          'Script auto-refresh peramban atau reload berkala paksa.',
-          'Jaringan pertukaran tayangan artifisial (engagement pods / view-for-view).',
-          'Manipulasi lalu lintas melalui proxy, VPN terdistribusi, atau jaringan emulator.',
+          'Penggunaan bot, script otomatis, makro, atau simulator penayangan.',
+          'Pembelian views, view farm, maupun jaringan engagement pods artifisial.',
+          'Iklan atau boosting berbayar atas inisiatif pribadi untuk menggelembungkan metrik klip.',
         ],
       },
       {
         id: 'terms-5-3',
-        title: '5.3 Sanksi Diskualifikasi, Pembatalan Saldo & Penangguhan Akun',
+        title: '5.3 Audit Anti-Bot & Sanksi Pelanggaran',
         content:
-          'Sistem Klipday memantau pola anomali trafik secara berkelanjutan. Jika ditemukan indikasi manipulasi, Klipday berhak secara mutlak mendiskualifikasi video terkait (status REJECTED), membatalkan seluruh saldo komisi yang dihasilkan tanpa ganti rugi, serta membekukan atau menonaktifkan akun pelaku secara permanen.',
+          'Klip dengan metrik mencurigakan dapat ditahan untuk diaudit. Audit fraud dan anti-bot diselesaikan maksimal 3 hari kerja setelah masa sanggah berakhir. Pelanggaran yang terbukti mengakibatkan penolakan klip, pembatalan pendapatan terkait, penahanan payout selama pemeriksaan, pembatasan kampanye, atau penangguhan akun permanen.',
       },
     ],
     callout: {
-      title: 'Toleransi Nol atas Manipulasi Trafik',
+      title: 'Toleransi Nol atas Manipulasi & Paid Boosting',
       description:
-        'Sistem penjejak Klipday mengaudit lonjakan dan integritas views secara otomatis. Praktik manipulasi penayangan berakibat diskualifikasi submisi tanpa kompensasi dan penutupan akun permanen.',
+        'Setiap klip yang terbukti menggunakan bot, view farm, atau boosting berbayar akan didiskualifikasi tanpa kompensasi dan dapat berujung pada penutupan akun permanen.',
     },
   },
   {
     id: 'keuangan-penarikan',
-    title: '6. Keuangan & Ketentuan Pencairan Saldo (Withdrawal)',
-    shortTitle: '6. Pencairan Saldo',
+    title: '6. Rekonsiliasi Keuangan, Masa Sanggah, Payout & Pajak',
+    shortTitle: '6. Payout & Perpajakan',
     description:
-      'Syarat batas minimum penarikan, verifikasi identitas KYC, dan perlindungan anti-double payout.',
+      'Tahapan statement pendapatan, masa sanggah, prinsip paid-when-paid, disbursement, dan administrasi PPh 21/23.',
     clauses: [
       {
         id: 'terms-6-1',
-        title: '6.1 Batas Minimum Pencairan Dana (Rp 50.000)',
+        title: '6.1 Statement Pendapatan & Masa Sanggah (2 Hari Kerja)',
         content:
-          'Kreator dapat mengajukan penarikan saldo dompet kapan saja setelah akumulasi saldo komisi yang valid mencapai batas minimal Rp 50.000, tanpa perlu menunggu periode tutup buku akhir bulan.',
+          'Klipday mengirimkan pernyataan pendapatan (statement) sementara maksimal H+2 hari kerja setelah cut-off. Clipper berhak mengajukan keberatan atau koreksi data tayangan dalam Masa Sanggah selama 2 hari kerja sejak statement diterima disertai tautan dan bukti pendukung.',
       },
       {
         id: 'terms-6-2',
-        title: '6.2 Verifikasi Identitas (KYC) Sebelum Penarikan Pertama',
+        title: '6.2 Prinsip Paid-When-Paid, Jadwal Payout & Saldo Minimum',
         content:
-          'Demi mematuhi regulasi keuangan perbankan dan pencegahan pencucian uang, pengguna wajib menyelesaikan verifikasi identitas (KYC) dengan mengunggah foto KTP yang valid sebelum pengajuan penarikan dana pertama kali dapat diproses.',
+          'Klipday membayarkan hak clipper setelah menerima dana pembayaran dari Brand dan menyelesaikan seluruh proses rekonsiliasi serta audit (paid-when-paid), dengan target waktu eksekusi H+3 hingga H+5 hari kerja (pengecualian berlaku bagi kampanye retainer dengan cadangan modal kerja yang disetujui). Untuk penarikan saldo dompet mandiri di dashboard, batas minimum pencairan adalah Rp 50.000.',
       },
       {
         id: 'terms-6-3',
-        title: '6.3 Kesesuaian Nama Rekening Bank / E-Wallet',
+        title: '6.3 Validasi Rekening Terpusat, Disbursement & Anti-Double Payout',
         content:
-          'Nama pemilik pada rekening bank atau akun e-wallet tujuan penarikan wajib identik dengan nama legal pada identitas profil KYC pengguna:',
-        bulletPoints: [
-          'Rekening bank konvensional maupun syariah nasional (BCA, Mandiri, BRI, BNI, CIMB Niaga, Permata, dsb.).',
-          'Dompet digital terdaftar resmi (DANA, GoPay, OVO, ShopeePay).',
-          'Pencairan dana ke rekening perantara atau pihak ketiga yang tidak selaras akan ditolak otomatis oleh sistem.',
-        ],
+          'Pencairan disalurkan ke rekening bank nasional atau dompet digital yang telah lolos verifikasi kecocokan nama pemilik menggunakan corporate internet banking atau mitra disbursement berizin (seperti Xendit, Midtrans, atau Oy!). Pengajuan penarikan bersifat terkunci untuk mencegah risiko double payout dan hanya dapat dibatalkan melalui persetujuan verifikasi Admin.',
       },
       {
         id: 'terms-6-4',
-        title: '6.4 Proteksi Terkontrol Anti Double-Payout',
+        title: '6.4 Ketentuan Perpajakan Indonesia (PPh Pasal 21 & Pasal 23)',
         content:
-          'Setiap permohonan penarikan yang telah diajukan akan berstatus terkunci dan tidak dapat dibatalkan secara sepihak oleh pengguna tanpa verifikasi administratif, demi melindungi catatan perbankan dan mencegah risiko pembayaran ganda.',
-      },
-      {
-        id: 'terms-6-5',
-        title: '6.5 Waktu Pemrosesan Payout (SLA 1x24 Jam Hari Kerja)',
-        content:
-          'Penarikan dana yang memenuhi seluruh syarat akan diproses oleh tim keuangan Klipday dalam waktu maksimal 1x24 jam pada hari kerja, disertai nomor referensi transaksi perbankan resmi.',
+          'Klien Brand berbentuk badan usaha pada umumnya melakukan pemotongan PPh Pasal 23 sebesar 2% atas jasa agensi dan menyerahkan bukti potong resmi kepada Klipday. Atas honor yang dibayarkan kepada clipper perorangan bukan pegawai, dilakukan pemotongan PPh Pasal 21 sesuai peraturan perpajakan Indonesia yang berlaku disertai pengiriman slip/rincian potongan.',
       },
     ],
   },
   {
     id: 'kekayaan-intelektual',
-    title: '7. Hak Kekayaan Intelektual & Lisensi Konten',
+    title: '7. Hak Kekayaan Intelektual & Lisensi Materi',
     shortTitle: '7. Hak Intelektual',
     description:
-      'Ketentuan kepemilikan materi video, lisensi penggunaan materi promosi, dan tanggung jawab hak cipta.',
+      'Ketentuan hak atas materi sumber milik Brand serta kepatuhan hak cipta elemen audio dan visual dalam klip.',
     clauses: [
       {
         id: 'terms-7-1',
-        title: '7.1 Lisensi Materi Brand untuk Kebutuhan Promosi',
+        title: '7.1 Lisensi Terbatas Materi Sumber Brand',
         content:
-          'Brand memberikan lisensi terbatas, non-eksklusif, dan bebas royalti kepada Klipday dan kreator yang berpartisipasi semata-mata untuk mengolah, menyunting, dan mempublikasikan materi video sesuai arahan kampanye yang disetujui.',
+          'Brand memberikan lisensi terbatas, non-eksklusif, dan sesuai ruang lingkup kampanye kepada Klipday dan clipper terkurasi semata-mata untuk menyunting dan mendistribusikan klip sesuai brief yang disetujui.',
       },
       {
         id: 'terms-7-2',
-        title: '7.2 Tanggung Jawab Hak Cipta Suara & Elemen Tambahan',
+        title: '7.2 Kepatuhan Hak Cipta Musik & Elemen Tambahan',
         content:
-          'Kreator bertanggung jawab memastikan bahwa elemen musik latar, efek suara, atau grafis tambahan yang disisipkan ke dalam video mematuhi kebijakan hak cipta dan ketentuan penggunaan komersial di platform TikTok.',
+          'Clipper bertanggung jawab memastikan audio, efek suara, tipografi, maupun elemen visual tambahan di dalam klip tidak melanggar hak cipta, hak publisitas, atau lisensi penggunaan komersial di platform media sosial tujuan.',
       },
     ],
   },
@@ -264,26 +256,20 @@ export const TERMS_SECTIONS: readonly LegalDocumentSection[] = [
     title: '8. Hukum yang Berlaku & Penyelesaian Sengketa',
     shortTitle: '8. Hukum & Sengketa',
     description:
-      'Yurisdiksi hukum Republik Indonesia dan mekanisme mediasi musyawarah mufakat.',
+      'Yurisdiksi hukum Republik Indonesia, musyawarah mufakat, serta domisili penyelesaian perselisihan.',
     clauses: [
       {
         id: 'terms-8-1',
         title: '8.1 Hukum yang Berlaku',
         content:
-          'Syarat & Ketentuan ini diatur dan ditafsirkan sepenuhnya berdasarkan hukum yang berlaku di Negara Kesatuan Republik Indonesia.',
+          'Syarat & Ketentuan ini diatur dan ditafsirkan sepenuhnya berdasarkan hukum Negara Kesatuan Republik Indonesia.',
       },
       {
         id: 'terms-8-2',
-        title: '8.2 Musyawarah untuk Mufakat',
+        title: '8.2 Musyawarah untuk Mufakat & Domisili Pengadilan',
         content:
-          'Apabila terjadi perselisihan atau perbedaan penafsiran antara Pengguna dan Klipday terkait pelaksanaan layanan, para pihak sepakat untuk menyelesaikannya secara damai melalui musyawarah mufakat dalam kurun waktu 30 (tiga puluh) hari kalender.',
-      },
-      {
-        id: 'terms-8-3',
-        title: '8.3 Domisili Hukum Pengadilan',
-        content:
-          'Apabila sengketa tidak dapat diselesaikan melalui musyawarah mufakat, para pihak sepakat untuk memilih domisili hukum yang tetap dan umum pada Pengadilan Negeri di wilayah hukum Republik Indonesia yang berwenang.',
+          'Perselisihan yang timbul akan diselesaikan terlebih dahulu melalui musyawarah untuk mufakat dalam jangka waktu 30 (tiga puluh) hari kalender. Apabila tidak tercapai penyelesaian damai, para pihak sepakat menyelesaikan sengketa melalui Pengadilan Negeri yang berwenang di wilayah hukum Republik Indonesia.',
       },
     ],
   },
-];
+] as const;

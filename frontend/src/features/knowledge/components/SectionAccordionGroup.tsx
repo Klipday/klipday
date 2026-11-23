@@ -27,7 +27,7 @@ export function SectionAccordionGroup({ section, className = '' }: SectionAccord
         <h2 className="font-heading text-xs sm:text-sm font-semibold tracking-wide text-white uppercase">
           {section.title}
         </h2>
-        <span className="rounded-full border border-white/10 bg-zinc-800/80 px-2.5 py-0.5 text-[11px] font-medium text-zinc-400">
+        <span className="text-xs font-medium text-zinc-400 tabular-nums">
           {section.itemCountText}
         </span>
       </div>

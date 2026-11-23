@@ -63,7 +63,7 @@ export default function TermsPage({ className = '' }: TermsPageProps) {
     UpdatePageSeo({
       title: 'Syarat & Ketentuan Layanan - Klipday',
       description:
-        'Syarat dan ketentuan layanan resmi Klipday: ketentuan hak cipta video brand, transparansi audit CPM views, proteksi Rekber, dan syarat penarikan dana.',
+        'Syarat dan ketentuan layanan clipping terkelola Klipday (BM-001): ruang lingkup layanan, aturan Brand dan Clipper, SLA operasional, audit anti-bot, jadwal payout, serta perpajakan.',
       canonicalPath: '/syarat-ketentuan',
     });
 
@@ -156,9 +156,8 @@ export default function TermsPage({ className = '' }: TermsPageProps) {
         {/* Document Header */}
         <LegalHeader
           title="Syarat & Ketentuan Layanan"
-          description="Ketentuan resmi penggunaan platform marketplace video clipping Klipday, mengatur hak dan kewajiban Brand serta Kreator, proteksi escrow, integritas views organik, dan pencairan saldo."
+          description="Ketentuan resmi layanan clipping terkelola Klipday berdasarkan standar operasional BM-001, mengatur ruang lingkup agensi, aturan Brand dan Clipper, SLA operasional, audit anti-bot, jadwal payout, serta perpajakan."
           lastUpdated={TERMS_LAST_UPDATED}
-          badgeLabel="Perjanjian Pengguna"
         />
 
         {/* 2-Column Responsive Layout: Sidebar TOC on Desktop, Main Clauses on Right */}

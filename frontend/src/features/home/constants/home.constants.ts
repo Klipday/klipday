@@ -370,37 +370,37 @@ export const HOME_FAQS: readonly FaqItem[] = [
     id: 1,
     question: 'Sebenarnya Klipday itu platform apa?',
     answer:
-      'Klipday itu tempat ketemunya brand sama para pembuat video pendek atau clipper. Brand nyiapin bahan video dan budget promosi, lalu clipper bantu potong dan upload ke TikTok. Bayarannya dihitung transparan dari setiap 1.000 penayangan video yang sah.',
+      'Klipday adalah agensi dan platform layanan clipping terkelola yang menghubungkan brand dengan jaringan clipper terkurasi untuk distribusi konten pendek di TikTok, Instagram Reels, dan YouTube Shorts. Klipday menyusun brief, menyeleksi clipper, melakukan quality assurance (QA), memantau tayangan, hingga mengelola pembayaran.',
   },
   {
     id: 2,
-    question: 'Akun TikTok masih 0 followers apa beneran bisa ikutan?',
+    question: 'Akun sosial masih 0 followers apa beneran bisa ikutan?',
     answer:
-      'Bisa banget. Kamu nggak butuh ribuan followers buat mulai dapet cuan di sini. Algoritma TikTok sekarang jauh lebih ngelihat seberapa menarik pembuka videomu dan seberapa betah orang nonton sampai habis. Selama klip kamu asik dan masuk FYP, semua views valid tetap dibayar penuh.',
+      'Bisa banget. Algoritma konten pendek menilai kualitas hook awal dan retensi penonton, bukan jumlah followers semata. Selama akun kamu lolos verifikasi kepemilikan (maksimal 2 hari kerja), bersifat publik, dan memenuhi brief, semua tayangan organik yang sah tetap dihitung.',
   },
   {
     id: 3,
     question: 'Gimana cara mulai cari cuan dari ngeklip?',
     answer:
-      'Tinggal daftar akun gratis, pilih campaign yang lagi buka, terus ambil bahan video dari brand. Abis kamu potong dan edit pakai aplikasi favoritmu seperti CapCut, upload videonya ke TikTok kamu sendiri lalu tempel link videonya di Klipday. Begitu disetujui brand, tiap views yang masuk langsung ngasilin saldo.',
+      'Daftar akun gratis (satu akun per orang), verifikasi akun sosial lewat kode bio, lalu pilih kampanye aktif dan ikuti brief-nya. Edit materi menjadi klip orisinal tanpa logo kompetitor, unggah dulu ke akunmu, lalu setorkan link ke Klipday untuk dicek tim QA (kelengkapan maks. 1 hari kerja, review substantif maks. 2 hari kerja).',
   },
   {
     id: 4,
-    question: 'Kapan views video saya mulai dihitung jadi saldo?',
+    question: 'Kapan views dihitung dan bagaimana jadwal payout-nya?',
     answer:
-      'Begitu link video yang kamu setor dicek dan disetujui sama pihak brand, hitungan views langsung jalan. Kamu juga nggak perlu khawatir soal bayaran karena budget brand udah dikunci aman di sistem Klipday sejak sebelum campaign dibuka.',
+      'Setelah klip disetujui, tayangan organik dilacak hingga tanggal cut-off atau penutupan kampanye. Statement pendapatan dikirim maksimal H+2 hari kerja, disusul masa sanggah 2 hari kerja dan audit anti-bot maksimal 3 hari kerja, lalu payout disalurkan H+3 hingga H+5 hari kerja setelah dana brand diterima.',
   },
   {
     id: 5,
-    question: 'Minimal saldo berapa baru bisa ditarik ke rekening?',
+    question: 'Berapa minimal saldo penarikan dan apa syarat rekeningnya?',
     answer:
-      'Begitu saldo kamu kekumpul minimal Rp50.000, kamu udah bisa langsung tarik kapan aja tanpa nunggu akhir bulan. Pencairan bisa dikirim ke berbagai rekening bank lokal seperti BCA, Mandiri, BRI, BNI, sampai dompet digital seperti DANA, GoPay, dan OVO.',
+      'Batas minimal penarikan saldo dompet di dashboard adalah Rp 50.000 melalui transfer bank maupun e-wallet. Nama pemilik rekening harus sama dengan identitas akun terverifikasi (perubahan data rekening diproses maks. 2 hari kerja), serta mengikuti pemotongan pajak PPh Pasal 21 sesuai ketentuan yang berlaku.',
   },
   {
     id: 6,
-    question: 'Kalau saya pemilik brand, gimana jaminan budget saya nggak hangus?',
+    question: 'Untuk pemilik brand, berapa minimum budget dan apa jaminannya?',
     answer:
-      'Aman banget karena semua budget campaign disimpan di sistem rekening bersama (Rekber) Klipday. Saldomu hanya terpotong untuk membayar klip yang sudah kamu setujui dan benar-benar ditonton penonton asli tanpa bot. Jika masa campaign selesai dan budget masih tersisa, uangnya kembali utuh ke saldo akunmu.',
+      'Minimum budget dimulai dari Rp 1.000.000 dengan biaya agensi 30% dan tarif CPM per 1.000 tayangan yang disepakati (plus rush fee 10–15% jika tenggat di bawah 30 hari). Semua klip diaudit bebas bot maupun boosting berbayar, dilindungi hak takedown lewat Account Manager, dan sisa deposit kembali utuh saat settlement.',
   },
 ] as const;
 

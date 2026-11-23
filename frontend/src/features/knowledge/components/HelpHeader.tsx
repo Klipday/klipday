@@ -28,7 +28,7 @@ export function HelpHeader({ activeTab, onTabChange, className = '' }: HelpHeade
           FAQ &amp; Peraturan Klipday
         </h1>
         <p className="mx-auto max-w-xl text-xs leading-relaxed text-zinc-400 sm:text-sm">
-          Pelajari aturan main, hak dan kewajiban Brand maupun Creator, serta jawaban atas pertanyaan umum seputar ekosistem Klipday.
+          Pelajari standar layanan terkelola, hak dan kewajiban Brand maupun Clipper, target SLA, serta jawaban atas pertanyaan umum ekosistem Klipday.
         </p>
       </div>
 

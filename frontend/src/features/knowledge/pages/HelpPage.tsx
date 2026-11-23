@@ -34,16 +34,16 @@ export default function HelpPage({ defaultTab = 'faq' }: HelpPageProps) {
   useEffect(() => {
     if (activeTab === 'rules') {
       UpdatePageSeo({
-        title: 'Aturan Main & Etika Clipper TikTok - Klipday',
+        title: 'Peraturan Platform, Aturan Main & SLA - Klipday',
         description:
-          'Panduan lengkap aturan main clipping video di Klipday: pedoman orisinalitas klip, syarat durasi, larangan bot traffic, dan etika brand.',
+          'Standar operasional dan peraturan resmi Klipday (BM-001): aturan clipper dan brand, integritas views organik bebas boosting, SLA review konten, masa sanggah, payout, dan perpajakan.',
         canonicalPath: '/peraturan',
       });
     } else {
       UpdatePageSeo({
         title: 'FAQ - Pertanyaan Umum Clipper & Brand - Klipday',
         description:
-          'Pertanyaan umum seputar cara mulai ngeklip di TikTok, sistem bayaran CPM, minimal saldo Rp50.000, verifikasi akun, dan keamanan budget Rekber.',
+          'Pertanyaan umum seputar layanan clipping terkelola Klipday, struktur biaya agensi dan CPM, SLA review dan pencairan payout, masa sanggah, serta kepatuhan pajak.',
         canonicalPath: '/faq',
       });
     }
