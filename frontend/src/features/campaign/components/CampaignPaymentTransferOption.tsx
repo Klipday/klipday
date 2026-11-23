@@ -183,7 +183,7 @@ export function CampaignPaymentTransferOption({
           <div className="space-y-1">
             <span className="text-xs font-medium text-muted-foreground">Total yang Harus Ditransfer</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground font-mono tabular-nums">
+              <span className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground tabular-nums">
                 {FormatRupiah(totalPayable)}
               </span>
             </div>
@@ -212,13 +212,13 @@ export function CampaignPaymentTransferOption({
         {/* ROW 2: DESTINATION ACCOUNT */}
         <div className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <span className="text-xs font-medium text-muted-foreground">Rekening Tujuan</span>
               <span className="text-xs font-semibold text-foreground uppercase tracking-wide">
-                • {bankDetails.bankName}
+                {bankDetails.bankName}
               </span>
             </div>
-            <p className="text-lg sm:text-xl font-bold tracking-wider text-foreground font-mono">
+            <p className="text-lg sm:text-xl font-semibold tracking-wider text-foreground tabular-nums">
               {bankDetails.accountNo}
             </p>
             <p className="text-xs text-muted-foreground">a.n. {bankDetails.accountName}</p>

@@ -55,12 +55,12 @@ export function CampaignStatusTabs() {
                   <span>{tab.label}</span>
                   <span
                     className={cn(
-                      'inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none tabular-nums transition-colors',
+                      'text-xs tabular-nums transition-colors',
                       hasWarning
-                        ? 'border border-amber-500/40 bg-amber-500/20 text-amber-500 dark:text-amber-400 font-bold'
+                        ? 'text-amber-500 font-medium'
                         : isSelected
-                          ? 'bg-primary/15 text-primary'
-                          : 'bg-muted/80 text-muted-foreground'
+                          ? 'text-foreground/80 font-medium'
+                          : 'text-muted-foreground'
                     )}>
                     {count}
                   </span>

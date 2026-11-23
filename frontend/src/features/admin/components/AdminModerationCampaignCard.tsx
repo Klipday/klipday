@@ -3,6 +3,7 @@ import {
   GetCampaignCategoryBadgeLabel,
   GetCampaignTypeBadgeLabel,
 } from '@/features/campaign/utils/campaign-card';
+import { cn } from '@/lib/utils';
 import type { AdminModerationCampaignCardProps } from '../types';
 import { FormatRupiah } from '../utils/formatters';
 
@@ -35,7 +36,8 @@ function FormatCampaignDateRange(startIso: string | null, endIso: string | null)
 
 /**
  * Minimalist campaign moderation queue card.
- * Displays brand name, payment status pill, campaign title, metrics, and material count.
+ * Displays brand name, plain status text, campaign title, metadata, and metrics
+ * without bordered pills or bullet separators.
  *
  * @param props - Component props containing campaign data.
  * @returns The rendered moderation card.
@@ -47,24 +49,24 @@ export function AdminModerationCampaignCard({ campaign }: AdminModerationCampaig
   const paymentStatus = campaign.payment?.paymentStatus;
   const campaignStatus = campaign.campaignStatus;
 
-  let paymentBadgeText = 'Saldo Dompet · Lunas';
-  let paymentBadgeClass = 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500';
+  let statusText = 'Dompet (Lunas)';
+  let statusTextClass = 'text-foreground';
 
   if (campaignStatus === 'REJECTED') {
-    paymentBadgeText = 'Ditolak';
-    paymentBadgeClass = 'border-rose-500/30 bg-rose-500/10 text-rose-500';
+    statusText = 'Ditolak';
+    statusTextClass = 'text-destructive';
   } else if (campaignStatus === 'REVISION') {
-    paymentBadgeText = 'Menunggu Revisi Brand';
-    paymentBadgeClass = 'border-amber-500/30 bg-amber-500/10 text-amber-500';
+    statusText = 'Perlu Revisi';
+    statusTextClass = 'text-amber-500';
   } else if (isWallet || paymentStatus === 'APPROVED') {
-    paymentBadgeText = isWallet ? 'Saldo Dompet · Lunas' : 'Transfer Manual · Lunas';
-    paymentBadgeClass = 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500';
+    statusText = isWallet ? 'Dompet (Lunas)' : 'Transfer (Lunas)';
+    statusTextClass = 'text-foreground';
   } else if (paymentStatus === 'SUBMITTED') {
-    paymentBadgeText = 'Transfer Manual · Cek Bukti';
-    paymentBadgeClass = 'border-amber-500/30 bg-amber-500/10 text-amber-500';
+    statusText = 'Cek Bukti Transfer';
+    statusTextClass = 'text-amber-500';
   } else {
-    paymentBadgeText = 'Menunggu Pembayaran';
-    paymentBadgeClass = 'border-border/60 bg-muted/40 text-muted-foreground';
+    statusText = 'Menunggu Pembayaran';
+    statusTextClass = 'text-muted-foreground';
   }
 
   const typeLabel = GetCampaignTypeBadgeLabel(campaign.campaignType);
@@ -81,22 +83,20 @@ export function AdminModerationCampaignCard({ campaign }: AdminModerationCampaig
       className="group flex flex-col justify-between rounded-xl border border-border/60 bg-card p-5 transition-colors hover:border-foreground/40 cursor-pointer"
     >
       <div className="space-y-4">
-        {/* Header: Brand Name + Payment Status Badge */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0">
+        {/* Header: Brand Name + Plain Status Text */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
             <span className="truncate text-xs font-medium text-muted-foreground">
               {campaign.brand.companyName}
             </span>
             {campaign.isFeatured && (
-              <span className="shrink-0 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-500">
+              <span className="shrink-0 text-xs font-medium text-amber-500">
                 Featured #{campaign.featuredOrder ?? 1}
               </span>
             )}
           </div>
-          <span
-            className={`shrink-0 rounded-md border px-2 py-0.5 text-xs font-medium ${paymentBadgeClass}`}
-          >
-            {paymentBadgeText}
+          <span className={cn('shrink-0 text-xs font-medium', statusTextClass)}>
+            {statusText}
           </span>
         </div>
 
@@ -105,9 +105,11 @@ export function AdminModerationCampaignCard({ campaign }: AdminModerationCampaig
           <h3 className="line-clamp-1 text-sm font-semibold tracking-tight text-foreground group-hover:text-primary transition-colors">
             {campaign.title}
           </h3>
-          <p className="text-xs text-muted-foreground">
-            {typeLabel} · {categoryLabel} · {dateRangeText}
-          </p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <span>{typeLabel}</span>
+            <span>{categoryLabel}</span>
+            <span>{dateRangeText}</span>
+          </div>
         </div>
 
         {/* 2-Column Hairline Metrics */}
@@ -116,13 +118,13 @@ export function AdminModerationCampaignCard({ campaign }: AdminModerationCampaig
             <p className="text-xs text-muted-foreground">
               {paymentStatus === 'SUBMITTED' ? 'Total Transfer' : 'Total Anggaran'}
             </p>
-            <p className="mt-0.5 font-mono font-semibold text-foreground">
+            <p className="mt-0.5 font-semibold text-foreground tabular-nums">
               {FormatRupiah(amountToDisplay)}
             </p>
           </div>
           <div className="pl-2.5">
             <p className="text-xs text-muted-foreground">Tarif CPM</p>
-            <p className="mt-0.5 font-mono font-medium text-foreground">
+            <p className="mt-0.5 font-medium text-foreground tabular-nums">
               {FormatRupiah(campaign.cpm)} / 1K
             </p>
           </div>

@@ -50,7 +50,6 @@ function AdminFeaturedCampaignDialogContent({
   isFeatured = false,
   featuredOrder = 1,
   featuredUntil = null,
-  featuredBannerUrl = null,
   onSuccess,
   onClose,
 }: AdminFeaturedCampaignDialogContentProps) {
@@ -59,7 +58,6 @@ function AdminFeaturedCampaignDialogContent({
     featuredOrder && featuredOrder > 0 ? featuredOrder : 1,
   );
   const [untilValue, setUntilValue] = useState<string>(FormatDateTimeForInput(featuredUntil));
-  const [bannerUrlValue, setBannerUrlValue] = useState<string>(featuredBannerUrl ?? '');
 
   const toggleMutation = UseToggleCampaignFeaturedMutation(campaignId, {
     onSuccess: () => {
@@ -89,14 +87,12 @@ function AdminFeaturedCampaignDialogContent({
         parsedUntil = dateObj.toISOString();
       }
     }
-    const parsedBanner =
-      bannerUrlValue.trim().length > 0 ? bannerUrlValue.trim() : null;
 
     toggleMutation.mutate({
       isFeatured: true,
       featuredOrder: parsedOrder,
       featuredUntil: parsedUntil,
-      featuredBannerUrl: parsedBanner,
+      featuredBannerUrl: null,
     });
   };
 
@@ -183,25 +179,6 @@ function AdminFeaturedCampaignDialogContent({
                 Kosongkan jika ingin featured tetap aktif hingga batas waktu kampanye.
               </p>
             </div>
-
-            {/* Custom Hero Banner URL */}
-            <div className="space-y-1.5">
-              <Label htmlFor="featuredBannerUrl" className="text-xs font-medium text-foreground">
-                URL Banner Landscape Khusus (Opsional)
-              </Label>
-              <Input
-                id="featuredBannerUrl"
-                type="url"
-                placeholder="https://example.com/banner-wide.jpg"
-                value={bannerUrlValue}
-                onChange={(e) => setBannerUrlValue(e.target.value)}
-                className="h-9 text-xs"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Rasio lebar disarankan untuk tampilan hero carousel. Jika kosong, thumbnail poster
-                kampanye akan digunakan.
-              </p>
-            </div>
           </div>
         )}
 
@@ -223,13 +200,13 @@ function AdminFeaturedCampaignDialogContent({
             className="gap-2 text-xs font-semibold cursor-pointer"
           >
             {toggleMutation.isPending ? (
-                <>
-                  <LoaderIcon className="size-3.5 animate-spin" />
-                  <span>Menyimpan...</span>
-                </>
-              ) : (
-                <span>Simpan Perubahan</span>
-              )}
+              <>
+                <LoaderIcon className="size-3.5 animate-spin" />
+                <span>Menyimpan...</span>
+              </>
+            ) : (
+              <span>Simpan Perubahan</span>
+            )}
           </Button>
         </DialogFooter>
       </form>
@@ -239,7 +216,7 @@ function AdminFeaturedCampaignDialogContent({
 
 /**
  * Administrative dialog for toggling a campaign's featured placement in the creator marketplace carousel.
- * Allows setting slide order, optional expiration date, and custom landscape banner URL.
+ * Allows setting slide order and optional expiration date while relying on the campaign's uploaded thumbnail.
  *
  * @param props - Dialog properties containing campaign metadata and callback handlers.
  * @returns Rendered dialog element.
@@ -252,7 +229,6 @@ export function AdminFeaturedCampaignDialog({
   isFeatured = false,
   featuredOrder = 1,
   featuredUntil = null,
-  featuredBannerUrl = null,
   onSuccess,
 }: AdminFeaturedCampaignDialogProps) {
   return (
@@ -264,7 +240,6 @@ export function AdminFeaturedCampaignDialog({
           isFeatured={isFeatured}
           featuredOrder={featuredOrder}
           featuredUntil={featuredUntil}
-          featuredBannerUrl={featuredBannerUrl}
           onSuccess={onSuccess}
           onClose={() => onOpenChange(false)}
         />

@@ -31,7 +31,7 @@ export function AdminTopUpProofDialog({
       <DialogContent className="max-w-lg p-6 space-y-4">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold tracking-tight">
-            Bukti Struk Transfer Top Up &middot; <span className="font-mono text-sm">{topUp.referenceCode}</span>
+            Bukti Struk Transfer Top Up ({topUp.referenceCode})
           </DialogTitle>
         </DialogHeader>
 

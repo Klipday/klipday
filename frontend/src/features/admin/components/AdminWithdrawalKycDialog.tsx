@@ -31,8 +31,7 @@ export function AdminWithdrawalKycDialog({
       <DialogContent className="max-w-lg p-6 space-y-4">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold tracking-tight">
-            Bukti Rekening KYC &middot;{' '}
-            <span className="font-mono text-sm">{withdrawal.referenceCode}</span>
+            Bukti Rekening KYC ({withdrawal.referenceCode})
           </DialogTitle>
         </DialogHeader>
 
@@ -47,8 +46,8 @@ export function AdminWithdrawalKycDialog({
           </div>
           <div className="pl-2.5 space-y-0.5">
             <p className="text-muted-foreground">Rekening Tujuan</p>
-            <p className="font-semibold text-foreground">
-              {withdrawal.accountProvider} &middot; {withdrawal.accountNumber}
+            <p className="font-semibold text-foreground tabular-nums">
+              {withdrawal.accountProvider} {withdrawal.accountNumber}
             </p>
             <p className="text-[11px] text-muted-foreground truncate">
               a.n {withdrawal.accountHolderName}

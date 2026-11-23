@@ -78,24 +78,22 @@ export function WalletPendingWithdrawalBanner({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           {/* Left Side: Essential Information */}
           <div className="min-w-0 flex-1 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <ClockCircleIcon className="size-3.5" />
                 Permintaan Penarikan Saldo Aktif
               </span>
               {isCancellationRequested && (
-                <span className="inline-flex items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400">
+                <span className="text-xs font-medium text-amber-500">
                   Menunggu Pembatalan
                 </span>
               )}
             </div>
 
             <div className="space-y-0.5">
-              <div className="flex flex-wrap items-center gap-x-2 text-base font-semibold text-foreground">
-                <span className="font-mono">{latestWithdrawal.referenceCode}</span>
-                <span className="text-muted-foreground/60">&middot;</span>
-                <span className="tabular-nums">{formattedAmount}</span>
-                <span className="text-muted-foreground/60">&middot;</span>
+              <div className="flex flex-wrap items-center gap-x-3 text-base font-semibold text-foreground tabular-nums">
+                <span>{latestWithdrawal.referenceCode}</span>
+                <span>{formattedAmount}</span>
                 <span className="text-sm font-normal text-muted-foreground">
                   {latestWithdrawal.accountProvider}
                 </span>

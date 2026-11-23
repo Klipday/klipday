@@ -669,14 +669,12 @@ export interface AdminDashboardResponse {
 export interface AdminDashboardHeaderProps {
   adminName?: string | null;
   totalActionableCount: number;
-  onRefresh: () => void;
-  isRefreshing?: boolean;
   className?: string;
 }
 
-export interface AdminActionQueuesGridProps {
-  queues: AdminDashboardQueues;
-  className?: string;
+export interface AdminDashboardMetricItem {
+  label: string;
+  value: string;
 }
 
 export interface AdminPlatformMetricsGridProps {
@@ -684,21 +682,38 @@ export interface AdminPlatformMetricsGridProps {
   className?: string;
 }
 
-export type AdminFinanceTab = 'WITHDRAW' | 'TOPUP';
+export type AdminActionQueueTab = 'CAMPAIGNS' | 'FINANCE' | 'KYC';
 
-export interface AdminPendingFinanceWidgetProps {
+export type AdminActionFinanceItem =
+  | {
+      kind: 'WITHDRAW';
+      createdAtMs: number;
+      item: AdminDashboardWithdrawalActionItem;
+    }
+  | {
+      kind: 'TOPUP';
+      createdAtMs: number;
+      item: AdminDashboardTopUpActionItem;
+    };
+
+export interface AdminActionQueueWidgetProps {
+  campaigns: AdminDashboardCampaignActionItem[];
   withdrawals: AdminDashboardWithdrawalActionItem[];
   topUps: AdminDashboardTopUpActionItem[];
-  className?: string;
-}
-
-export interface AdminPendingKycWidgetProps {
   kycRequests: AdminDashboardKycActionItem[];
   className?: string;
 }
 
-export interface AdminActionableCampaignsWidgetProps {
-  campaigns: AdminDashboardCampaignActionItem[];
+export interface AdminQueueSummaryRow {
+  id: string;
+  label: string;
+  count: number;
+  href: string;
+  alertText?: string;
+}
+
+export interface AdminQueueSummaryWidgetProps {
+  queues: AdminDashboardQueues;
   className?: string;
 }
 

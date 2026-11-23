@@ -330,7 +330,6 @@ export interface AdminFeaturedCampaignDialogProps {
   isFeatured?: boolean;
   featuredOrder?: number | null;
   featuredUntil?: string | null;
-  featuredBannerUrl?: string | null;
   onSuccess?: () => void;
 }
 
@@ -340,7 +339,6 @@ export interface AdminFeaturedCampaignDialogContentProps {
   isFeatured?: boolean;
   featuredOrder?: number | null;
   featuredUntil?: string | null;
-  featuredBannerUrl?: string | null;
   onSuccess?: () => void;
   onClose: () => void;
 }

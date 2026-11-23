@@ -108,14 +108,15 @@ export function CreatorRecentSubmissionsWidget({
                       <p className="text-sm font-medium text-foreground truncate">
                         {item.campaignTitle || CREATOR_DASHBOARD_MESSAGES.DEFAULT_CAMPAIGN_TITLE}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1 truncate">
-                        {item.brandName} • {categoryLabel}
-                      </p>
+                      <div className="flex items-center gap-x-3 text-xs text-muted-foreground mt-1 truncate">
+                        <span className="truncate">{item.brandName}</span>
+                        <span className="shrink-0">{categoryLabel}</span>
+                      </div>
                     </div>
 
                     <span
                       className={cn(
-                        'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium shrink-0',
+                        'text-xs font-medium shrink-0',
                         statusConfig.badgeClassName,
                       )}
                     >

@@ -71,21 +71,19 @@ export function WalletTransactionTable({
                   const typeConfig = TRANSACTION_TYPE_CONFIG[txn.type] ?? {
                     label: txn.type,
                     sign: '',
-                    badgeClass: 'border-border/60 bg-muted/40 text-foreground',
+                    badgeClass: 'text-foreground',
                   };
                   const formattedDate = FormatDateIndonesian(txn.transactionDate);
                   const formattedAmount = FormatRupiah(txn.amount);
-                  const badgeClassName = cn(
-                    'inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium',
-                    typeConfig.badgeClass ?? 'border-border/60 bg-muted/40 text-foreground',
+                  const typeLabelClassName = cn(
+                    'text-xs font-medium',
+                    typeConfig.badgeClass ?? 'text-foreground',
                   );
                   const amountCellClassName = cn(
                     'whitespace-nowrap px-4 py-3.5 text-left font-medium tabular-nums sm:px-6',
                     typeConfig.sign === '+'
-                      ? 'text-emerald-600 dark:text-emerald-400'
-                      : typeConfig.sign === '-'
-                        ? 'text-rose-500 dark:text-rose-400'
-                        : 'text-foreground',
+                      ? 'text-foreground'
+                      : 'text-muted-foreground',
                   );
 
                   return (
@@ -96,13 +94,13 @@ export function WalletTransactionTable({
                       </td>
 
                       {/* Kode */}
-                      <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs font-medium text-foreground sm:px-6">
+                      <td className="whitespace-nowrap px-4 py-3.5 tabular-nums text-xs font-medium text-foreground sm:px-6">
                         {txn.referenceCode || '-'}
                       </td>
 
                       {/* Jenis Transaksi */}
                       <td className="whitespace-nowrap px-4 py-3.5 sm:px-6">
-                        <span className={badgeClassName}>
+                        <span className={typeLabelClassName}>
                           {typeConfig.label}
                         </span>
                       </td>

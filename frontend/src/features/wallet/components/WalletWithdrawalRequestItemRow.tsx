@@ -69,15 +69,15 @@ export function WalletWithdrawalRequestItemRow({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center justify-between gap-2">
-            <h4 className="font-mono text-sm font-semibold text-foreground">
+            <h4 className="text-sm font-semibold tabular-nums text-foreground">
               {withdrawal.referenceCode}
             </h4>
             {isCancellationRequested ? (
-              <span className="inline-flex shrink-0 items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+              <span className="shrink-0 text-xs font-medium text-amber-500">
                 Menunggu Pembatalan
               </span>
             ) : (
-              <span className="inline-flex shrink-0 items-center rounded-md border border-muted-foreground/30 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              <span className="shrink-0 text-xs font-medium text-muted-foreground">
                 Menunggu Proses
               </span>
             )}

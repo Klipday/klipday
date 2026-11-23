@@ -44,13 +44,12 @@ export function CreatorDashboardHeader({
         {isTikTokVerified && tiktokAccount ? (
           <Link
             to="/creator-dashboard/profile?tab=social-accounts"
-            className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
             <span className="text-foreground font-medium truncate max-w-[140px]">
               @{tiktokAccount.username}
             </span>
-            <span aria-hidden="true">•</span>
             <span className="shrink-0">{CREATOR_DASHBOARD_MESSAGES.TIKTOK_VERIFIED_SUFFIX}</span>
           </Link>
         ) : (

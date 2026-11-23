@@ -75,7 +75,7 @@ export function SubmissionDialogCampaignSidebar({
       {/* Top Group: Media Banner, Brand & Campaign Core Details */}
       <div className="space-y-3.5">
         {/* Top Poster / Artwork Banner */}
-        <div className="relative aspect-16/10 w-full overflow-hidden rounded-xl border border-border/60 bg-muted/40 shadow-xs">
+        <div className="relative aspect-16/10 w-full overflow-hidden rounded-xl border border-border/60 bg-muted/40">
           {campaign.thumbnailUrl ? (
             <img
               src={campaign.thumbnailUrl}
@@ -87,20 +87,12 @@ export function SubmissionDialogCampaignSidebar({
               Banner Kampanye
             </div>
           )}
-
-          {/* Atmospheric gradient overlay at bottom of poster */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" />
-
-          {/* Top-Right Pill Badge */}
-          <div className="absolute top-2.5 right-2.5 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black/75 text-amber-400 border border-amber-500/30 backdrop-blur-md shadow-xs">
-            <span>{typeBadge || 'CLIPPING'}</span>
-          </div>
         </div>
 
-        {/* Brand Identity Row & Type Badge */}
+        {/* Brand Identity Row & Type Label */}
         <div className="flex items-center justify-between gap-2 pt-0.5">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="size-6 rounded-full bg-muted text-foreground text-[10px] font-bold flex items-center justify-center uppercase shrink-0 border border-border/80">
+            <div className="size-6 rounded-full bg-muted text-foreground text-[10px] font-semibold flex items-center justify-center uppercase shrink-0 border border-border/80">
               {brandInitial}
             </div>
             <span className="text-xs font-semibold text-foreground truncate">
@@ -108,19 +100,19 @@ export function SubmissionDialogCampaignSidebar({
             </span>
           </div>
 
-          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-muted text-muted-foreground border border-border/60 shrink-0">
+          <span className="text-xs text-muted-foreground shrink-0">
             {typeBadge || 'CLIPPING'}
           </span>
         </div>
 
         {/* Campaign Title */}
-        <h2 className="text-sm sm:text-base font-bold text-foreground leading-snug tracking-tight line-clamp-2" title={title}>
+        <h2 className="text-sm sm:text-base font-semibold text-foreground leading-snug tracking-tight line-clamp-2" title={title}>
           {title}
         </h2>
 
         {/* Prominent Rate / CPM */}
         <div className="flex items-baseline gap-1.5 pt-0.5">
-          <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+          <span className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">
             {cpmDisplay}
           </span>
           <span className="text-xs font-medium text-muted-foreground">
@@ -129,18 +121,14 @@ export function SubmissionDialogCampaignSidebar({
         </div>
 
         {/* Platform & Category Indicator Row */}
-        <div className="flex items-center gap-2 text-xs pt-0.5">
+        <div className="flex items-center gap-x-3 text-xs text-muted-foreground pt-0.5">
           <div
-            className="inline-flex items-center text-foreground text-xs font-medium"
+            className="inline-flex items-center text-foreground font-medium"
             title={campaign.platform || 'TikTok'}>
             {RenderPlatformIcon(campaign.platform)}
           </div>
 
-          <span className="text-muted-foreground/60 text-[10px]">•</span>
-
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-muted/40 border border-border/50 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {categoryBadge}
-          </span>
+          <span>{categoryBadge}</span>
         </div>
       </div>
 

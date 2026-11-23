@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import {
   ChatSquareIcon,
-  CheckCircleIcon,
-  ClockCircleIcon,
   EyeIcon,
   VideocameraIcon,
 } from '@solar-icons/react/linear';
@@ -67,36 +65,33 @@ export function CreatorSubmissionRowCard({
 
         {/* Content Body */}
         <div className="flex-1 min-w-0 space-y-2 w-full">
-          {/* Top Meta & Status Pill Row */}
+          {/* Top Meta & Status Row */}
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
+            <div className="flex items-center gap-x-3 text-xs text-muted-foreground truncate">
               <span className="font-medium text-foreground/90 truncate">{submission.brandName}</span>
-              <span>•</span>
-              <span className="shrink-0">{formattedDate}</span>
+              <span className="shrink-0 tabular-nums">{formattedDate}</span>
             </div>
 
-            {/* Clean Status Badge */}
+            {/* Clean Status Text */}
             <div className="shrink-0">
               {isPending && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-                  <ClockCircleIcon className="size-3" />
-                  <span>Menunggu Review</span>
+                <span className="text-xs font-medium text-amber-500">
+                  Menunggu Review
                 </span>
               )}
               {isApproved && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                  <CheckCircleIcon className="size-3" />
-                  <span>Disetujui</span>
+                <span className="text-xs font-medium text-foreground">
+                  Disetujui
                 </span>
               )}
               {isRevision && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-500/30 bg-orange-500/10 px-2.5 py-0.5 text-xs font-medium text-orange-600 dark:text-orange-400">
-                  <span>Perlu Revisi</span>
+                <span className="text-xs font-medium text-amber-500">
+                  Perlu Revisi
                 </span>
               )}
               {isRejected && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive">
-                  <span>Ditolak</span>
+                <span className="text-xs font-medium text-destructive">
+                  Ditolak
                 </span>
               )}
             </div>
@@ -135,7 +130,7 @@ export function CreatorSubmissionRowCard({
             </span>
 
             <span>
-              Reward: <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">{formattedEarnings}</strong>
+              Reward: <strong className="text-foreground font-semibold tabular-nums">{formattedEarnings}</strong>
             </span>
           </div>
         </div>

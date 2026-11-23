@@ -8,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
 import type { AdminKycProofDialogProps } from '../types';
 import {
   GetKycAccountTypeLabel,
@@ -55,7 +54,7 @@ export function AdminKycProofDialog({
             Dokumen Bukti Kepemilikan Rekening
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            {item.provider} ({accountTypeLabel}) &middot; Pastikan nama pemilik rekening sesuai
+            {item.provider} ({accountTypeLabel}), pastikan nama pemilik rekening sesuai
             dengan identitas akun.
           </DialogDescription>
         </DialogHeader>
@@ -69,26 +68,22 @@ export function AdminKycProofDialog({
               <span className="font-normal text-muted-foreground">({roleLabel})</span>
             </p>
             <p className="text-[11px] text-muted-foreground truncate">{item.user.email}</p>
-            <p className="text-[11px] font-mono tabular-nums text-muted-foreground truncate">
+            <p className="text-[11px] tabular-nums text-muted-foreground truncate">
               {item.user.phoneNumber ?? 'No. telepon belum diisi'}
             </p>
           </div>
 
           <div className="border-t border-border/50 pt-2.5 sm:border-t-0 sm:pt-0 sm:pl-3 space-y-1 min-w-0">
             <p className="text-[11px] text-muted-foreground">Data Rekening Diajukan</p>
-            <p className="font-mono font-semibold tabular-nums text-foreground truncate">
-              {item.provider} &middot; {item.accountNumber}
+            <p className="font-semibold tabular-nums text-foreground truncate">
+              {item.provider} {item.accountNumber}
             </p>
-            <p
-              className={cn(
-                'text-[11px] font-medium truncate',
-                isNameMismatch
-                  ? 'text-amber-600 dark:text-amber-300'
-                  : 'text-foreground/90',
-              )}
-            >
+            <p className="text-[11px] font-medium text-foreground/90 truncate">
               a.n. {item.accountHolderName}
             </p>
+            {item.verificationStatus === 'PENDING' && isNameMismatch && (
+              <p className="text-[11px] text-amber-500">Nama berbeda dengan profil</p>
+            )}
           </div>
         </div>
 

@@ -117,7 +117,7 @@ export function CreateCampaignDialog({ children }: CreateCampaignDialogProps) {
                     <span className="truncate text-xs font-semibold text-foreground" title={latestDraftTitle}>
                       {latestDraftTitle}
                     </span>
-                    <span className="shrink-0 rounded-md border border-border/60 bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    <span className="shrink-0 text-xs font-medium text-muted-foreground">
                       {latestDraftProgress.stepBadgeText}
                     </span>
                   </div>

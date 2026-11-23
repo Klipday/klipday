@@ -69,20 +69,14 @@ export function CampaignCard({ campaign, onClick, className }: CampaignCardProps
         {/* Ambient Dark Gradient for Legibility */}
         <div className="pointer-events-none absolute inset-x-0 -bottom-1 top-0 bg-gradient-to-t from-black/90 via-black/25 to-black/40" />
 
-        {/* Bottom Overlay Row: Brand Identity & Campaign Type */}
+        {/* Bottom Overlay Row: Brand Identity */}
         <div className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2 z-10">
-          {/* Brand Info */}
           <div className="flex items-center gap-1.5 min-w-0">
             <div className="size-5 shrink-0 rounded-full bg-primary/25 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white uppercase backdrop-blur-xs">
               {brandInitial}
             </div>
             <span className="text-xs font-medium text-white/95 truncate drop-shadow-xs">{brandName}</span>
           </div>
-
-          {/* Type Badge (CLIPPING, UGC, etc.) */}
-          <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold text-white/90 bg-black/60 backdrop-blur-md border border-white/15 uppercase tracking-wider shadow-xs">
-            {typeBadge}
-          </span>
         </div>
       </div>
 
@@ -96,29 +90,25 @@ export function CampaignCard({ campaign, onClick, className }: CampaignCardProps
 
           {/* CPM Rate Display */}
           <div className="flex items-baseline gap-1">
-            <span className="text-lg sm:text-xl font-bold tracking-tight text-foreground">{cpmDisplay}</span>
+            <span className="text-lg sm:text-xl font-bold tracking-tight text-foreground tabular-nums">{cpmDisplay}</span>
             <span className="text-xs font-normal text-muted-foreground">/ 1K Views</span>
           </div>
         </div>
 
         <div className="space-y-3 pt-1">
-          {/* Metadata Row: Platform Icon + Category Tag + Joined Creators */}
-          <div className="flex items-center gap-2 text-xs flex-wrap">
-            {/* Platform Icon */}
+          {/* Metadata Row: Platform Icon + Type + Category + Joined Creators */}
+          <div className="flex items-center gap-x-3 gap-y-1 text-xs text-muted-foreground flex-wrap">
             <div className="flex items-center" title={campaign.platform || 'TikTok'}>
               <img src="/assets/icons/tiktok.svg" alt="TikTok" className="size-3.5 opacity-80 dark:invert" />
             </div>
 
-            {/* Category Tag Pill */}
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground text-[10px] font-semibold uppercase tracking-wider border border-border/40">
-              {categoryBadge}
-            </span>
+            <span>{typeBadge}</span>
+            <span>{categoryBadge}</span>
 
-            {/* Joined Creators Pill */}
             <div
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground text-[10px] font-semibold border border-border/40 ml-auto"
+              className="inline-flex items-center gap-1 ml-auto tabular-nums"
               title={`${joinedCountDisplay} creator telah bergabung`}>
-              <UsersGroupRoundedIcon className="size-3 text-muted-foreground" />
+              <UsersGroupRoundedIcon className="size-3.5 text-muted-foreground" />
               <span>{joinedCountDisplay}</span>
             </div>
           </div>

@@ -94,11 +94,11 @@ export const CREATOR_DASHBOARD_MESSAGES = {
   RECENT_SUBMISSIONS_EMPTY_TITLE: 'Belum ada video yang diajukan',
   RECENT_SUBMISSIONS_EMPTY_DESC:
     'Pilih kampanye aktif yang telah Anda ikuti atau jelajahi kampanye baru untuk mulai mengirim klip.',
-  JOINED_CAMPAIGNS_TITLE: 'Kampanye Aktif Diikuti',
-  JOINED_CAMPAIGNS_SUBTITLE: 'Menunggu pengajuan video klip Anda',
-  JOINED_CAMPAIGNS_EMPTY_TITLE: 'Belum ada kampanye aktif diikuti',
+  JOINED_CAMPAIGNS_TITLE: 'Menunggu Pengajuan Video',
+  JOINED_CAMPAIGNS_SUBTITLE: 'Belum ada klip tertunda',
+  JOINED_CAMPAIGNS_EMPTY_TITLE: 'Tidak ada kampanye menunggu video',
   JOINED_CAMPAIGNS_EMPTY_DESC:
-    'Ikuti kampanye aktif di katalog untuk mulai membuat klip dan mengumpulkan penayangan.',
+    'Semua kampanye aktif sudah diajukan klip. Jelajahi katalog untuk ikut kampanye baru.',
   ACTION_VIEW_ALL: 'Lihat semua',
   ACTION_EXPLORE_CAMPAIGNS: 'Jelajahi Kampanye',
   ACTION_FIND_CAMPAIGNS: 'Cari kampanye',
@@ -140,38 +140,31 @@ export const CREATOR_SUBMISSION_STATUS_CONFIG: Record<
 > = {
   JOINED: {
     label: 'Bergabung',
-    badgeClassName:
-      'border-border/60 bg-muted/40 text-muted-foreground',
+    badgeClassName: 'text-muted-foreground',
   },
   PENDING_REVIEW: {
     label: 'Menunggu Review',
-    badgeClassName:
-      'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    badgeClassName: 'text-amber-500',
   },
   REVISION_REQUESTED: {
     label: 'Perlu Revisi',
-    badgeClassName:
-      'border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400',
+    badgeClassName: 'text-amber-500',
   },
   APPROVED: {
     label: 'Disetujui',
-    badgeClassName:
-      'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    badgeClassName: 'text-foreground',
   },
   POSTED: {
     label: 'Tayang',
-    badgeClassName:
-      'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    badgeClassName: 'text-foreground',
   },
   VERIFIED: {
     label: 'Terverifikasi',
-    badgeClassName:
-      'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    badgeClassName: 'text-foreground',
   },
   REJECTED: {
     label: 'Ditolak',
-    badgeClassName:
-      'border-destructive/30 bg-destructive/10 text-destructive',
+    badgeClassName: 'text-destructive',
   },
 };
 
@@ -181,65 +174,55 @@ export const ADMIN_DASHBOARD_MESSAGES = {
   TITLE_PREFIX: 'Halo, ',
   DEFAULT_ADMIN_NAME: 'Admin Klipday',
   SUBTITLE:
-    'Ringkasan antrean verifikasi, likuiditas dana kampanye, dan aktivitas operasional yang memerlukan tindakan Anda.',
+    'Pantau antrean verifikasi, likuiditas kampanye, dan aktivitas operasional platform.',
   ALL_CLEAN: 'Semua antrean bersih',
-  TASKS_WAITING_SUFFIX: 'tugas menunggu tindakan',
-  ACTION_REFRESH: 'Muat Ulang',
+  TASKS_WAITING_SUFFIX: 'tugas tertunda',
 
-  // Section Headers
-  ACTION_QUEUES_TITLE: 'Perlu Tindakan Admin',
-  ACTION_QUEUES_HINT: 'Klik kartu untuk membuka antrean terkait',
-  METRICS_SECTION_TITLE: 'Ringkasan Finansial & Ekosistem',
+  // 4 Metrics
+  METRICS_LOCKED_BUDGET: 'Dana Kampanye Aktif',
+  METRICS_TOTAL_USER_BALANCE: 'Saldo Dompet Pengguna',
+  METRICS_REWARDS_PAID: 'Reward Kreator Cair',
+  METRICS_TOTAL_USERS: 'Total Pengguna',
 
-  // 5 Queue Cards
+  // Bento Left: Unified Action Queue
+  ACTION_QUEUE_TITLE: 'Antrean Perlu Tindakan',
+  ACTION_QUEUE_SUBTITLE_SUFFIX: 'menunggu keputusan',
+  ACTION_QUEUE_EMPTY_SUBTITLE: 'Tidak ada antrean tertunda',
+  ACTION_QUEUE_TAB_CAMPAIGNS: 'Kampanye',
+  ACTION_QUEUE_TAB_FINANCE: 'Keuangan',
+  ACTION_QUEUE_TAB_KYC: 'KYC',
+
+  // Bento Right: Queue Summary Links
+  QUEUE_SUMMARY_TITLE: 'Status Antrean',
+  QUEUE_SUMMARY_SUBTITLE: 'Akses cepat ke halaman antrean',
   QUEUE_CAMPAIGN_MODERATION: 'Moderasi Kampanye',
   QUEUE_CAMPAIGN_SETTLEMENT: 'Settlement Kampanye',
   QUEUE_TOP_UP: 'Verifikasi Top Up',
   QUEUE_WITHDRAWAL: 'Pencairan Withdraw',
   QUEUE_KYC: 'Verifikasi KYC',
-
-  // Queue Units
-  UNIT_CAMPAIGN: 'Kampanye',
-  UNIT_TOP_UP: 'Deposit',
-  UNIT_WITHDRAWAL: 'Penarikan',
-  UNIT_KYC: 'Rekening',
-
-  // Status Strings
-  QUEUE_CLEAN: 'Antrean bersih',
   WITHDRAWAL_CANCEL_ALERT_SUFFIX: 'minta batal',
 
-  // 4 Metrics
-  METRICS_LOCKED_BUDGET: 'Dana Kampanye Aktif',
-  METRICS_TOTAL_USER_BALANCE: 'Total Saldo Dompet Pengguna',
-  METRICS_REWARDS_PAID: 'Total Reward Kreator Cair',
-  METRICS_USERS_AND_VIEWS: 'Pengguna & Penayangan Valid',
-
-  // Bento Widgets
-  FINANCE_WIDGET_TITLE: 'Antrean Transaksi Keuangan',
-  FINANCE_WIDGET_SUBTITLE: 'Diurutkan dari pengajuan terlama agar pencairan & deposit tepat waktu',
-  KYC_WIDGET_TITLE: 'Antrean Verifikasi KYC',
-  KYC_WIDGET_SUBTITLE: 'Rekening bank & e-wallet menunggu pemeriksaan',
-  CAMPAIGNS_WIDGET_TITLE: 'Kampanye Perlu Ditindaklanjuti',
-  CAMPAIGNS_WIDGET_SUBTITLE: 'Moderasi kampanye baru & finalisasi settlement anggaran',
+  // Bento Bottom: Ledger
   LEDGER_WIDGET_TITLE: 'Mutasi Kas Terkini',
   LEDGER_WIDGET_SUBTITLE: '5 transaksi dompet terbaru di seluruh platform',
 
-  // Action CTAs
+  // Action CTAs & Tags
   ACTION_PROCESS: 'Proses',
   ACTION_VERIFY: 'Verifikasi',
   ACTION_REVIEW: 'Tinjau',
-  ACTION_VIEW_ALL: 'Semua',
-  ACTION_MANAGE: 'Kelola',
   ACTION_SETTLE: 'Proses Settlement',
   ACTION_MODERATE: 'Moderasi',
+  TAG_WITHDRAW: 'Withdraw',
+  TAG_TOPUP: 'Top Up',
+  TAG_CANCEL_REQUEST: 'Minta Batal',
 
   // Empty States
+  CAMPAIGNS_EMPTY_TITLE: 'Tidak ada kampanye menunggu tindakan',
+  CAMPAIGNS_EMPTY_DESC: 'Semua pengajuan kampanye baru dan settlement anggaran telah diproses.',
   FINANCE_EMPTY_TITLE: 'Tidak ada transaksi tertunda',
   FINANCE_EMPTY_DESC: 'Semua permintaan withdraw dan top up saldo telah selesai diproses.',
   KYC_EMPTY_TITLE: 'Antrean KYC bersih',
   KYC_EMPTY_DESC: 'Belum ada pengajuan rekening bank atau e-wallet baru yang menunggu verifikasi.',
-  CAMPAIGNS_EMPTY_TITLE: 'Tidak ada kampanye menunggu tindakan',
-  CAMPAIGNS_EMPTY_DESC: 'Semua pengajuan kampanye baru dan settlement anggaran telah diproses.',
   LEDGER_EMPTY_TITLE: 'Belum ada mutasi dompet',
   LEDGER_EMPTY_DESC: 'Transaksi dompet terbaru akan otomatis dicatat di sini.',
 

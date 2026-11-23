@@ -139,9 +139,9 @@ export function AdminRejectDialog({
             </div>
           )
         ) : (
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-muted-foreground leading-relaxed">
+          <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground leading-relaxed">
             Dana anggaran sebesar{' '}
-            <strong className="text-foreground font-mono">{FormatRupiah(budget)}</strong> yang telah
+            <strong className="text-foreground font-medium tabular-nums">{FormatRupiah(budget)}</strong> yang telah
             lunas akan otomatis dikembalikan (refund) ke Saldo Dompet Brand secara instan (CAMPAIGN_REFUND).
           </div>
         )}

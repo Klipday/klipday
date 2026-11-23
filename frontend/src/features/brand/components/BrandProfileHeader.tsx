@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { CameraIcon, CheckCircleIcon, LoaderIcon } from '@solar-icons/react/linear';
+import { CameraIcon, LoaderIcon } from '@solar-icons/react/linear';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -105,27 +105,20 @@ export function BrandProfileHeader({
 
           {/* Company details */}
           <div className="space-y-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
                 {profile.companyName}
               </h1>
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-                <CheckCircleIcon className="size-3" />
-                <span>Akun Brand</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                Akun Brand
               </span>
             </div>
 
             <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
 
-            <div className="flex flex-wrap items-center gap-2 pt-0.5">
-              <span className="inline-flex items-center rounded-md bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                {industryLabel}
-              </span>
-              {profile.location ? (
-                <span className="text-xs text-muted-foreground">
-                  • {profile.location}
-                </span>
-              ) : null}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-xs text-muted-foreground">
+              <span>{industryLabel}</span>
+              {profile.location ? <span>{profile.location}</span> : null}
             </div>
           </div>
         </div>

@@ -59,7 +59,7 @@ export function DraftItemRow({
           </p>
         </div>
 
-        <span className="inline-flex shrink-0 items-center rounded-md border border-border/60 bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground">
+        <span className="shrink-0 text-xs font-medium text-muted-foreground">
           {progress.stepBadgeText}
         </span>
       </div>

@@ -67,24 +67,22 @@ export function BrandPendingTopUpBanner({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           {/* Left Side: Essential Information */}
           <div className="min-w-0 flex-1 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <ClockCircleIcon className="size-3.5" />
                 Permintaan Top Up Aktif
               </span>
               {isRejected && (
-                <span className="inline-flex items-center rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                <span className="text-xs font-medium text-destructive">
                   Bukti Ditolak
                 </span>
               )}
             </div>
 
             <div className="space-y-0.5">
-              <div className="flex flex-wrap items-center gap-x-2 text-base font-semibold text-foreground">
-                <span className="font-mono">{latestTopUp.referenceCode}</span>
-                <span className="text-muted-foreground/60">&middot;</span>
-                <span className="tabular-nums">{FormatRupiah(latestTopUp.totalPayable)}</span>
-                <span className="text-muted-foreground/60">&middot;</span>
+              <div className="flex flex-wrap items-center gap-x-3 text-base font-semibold text-foreground tabular-nums">
+                <span>{latestTopUp.referenceCode}</span>
+                <span>{FormatRupiah(latestTopUp.totalPayable)}</span>
                 <span className="text-sm font-normal text-muted-foreground">
                   {latestTopUp.destinationBank}
                 </span>

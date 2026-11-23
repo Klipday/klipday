@@ -101,19 +101,18 @@ export function SocialPlatformRow({
           </div>
 
           <div className="min-w-0 space-y-0.5">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-x-3 flex-wrap">
               <span className="text-sm font-semibold text-foreground tracking-tight">
                 {platformName}
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                1 Akun terhubung
+              <span className="text-xs font-medium text-foreground">
+                Terhubung
               </span>
             </div>
-            <p className="text-xs text-muted-foreground truncate">
+            <div className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground truncate">
               <span className="font-medium text-foreground/90">@{connectedAccount.username}</span>
-              {' • '}
               <span>{FormatCompactCount(connectedAccount.followersCount)} Pengikut</span>
-            </p>
+            </div>
             {cooldownDateLabel && (
               <p className="text-[11px] text-muted-foreground/80">
                 Ganti akun tersedia kembali pada {cooldownDateLabel}
@@ -160,11 +159,11 @@ export function SocialPlatformRow({
           {RenderPlatformLogo(platformId, 'size-5')}
         </div>
         <div className="min-w-0 space-y-0.5">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-x-2.5 flex-wrap">
             <h4 className="text-sm font-semibold text-foreground tracking-tight">
               {platformName}
             </h4>
-            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium bg-muted text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Wajib untuk kampanye ini
             </span>
           </div>

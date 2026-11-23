@@ -1,8 +1,5 @@
 import { useState } from 'react';
 import {
-  CheckCircleIcon,
-  ClockCircleIcon,
-  DangerCircleIcon,
   SquareTopDownIcon,
   VideocameraIcon,
 } from '@solar-icons/react/linear';
@@ -54,44 +51,37 @@ export function BrandSubmissionCard({ submission, onReview, className }: BrandSu
 
           <div className="min-w-0 space-y-0.5">
             <h4 className="text-sm font-semibold text-foreground truncate">{submission.creator?.fullName || 'Kreator Tanpa Nama'}</h4>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-x-3 text-xs text-muted-foreground">
               <span className="font-medium text-foreground/80">@{submission.socialAccount?.username || 'unknown'}</span>
               {submission.socialAccount?.followersCount !== undefined && (
-                <>
-                  <span>•</span>
-                  <span>{FormatCompactCount(submission.socialAccount.followersCount)} followers</span>
-                </>
+                <span>{FormatCompactCount(submission.socialAccount.followersCount)} followers</span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Status Badge & Timestamp */}
-        <div className="flex flex-wrap items-center gap-2.5 sm:self-center">
-          <span className="text-[11px] text-muted-foreground whitespace-nowrap">{formattedDate}</span>
+        {/* Status Text & Timestamp */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 sm:self-center">
+          <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">{formattedDate}</span>
 
           {isPending && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-              <ClockCircleIcon className="size-3" />
-              <span>Menunggu Review</span>
+            <span className="text-xs font-medium text-amber-500">
+              Menunggu Review
             </span>
           )}
           {isApproved && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-              <CheckCircleIcon className="size-3" />
-              <span>Disetujui</span>
+            <span className="text-xs font-medium text-foreground">
+              Disetujui
             </span>
           )}
           {isRevision && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30">
-              <DangerCircleIcon className="size-3" />
-              <span>Perlu Revisi</span>
+            <span className="text-xs font-medium text-amber-500">
+              Perlu Revisi
             </span>
           )}
           {isRejected && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-destructive/10 text-destructive border border-destructive/30">
-              <DangerCircleIcon className="size-3" />
-              <span>Ditolak</span>
+            <span className="text-xs font-medium text-destructive">
+              Ditolak
             </span>
           )}
         </div>

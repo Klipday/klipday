@@ -14,8 +14,7 @@ import { FormatRupiah } from '../utils/formatters';
 
 /**
  * Renders an individual withdrawal row item in the Admin Withdrawal verification queue.
- * Displays reference code, role pill, status badge, circular avatar, bank destination details
- * with 1-click account copy, financial amount, and approval/rejection actions.
+ * Uses pure typographic hierarchy without pill badges, bullet separators, or monospace currency styling.
  *
  * @param props - Component props containing withdrawal, onOpenKyc, onReview, and optional className.
  * @returns The rendered row item.
@@ -34,6 +33,21 @@ export function AdminWithdrawalItemRow({
   const isRejected = withdrawal.payoutStatus === 'REJECTED';
 
   const userInitial = withdrawal.user.displayName.slice(0, 2).toUpperCase() || 'WD';
+  const roleLabel = withdrawal.user.role === 'CREATOR' ? 'Kreator' : 'Brand';
+
+  const statusLabel = isCancellation
+    ? 'Mengajukan Batal'
+    : isPending
+      ? 'Perlu Diproses'
+      : isApproved
+        ? 'Selesai Ditransfer'
+        : 'Ditolak';
+
+  const statusTextClassName = isPending
+    ? 'text-amber-500'
+    : isRejected
+      ? 'text-destructive'
+      : 'text-foreground';
 
   const formattedDate = new Date(withdrawal.createdAt).toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -83,42 +97,19 @@ export function AdminWithdrawalItemRow({
         className,
       )}
     >
-      {/* Top Header: Reference Code, Role Pill, Status Badge, Creation Date */}
+      {/* Top Header: Reference Code & Role (left) vs Status & Creation Date (right) */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-3">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-sm font-semibold text-foreground">
+        <div className="flex items-center gap-x-3">
+          <span className="text-sm font-semibold tabular-nums text-foreground">
             {withdrawal.referenceCode}
           </span>
-
-          {/* Role Pill */}
-          <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-foreground">
-            {withdrawal.user.role === 'CREATOR' ? 'Kreator' : 'Brand'}
-          </span>
-
-          {/* Status Badge */}
-          {isCancellation && (
-            <span className="inline-flex items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
-              Mengajukan Batal
-            </span>
-          )}
-          {!isCancellation && isPending && (
-            <span className="inline-flex items-center rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:text-blue-400">
-              Perlu Diproses
-            </span>
-          )}
-          {isApproved && (
-            <span className="inline-flex items-center rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-              Selesai Ditransfer
-            </span>
-          )}
-          {isRejected && (
-            <span className="inline-flex items-center rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-              Ditolak / Batal
-            </span>
-          )}
+          <span className="text-xs text-muted-foreground">{roleLabel}</span>
         </div>
 
-        <span className="text-xs text-muted-foreground">{formattedDate}</span>
+        <div className="flex items-center gap-x-4 text-xs">
+          <span className={cn('font-medium', statusTextClassName)}>{statusLabel}</span>
+          <span className="text-muted-foreground tabular-nums">{formattedDate}</span>
+        </div>
       </div>
 
       {/* Middle Body: Requester & Bank Details vs Financial Amount */}
@@ -131,7 +122,7 @@ export function AdminWithdrawalItemRow({
               alt={withdrawal.user.displayName}
               className="rounded-full object-cover"
             />
-            <AvatarFallback className="rounded-full text-xs font-semibold text-muted-foreground">
+            <AvatarFallback className="rounded-full text-xs font-medium text-muted-foreground">
               {userInitial}
             </AvatarFallback>
           </Avatar>
@@ -146,17 +137,17 @@ export function AdminWithdrawalItemRow({
               </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground">
               <span className="text-foreground/90 font-medium">
-                {withdrawal.accountProvider} &middot;
+                {withdrawal.accountProvider}
               </span>
-              <span className="font-mono text-foreground">{withdrawal.accountNumber}</span>
+              <span className="text-foreground tabular-nums">{withdrawal.accountNumber}</span>
               <span>a.n {withdrawal.accountHolderName}</span>
               <button
                 type="button"
                 onClick={HandleCopyAccountNumber}
                 title="Salin nomor rekening"
-                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 rounded border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
               >
                 {copied ? <CheckIcon className="size-3 text-emerald-500" /> : <CopyIcon className="size-3" />}
                 <span>{copied ? 'Tersalin' : 'Salin'}</span>
@@ -167,22 +158,17 @@ export function AdminWithdrawalItemRow({
 
         {/* Financial Details (5 cols) */}
         <div className="sm:col-span-5 flex flex-col sm:items-end justify-center">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-            Nominal Penarikan
-          </p>
-          <p className="font-mono text-base font-semibold tabular-nums text-foreground">
+          <p className="text-xs text-muted-foreground">Nominal Penarikan</p>
+          <p className="text-base font-semibold tabular-nums text-foreground mt-0.5">
             {FormatRupiah(withdrawal.amount)}
-          </p>
-          <p className="text-[11px] text-muted-foreground">
-            Rekening Tujuan: {withdrawal.accountProvider}
           </p>
         </div>
       </div>
 
       {/* User Cancellation Callout if Cancellation Requested */}
       {withdrawal.cancellationReason && (
-        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-800 dark:text-amber-300">
-          <span className="font-medium">Pengajuan Pembatalan: </span>
+        <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+          <span className="font-medium text-amber-500">Pengajuan Pembatalan: </span>
           <span>{withdrawal.cancellationReason}</span>
         </div>
       )}
@@ -218,7 +204,7 @@ export function AdminWithdrawalItemRow({
               <span>Lihat Bukti Rekening KYC</span>
             </Button>
           ) : (
-            <span className="text-xs text-muted-foreground italic">
+            <span className="text-xs text-muted-foreground">
               Rekening Snapshot (Tanpa Lampiran KYC)
             </span>
           )}
@@ -251,13 +237,13 @@ export function AdminWithdrawalItemRow({
           )}
 
           {isApproved && formattedProcessedDate && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground tabular-nums">
               Ditransfer pada {formattedProcessedDate}
             </span>
           )}
 
           {isRejected && formattedProcessedDate && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground tabular-nums">
               Ditolak pada {formattedProcessedDate}
             </span>
           )}

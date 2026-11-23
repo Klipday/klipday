@@ -1,8 +1,5 @@
 import { useState } from 'react';
 import {
-  CheckCircleIcon,
-  ClockCircleIcon,
-  DangerCircleIcon,
   LoaderIcon,
   SquareTopDownIcon,
   StarIcon,
@@ -43,27 +40,24 @@ export function PayoutAccountCard({
   const isPending = account.verificationStatus === 'PENDING';
   const isVerified = account.verificationStatus === 'VERIFIED';
 
-  const RenderStatusBadge = () => {
+  const RenderStatusText = () => {
     switch (account.verificationStatus) {
       case 'VERIFIED':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-            <CheckCircleIcon className="size-3" />
-            <span>Terverifikasi</span>
+          <span className="text-xs font-medium text-foreground">
+            Terverifikasi
           </span>
         );
       case 'PENDING':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
-            <ClockCircleIcon className="size-3" />
-            <span>Menunggu Verifikasi</span>
+          <span className="text-xs font-medium text-amber-500">
+            Menunggu Verifikasi
           </span>
         );
       case 'REJECTED':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-[11px] font-medium text-destructive">
-            <DangerCircleIcon className="size-3" />
-            <span>Verifikasi Ditolak</span>
+          <span className="text-xs font-medium text-destructive">
+            Verifikasi Ditolak
           </span>
         );
     }
@@ -83,31 +77,30 @@ export function PayoutAccountCard({
             : 'border-border/60 hover:border-border',
         )}>
         <div className="space-y-4">
-          {/* Header row: provider typography + status badges (zero decorative icon boxes) */}
+          {/* Header row: provider typography + plain status text */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <span className="font-semibold text-base text-foreground tracking-tight">
                 {account.provider}
               </span>
-              <span className="block text-[10px] text-muted-foreground uppercase tracking-wider">
+              <span className="block text-xs text-muted-foreground">
                 {isBank ? 'Transfer Bank' : 'E-Wallet'}
               </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               {account.isPrimary ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
-                  <StarIcon className="size-3 fill-primary text-primary" />
-                  <span>Utama</span>
+                <span className="text-xs font-medium text-foreground">
+                  Utama
                 </span>
               ) : null}
-              {RenderStatusBadge()}
+              {RenderStatusText()}
             </div>
           </div>
 
           {/* Account credentials */}
           <div className="rounded-xl border border-border/40 bg-muted/20 p-3.5 space-y-1">
-            <span className="font-mono text-sm sm:text-base font-semibold tracking-wider tabular-nums text-foreground break-all">
+            <span className="text-sm sm:text-base font-semibold tracking-wider tabular-nums text-foreground break-all">
               {account.accountNumber}
             </span>
             <p className="text-xs font-medium text-muted-foreground">

@@ -35,32 +35,32 @@ export const TRANSACTION_TYPE_CONFIG = {
   BRAND_DEPOSIT: {
     label: 'Top Up Saldo',
     sign: '+',
-    amountClass: 'text-emerald-600 dark:text-emerald-400 font-semibold',
-    badgeClass: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    amountClass: 'text-foreground font-semibold',
+    badgeClass: 'text-foreground',
   },
   CAMPAIGN_PAYMENT: {
     label: 'Pembayaran Kampanye',
     sign: '-',
-    amountClass: 'text-foreground font-semibold',
-    badgeClass: 'border-border/60 bg-muted/40 text-muted-foreground',
+    amountClass: 'text-muted-foreground font-semibold',
+    badgeClass: 'text-muted-foreground',
   },
   CAMPAIGN_REFUND: {
     label: 'Refund Sisa Anggaran',
     sign: '+',
-    amountClass: 'text-blue-600 dark:text-blue-400 font-semibold',
-    badgeClass: 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400',
+    amountClass: 'text-foreground font-semibold',
+    badgeClass: 'text-foreground',
   },
   CAMPAIGN_EARNING: {
     label: 'Penghasilan Kampanye',
     sign: '+',
-    amountClass: 'text-emerald-600 dark:text-emerald-400 font-semibold',
-    badgeClass: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    amountClass: 'text-foreground font-semibold',
+    badgeClass: 'text-foreground',
   },
   WITHDRAWAL: {
     label: 'Penarikan Saldo',
     sign: '-',
-    amountClass: 'text-amber-600 dark:text-amber-400 font-semibold',
-    badgeClass: 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+    amountClass: 'text-muted-foreground font-semibold',
+    badgeClass: 'text-muted-foreground',
   },
 } as const;
 

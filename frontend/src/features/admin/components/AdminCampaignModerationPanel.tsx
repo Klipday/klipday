@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { UseModerateCampaignMutation } from '../hooks';
 import type { AdminCampaignModerationPanelProps } from '../types';
-import { FormatCompactViews, FormatRupiah } from '../utils/formatters';
 import { AdminApproveDialog } from './AdminApproveDialog';
 import { AdminFeaturedCampaignDialog } from './AdminFeaturedCampaignDialog';
 import { AdminRejectDialog } from './AdminRejectDialog';
@@ -12,47 +11,12 @@ import { AdminRevisionDialog } from './AdminRevisionDialog';
 import { AdminTransferProofDialog } from './AdminTransferProofDialog';
 
 /**
- * Calculates calendar day duration between start and end date strings.
- *
- * @param startIso - Start date ISO string or null.
- * @param endIso - End date ISO string or null.
- * @returns Duration in days or null.
- */
-function CalculateDurationDays(startIso?: string | null, endIso?: string | null): number | null {
-  if (!startIso || !endIso) return null;
-  const start = new Date(startIso).getTime();
-  const end = new Date(endIso).getTime();
-  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return null;
-  const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-  return diffDays;
-}
-
-/**
- * Formats a concise Indonesian date range (e.g. `28 Okt – 15 Nov 2026`).
- *
- * @param startIso - Start date ISO string.
- * @param endIso - End date ISO string.
- * @returns Formatted date range string.
- */
-function FormatPeriod(startIso?: string | null, endIso?: string | null): string {
-  if (!startIso && !endIso) return 'Jadwal Fleksibel';
-  const formatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-  const start = startIso ? formatter.format(new Date(startIso)) : null;
-  const end = endIso ? formatter.format(new Date(endIso)) : null;
-  if (start && end) return `${start} – ${end}`;
-  return start || end || '-';
-}
-
-/**
- * Moderation Action Panel rendered at the top of CampaignDetail for administrators.
- * Provides a unified 4-column hairline bar for payment verification and campaign approval/revision/rejection.
+ * Single-row operational moderation bar rendered for administrators on CampaignDetail.
+ * Displays payment verification status, receipt proof shortcut, and contextual
+ * moderation or featured-placement actions without redundant metadata clutter.
  *
  * @param props - Component props containing campaign data and optional moderation success callback.
- * @returns The rendered moderation panel element.
+ * @returns The rendered single-row moderation bar element.
  */
 export function AdminCampaignModerationPanel({
   campaign,
@@ -77,20 +41,16 @@ export function AdminCampaignModerationPanel({
 
   const budgetNum = Number(campaign.budget ?? 0);
   const totalPayableNum = Number(latestPayment?.totalPayable ?? budgetNum);
-  const cpmNum = Number(campaign.cpm ?? 0);
-  const minViewsNum = Number(campaign.minViews ?? 0);
 
-  const materialsCount = campaign.materials?.length ?? 0;
-  const brief = campaign.brief;
-  const isBriefComplete = Boolean(
-    brief &&
-      brief.purpose?.trim() &&
-      brief.keyMessage?.trim() &&
-      brief.callToAction?.trim(),
-  );
+  const paymentStatusLabel = isManualPending
+    ? 'Transfer Manual — Menunggu Verifikasi'
+    : isManualPayment
+      ? 'Transfer Manual (Lunas)'
+      : 'Saldo Dompet (Lunas)';
 
-  const durationDays = CalculateDurationDays(campaign.startDate, campaign.endDate);
-  const periodText = FormatPeriod(campaign.startDate, campaign.endDate);
+  const featuredButtonLabel = campaign.isFeatured
+    ? `Featured #${campaign.featuredOrder ?? 1}`
+    : 'Kelola Featured';
 
   const HandleConfirmApprove = () => {
     moderateMutation.mutate(
@@ -131,189 +91,81 @@ export function AdminCampaignModerationPanel({
     <>
       <div
         className={cn(
-          'grid grid-cols-1 divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60 bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4',
+          'rounded-xl border border-border/60 bg-card px-5 py-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3.5',
           className,
         )}
       >
-        {/* Column 1: Metode & Status Pembayaran */}
-        <div className="p-5 space-y-1.5 flex flex-col justify-center">
-          <p className="text-xs text-muted-foreground font-medium">Metode &amp; Status Pembayaran</p>
-          {isManualPending ? (
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-amber-500">
-                Transfer Manual (Menunggu Verifikasi)
-              </p>
-              <p className="text-xs text-muted-foreground">
-                <span>
-                  {latestPayment?.senderProviderName ?? 'Bank'} a.n{' '}
-                  {latestPayment?.senderAccountName ?? '-'}
-                </span>
-                {latestPayment?.transferProofUrl && (
-                  <>
-                    {' · '}
-                    <button
-                      type="button"
-                      onClick={() => setIsProofOpen(true)}
-                      className="inline-flex items-center gap-1 font-medium text-foreground underline hover:text-primary cursor-pointer transition-colors"
-                    >
-                      <span>Lihat Bukti Struk</span>
-                      <SquareTopDownIcon className="size-3" />
-                    </button>
-                  </>
-                )}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-emerald-500">
-                {isManualPayment ? 'Transfer Manual (Lunas)' : 'Saldo Dompet Klipday (Lunas)'}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                <span>
-                  {isManualPayment
-                    ? 'Pembayaran transfer telah diverifikasi admin'
-                    : 'Dana telah dipotong otomatis dari saldo aktif brand'}
-                </span>
-                {latestPayment?.transferProofUrl && (
-                  <>
-                    {' · '}
-                    <button
-                      type="button"
-                      onClick={() => setIsProofOpen(true)}
-                      className="inline-flex items-center gap-1 font-medium text-foreground underline hover:text-primary cursor-pointer transition-colors"
-                    >
-                      <span>Lihat Bukti Struk</span>
-                      <SquareTopDownIcon className="size-3" />
-                    </button>
-                  </>
-                )}
-              </p>
-            </div>
+        {/* Payment verification strip */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground min-w-0">
+          <span className="font-medium text-foreground">{paymentStatusLabel}</span>
+
+          {isManualPending &&
+            (latestPayment?.senderProviderName || latestPayment?.senderAccountName) && (
+              <span>
+                {latestPayment?.senderProviderName ?? 'Bank'} a.n{' '}
+                {latestPayment?.senderAccountName ?? '-'}
+              </span>
+            )}
+
+          {latestPayment?.transferProofUrl && (
+            <button
+              type="button"
+              onClick={() => setIsProofOpen(true)}
+              className="inline-flex items-center gap-1 font-medium text-muted-foreground hover:text-foreground underline underline-offset-4 cursor-pointer transition-colors"
+            >
+              <span>Lihat Struk</span>
+              <SquareTopDownIcon className="size-3" />
+            </button>
           )}
         </div>
 
-        {/* Column 2: Total Anggaran Kampanye */}
-        <div className="p-5 space-y-1 flex flex-col justify-center">
-          <p className="text-xs text-muted-foreground font-medium">Total Anggaran Kampanye</p>
-          <p className="font-mono text-xl font-semibold tracking-tight text-foreground">
-            {FormatRupiah(isManualPending ? totalPayableNum : budgetNum)}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            CPM {FormatRupiah(cpmNum)} / 1K · Min. {FormatCompactViews(minViewsNum)} views
-          </p>
-        </div>
-
-        {/* Column 3: Kelengkapan Konten & Materi */}
-        <div className="p-5 space-y-1 flex flex-col justify-center">
-          <p className="text-xs text-muted-foreground font-medium">Kelengkapan Konten &amp; Materi</p>
-          <p className="text-sm font-semibold text-foreground">
-            {materialsCount} Materi Clipping ·{' '}
-            <span className={isBriefComplete ? 'text-emerald-500' : 'text-amber-500'}>
-              {isBriefComplete ? 'Brief Lengkap' : 'Brief Belum Lengkap'}
-            </span>
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {periodText}
-            {durationDays != null ? ` (${durationDays} Hari)` : ''}
-          </p>
-        </div>
-
-        {/* Column 4: Keputusan Moderasi Admin */}
-        <div className="flex flex-col justify-center gap-2 bg-muted/20 p-4">
-          {campaign.campaignStatus === 'IN_REVIEW' ? (
+        {/* Contextual actions */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {campaign.campaignStatus === 'IN_REVIEW' && (
             <>
               <Button
                 type="button"
+                size="sm"
                 onClick={() => setIsApproveOpen(true)}
                 disabled={moderateMutation.isPending}
-                className="h-9 w-full text-xs font-semibold cursor-pointer"
+                className="h-8 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
               >
                 Setujui &amp; Tayangkan
               </Button>
 
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsRevisionOpen(true)}
-                  disabled={moderateMutation.isPending}
-                  className="h-8 text-xs font-medium cursor-pointer"
-                >
-                  Minta Revisi
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsRejectOpen(true)}
-                  disabled={moderateMutation.isPending}
-                  className="h-8 text-xs font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer"
-                >
-                  Tolak
-                </Button>
-              </div>
-
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setIsFeaturedOpen(true)}
-                className="h-8 w-full text-xs font-medium cursor-pointer flex items-center justify-between gap-1.5"
+                onClick={() => setIsRevisionOpen(true)}
+                disabled={moderateMutation.isPending}
+                className="h-8 text-xs font-medium border-border/70 cursor-pointer"
               >
-                <span>Kelola Featured</span>
-                {campaign.isFeatured ? (
-                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500 border border-amber-500/30">
-                    Featured #{campaign.featuredOrder ?? 1}
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-muted-foreground">Nonaktif</span>
-                )}
+                Minta Revisi
               </Button>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground font-medium">Status Kampanye</span>
-                <span
-                  className={cn(
-                    'font-semibold',
-                    campaign.campaignStatus === 'ACTIVE' && 'text-emerald-500',
-                    campaign.campaignStatus === 'REVISION' && 'text-amber-500',
-                    campaign.campaignStatus === 'REJECTED' && 'text-rose-500',
-                    campaign.campaignStatus === 'FINISHED' && 'text-muted-foreground',
-                  )}
-                >
-                  {campaign.campaignStatus === 'ACTIVE'
-                    ? 'Aktif Tayang'
-                    : campaign.campaignStatus === 'REVISION'
-                      ? 'Perlu Revisi'
-                      : campaign.campaignStatus === 'REJECTED'
-                        ? 'Ditolak'
-                        : campaign.campaignStatus === 'FINISHED'
-                          ? 'Selesai'
-                          : campaign.campaignStatus}
-                </span>
-              </div>
 
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setIsFeaturedOpen(true)}
-                className="h-9 w-full text-xs font-medium cursor-pointer flex items-center justify-between gap-1.5"
+                onClick={() => setIsRejectOpen(true)}
+                disabled={moderateMutation.isPending}
+                className="h-8 text-xs font-medium border-border/70 text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
               >
-                <span>Kelola Featured</span>
-                {campaign.isFeatured ? (
-                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-500 border border-amber-500/30">
-                    Featured #{campaign.featuredOrder ?? 1}
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-muted-foreground">Nonaktif</span>
-                )}
+                Tolak
               </Button>
             </>
           )}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsFeaturedOpen(true)}
+            className="h-8 text-xs font-medium border-border/70 text-foreground hover:bg-muted/50 cursor-pointer"
+          >
+            {featuredButtonLabel}
+          </Button>
         </div>
       </div>
 
@@ -363,7 +215,6 @@ export function AdminCampaignModerationPanel({
         isFeatured={campaign.isFeatured}
         featuredOrder={campaign.featuredOrder}
         featuredUntil={campaign.featuredUntil}
-        featuredBannerUrl={campaign.featuredBannerUrl}
         onSuccess={onModerationSuccess}
       />
     </>

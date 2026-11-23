@@ -9,12 +9,12 @@ import {
 } from '../utils/formatters';
 
 /**
- * Single row in the FIFO Settlement Queue (`#1`, `#2`, `#3`, ...).
- * Displays FIFO rank, creator identity, submission timestamp, external TikTok video link,
- * verified views, allocated FIFO reward (including budget-cap indicator), and Disqualify action.
+ * Single row in the Settlement submission queue (`#1`, `#2`, `#3`, ...).
+ * Displays order rank, creator identity, submission timestamp, external TikTok video link,
+ * verified views, allocated reward, and Disqualify action.
  *
  * @param props - Row props from types.ts.
- * @returns The rendered FIFO submission row.
+ * @returns The rendered settlement submission row.
  */
 export function AdminFifoSubmissionRow({
   submission,
@@ -42,9 +42,9 @@ export function AdminFifoSubmissionRow({
           : 'hover:bg-muted/20',
       )}
     >
-      {/* Left + Center: FIFO Rank & Creator Details */}
+      {/* Left + Center: Rank & Creator Details */}
       <div className="flex items-start gap-4 min-w-0 flex-1">
-        <span className="w-7 shrink-0 pt-0.5 font-mono text-xs font-medium text-muted-foreground tabular-nums">
+        <span className="w-7 shrink-0 pt-0.5 text-xs font-medium text-muted-foreground tabular-nums">
           {submission.fifoOrder !== null ? `#${submission.fifoOrder}` : '—'}
         </span>
 
@@ -64,39 +64,36 @@ export function AdminFifoSubmissionRow({
               </span>
             )}
             {submission.isFlaggedUnavailable && !isRejected && (
-              <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-500">
-                <DangerTriangleIcon className="size-3" />
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-500">
+                <DangerTriangleIcon className="size-3.5" />
                 Video Privat / Dihapus
               </span>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span>Disubmit {FormatSubmissionTimestamp(submission.submittedAt ?? submission.createdAt)}</span>
             {submission.liveVideoUrl && (
-              <>
-                <span>·</span>
-                <a
-                  href={submission.liveVideoUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
-                >
-                  Lihat Video TikTok ↗
-                </a>
-              </>
+              <a
+                href={submission.liveVideoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+              >
+                Lihat Video TikTok ↗
+              </a>
             )}
           </div>
 
           {isRejected && submission.reviewNote && (
-            <p className="text-[11px] text-muted-foreground italic line-clamp-1">
+            <p className="text-xs text-muted-foreground italic line-clamp-1">
               Catatan: {submission.reviewNote}
             </p>
           )}
 
           {submission.isFlaggedUnavailable && !isRejected && submission.lastSyncError && (
-            <p className="text-[11px] text-amber-500 font-medium line-clamp-1">
-              Kendala: {submission.lastSyncError} (Gagal sinkron {submission.syncFailureStreak ?? 1}x · Tayangan dibekukan)
+            <p className="text-xs text-amber-500 font-medium line-clamp-1">
+              Kendala: {submission.lastSyncError} (Gagal sinkron {submission.syncFailureStreak ?? 1}x, tayangan dibekukan)
             </p>
           )}
         </div>
@@ -106,18 +103,18 @@ export function AdminFifoSubmissionRow({
       <div className="flex flex-wrap items-center justify-between gap-6 sm:justify-end sm:shrink-0 pl-11 sm:pl-0">
         {/* Tayangan */}
         <div className="text-left sm:text-right min-w-[100px]">
-          <p className="text-[11px] text-muted-foreground">Tayangan</p>
-          <p className="mt-0.5 font-mono text-[13px] font-medium text-foreground tabular-nums">
+          <p className="text-xs text-muted-foreground">Tayangan</p>
+          <p className="mt-0.5 text-sm font-medium text-foreground tabular-nums">
             {FormatViewsCount(submission.verifiedViews)} views
           </p>
         </div>
 
         {/* Alokasi Reward */}
         <div className="text-left sm:text-right min-w-[140px]">
-          <p className="text-[11px] text-muted-foreground">Alokasi Reward</p>
+          <p className="text-xs text-muted-foreground">Alokasi Reward</p>
           <p
             className={cn(
-              'mt-0.5 font-mono text-sm font-semibold tabular-nums',
+              'mt-0.5 text-sm font-semibold tabular-nums',
               isRejected
                 ? 'text-muted-foreground line-through'
                 : submission.allocatedEarnings > 0
@@ -128,8 +125,8 @@ export function AdminFifoSubmissionRow({
             {FormatRupiah(submission.allocatedEarnings)}
           </p>
           {submission.isCappedByBudget && !isRejected && (
-            <p className="text-[11px] text-amber-500 tabular-nums">
-              (Tertahan sisa budget · Hak {FormatRupiah(submission.targetEarnings)})
+            <p className="text-xs text-amber-500 tabular-nums">
+              (Tertahan sisa budget, hak {FormatRupiah(submission.targetEarnings)})
             </p>
           )}
         </div>
@@ -148,15 +145,15 @@ export function AdminFifoSubmissionRow({
               Diskualifikasi
             </Button>
           ) : isVerified ? (
-            <span className="inline-flex items-center rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-500">
+            <span className="text-xs font-medium text-emerald-500">
               Terverifikasi
             </span>
           ) : isRejected ? (
-            <span className="inline-flex items-center rounded-md border border-destructive/25 bg-destructive/10 px-2.5 py-1 text-[11px] font-medium text-destructive">
+            <span className="text-xs font-medium text-destructive">
               Didiskualifikasi
             </span>
           ) : isPending ? (
-            <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+            <span className="text-xs font-medium text-muted-foreground">
               Belum Direview
             </span>
           ) : null}

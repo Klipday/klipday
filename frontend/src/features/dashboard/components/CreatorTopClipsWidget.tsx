@@ -90,10 +90,12 @@ export function CreatorTopClipsWidget({
                       >
                         {clip.campaignTitle || CREATOR_DASHBOARD_MESSAGES.DEFAULT_CAMPAIGN_TITLE}
                       </Link>
-                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                        {clip.brandName}
-                        {clip.socialUsername ? ` • @${clip.socialUsername}` : ''}
-                      </p>
+                      <div className="flex items-center gap-x-3 text-[11px] text-muted-foreground truncate mt-0.5">
+                        <span className="truncate">{clip.brandName}</span>
+                        {clip.socialUsername ? (
+                          <span className="shrink-0">@{clip.socialUsername}</span>
+                        ) : null}
+                      </div>
                     </div>
 
                     <div className="flex items-end justify-between gap-2 pt-2.5 border-t border-border/40">

@@ -21,8 +21,7 @@ import {
 
 /**
  * Renders an individual payout account KYC submission row in the Admin KYC verification queue.
- * Displays provider, account type, role pill, primary badge, status pill, circular user avatar,
- * side-by-side profile identity vs bank/e-wallet credentials with 1-click copy, and review actions.
+ * Uses pure typographic hierarchy without pill badges, bullet separators, or colored data values.
  *
  * @param props - Component props containing item, onOpenProof, onReview, and optional className.
  * @returns The rendered KYC queue row card.
@@ -63,6 +62,18 @@ export function AdminKycItemRow({
     item.user.avatarUrl && IsSafeHttpUrl(item.user.avatarUrl)
       ? item.user.avatarUrl.trim()
       : undefined;
+
+  const statusLabel = isPending
+    ? 'Perlu Verifikasi'
+    : isVerified
+      ? 'Terverifikasi'
+      : 'Ditolak';
+
+  const statusTextClassName = isPending
+    ? 'text-amber-500'
+    : isRejected
+      ? 'text-destructive'
+      : 'text-foreground';
 
   /**
    * Copies the submitted bank or e-wallet account number to the clipboard.
@@ -105,40 +116,21 @@ export function AdminKycItemRow({
         className,
       )}
     >
-      {/* Top Header: Provider + Type, Role Pill, Primary Badge, Status Pill, Submission Date */}
+      {/* Top Header: Provider & Context (left) vs Status & Timestamp (right) */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-3">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span className="text-sm font-semibold text-foreground">{item.provider}</span>
-          <span className="text-xs text-muted-foreground">&middot; {accountTypeLabel}</span>
-
-          <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-foreground">
-            {roleLabel}
-          </span>
-
+          <span className="text-xs text-muted-foreground">{accountTypeLabel}</span>
+          <span className="text-xs text-muted-foreground">{roleLabel}</span>
           {item.isPrimary && (
-            <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-              Akun Utama
-            </span>
-          )}
-
-          {isPending && (
-            <span className="inline-flex items-center rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:text-blue-400">
-              Perlu Verifikasi
-            </span>
-          )}
-          {isVerified && (
-            <span className="inline-flex items-center rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-              Terverifikasi
-            </span>
-          )}
-          {isRejected && (
-            <span className="inline-flex items-center rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-              Ditolak
-            </span>
+            <span className="text-xs text-muted-foreground">Utama</span>
           )}
         </div>
 
-        <span className="text-xs text-muted-foreground">{formattedCreatedAt}</span>
+        <div className="flex items-center gap-x-4 text-xs">
+          <span className={cn('font-medium', statusTextClassName)}>{statusLabel}</span>
+          <span className="text-muted-foreground tabular-nums">{formattedCreatedAt}</span>
+        </div>
       </div>
 
       {/* Middle Grid: User Profile Identity (7 cols) vs Submitted Bank/E-Wallet Credentials (5 cols) */}
@@ -151,7 +143,7 @@ export function AdminKycItemRow({
               alt={item.user.displayName}
               className="rounded-full object-cover"
             />
-            <AvatarFallback className="rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+            <AvatarFallback className="rounded-full bg-muted text-xs font-medium text-muted-foreground">
               {userInitial}
             </AvatarFallback>
           </Avatar>
@@ -166,9 +158,9 @@ export function AdminKycItemRow({
               </span>
             </div>
 
-            <p className="text-xs text-muted-foreground">
-              No. Telepon Akun:{' '}
-              <span className="font-mono tabular-nums text-foreground/90">
+            <p className="text-xs text-muted-foreground tabular-nums">
+              No. Telepon:{' '}
+              <span className="text-foreground/90">
                 {item.user.phoneNumber ?? 'Belum diisi'}
               </span>
             </p>
@@ -178,14 +170,14 @@ export function AdminKycItemRow({
         {/* Right: Submitted Bank / E-Wallet Credentials */}
         <div className="sm:col-span-5 flex flex-col sm:items-end justify-center border-t border-border/40 pt-3 sm:border-t-0 sm:pt-0 space-y-1">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+            <span className="text-sm font-semibold tabular-nums text-foreground">
               {item.accountNumber}
             </span>
             <button
               type="button"
               onClick={HandleCopyAccountNumber}
               title="Salin nomor rekening"
-              className="inline-flex items-center gap-1 rounded border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 rounded border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
             >
               {copied ? (
                 <CheckIcon className="size-3 text-emerald-500" />
@@ -197,18 +189,12 @@ export function AdminKycItemRow({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            a.n.{' '}
-            <strong
-              className={cn(
-                'font-medium',
-                isNameMismatch
-                  ? 'text-amber-600 dark:text-amber-300'
-                  : 'text-foreground/90',
-              )}
-            >
-              {item.accountHolderName}
-            </strong>
+            a.n. <strong className="font-medium text-foreground">{item.accountHolderName}</strong>
           </p>
+
+          {isPending && isNameMismatch && (
+            <p className="text-xs text-amber-500">Nama berbeda dengan profil</p>
+          )}
         </div>
       </div>
 
@@ -260,7 +246,7 @@ export function AdminKycItemRow({
           )}
 
           {isVerified && formattedVerifiedAt && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground tabular-nums">
               Diverifikasi pada {formattedVerifiedAt}
             </span>
           )}

@@ -2,7 +2,6 @@ import {
   ArrowLeftIcon,
   CheckIcon,
   LoaderIcon,
-  UsersGroupRoundedIcon,
   VideocameraIcon,
 } from '@solar-icons/react/linear';
 import { useNavigate } from 'react-router';
@@ -23,12 +22,12 @@ import {
 import { CampaignDetailHeroMedia } from './CampaignDetailHeroMedia';
 
 /**
- * Top hero banner for the campaign detail page.
- * Displays breadcrumb back navigation, brand profile, campaign title, prominent CPM rate,
- * metadata pills, dynamic call-to-action buttons based on user role, and media thumbnail.
+ * Clean flat header for the campaign detail page.
+ * Displays back navigation, optional role-guarded lifecycle status label,
+ * brand and type eyebrow, campaign title, tabular CPM rate, cleanly spaced metadata,
+ * creator action controls, and an unobstructed campaign thumbnail.
  *
- * NOTE: The campaign lifecycle status badge is strictly visible only for BRAND and ADMIN roles.
- * CREATOR (clipper) users see only the public campaign details without internal status badges.
+ * NOTE: Campaign lifecycle status is strictly visible only for BRAND and ADMIN roles.
  *
  * @param props - Component properties containing campaign data and authenticated user role.
  * @returns The rendered campaign detail header element.
@@ -85,208 +84,155 @@ export function CampaignDetailHeader({
   };
 
   return (
-    <header
-      className={cn(
-        'relative overflow-hidden -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 lg:-mx-8 lg:-mt-8 w-[calc(100%+2rem)] sm:w-[calc(100%+3rem)] lg:w-[calc(100%+4rem)] px-4 pt-4 sm:px-6 sm:pt-6 lg:px-8 lg:pt-8 pb-8 sm:pb-10 lg:pb-12',
-        className
-      )}>
-      {/* Cinematic Full-Bleed Backdrop Banner with Bottom Gradient Fade */}
-      {campaign.thumbnailUrl ? (
-        <div className="pointer-events-none absolute inset-0 select-none overflow-hidden" aria-hidden="true">
-          <img
-            src={campaign.thumbnailUrl}
-            alt=""
-            className="h-full w-full object-cover object-center scale-105 filter grayscale contrast-105 brightness-60 opacity-40"
-          />
-          {/* Subtle directional gradient from left for typography readability without obscuring the artwork */}
-          <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/60 to-transparent w-full sm:w-4/5 md:w-3/5" />
-          {/* Smooth bottom gradient overlay fading directly into the platform background */}
-          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background via-background/70 to-transparent" />
-        </div>
-      ) : (
-        <div className="pointer-events-none absolute inset-0 select-none overflow-hidden" aria-hidden="true">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-card/50 to-background" />
-          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background via-background/70 to-transparent" />
-        </div>
-      )}
+    <header className={cn('space-y-5 pb-6 border-b border-border/50', className)}>
+      {/* Top navigation row */}
+      <div className="flex items-center justify-between gap-3">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={HandleBackClick}
+          className="h-8 -ml-2 gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2.5"
+        >
+          <ArrowLeftIcon className="size-3.5" />
+          <span>Kembali</span>
+        </Button>
 
-      {/* Foreground Header Content */}
-      <div className="relative z-10 w-full space-y-5 sm:space-y-6">
-        {/* Top navigation row: Back button */}
-        <div className="flex items-center">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={HandleBackClick}
-            className="h-8 -ml-2 gap-1.5 text-xs text-muted-foreground hover:text-foreground bg-background/50 backdrop-blur-md border border-border/40 hover:bg-background/80 rounded-lg px-2.5">
-            <ArrowLeftIcon className="size-3.5" />
-            <span>Kembali</span>
-          </Button>
-        </div>
+        {shouldShowStatusBadge && (
+          <span className="text-xs font-medium text-muted-foreground shrink-0">
+            {statusBadgeConfig.label}
+          </span>
+        )}
+      </div>
 
-        {/* Hero grid: Left content + Right media preview */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-center">
-          {/* Left column: Primary information */}
-          <div className="md:col-span-7 lg:col-span-8 space-y-4">
-            {/* Brand row + Type + Optional Role Status */}
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Brand identity pill */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/70 backdrop-blur-md border border-border/50 text-foreground">
-                <div className="size-4.5 rounded-full bg-primary/20 text-[10px] font-bold text-primary flex items-center justify-center uppercase">
-                  {brandInitial}
+      {/* Hero grid: Left content + Right clean thumbnail */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-center">
+        <div className="md:col-span-7 lg:col-span-8 space-y-3 min-w-0">
+          {/* Brand + Campaign Type eyebrow */}
+          <div className="flex items-center gap-2.5 text-xs font-medium text-muted-foreground min-w-0">
+            <div className="size-5 rounded-full bg-muted text-muted-foreground text-[10px] font-medium flex items-center justify-center uppercase shrink-0">
+              {brandInitial}
+            </div>
+            <span className="truncate">{brandName}</span>
+            <span className="text-muted-foreground/70 shrink-0">{typeBadge}</span>
+          </div>
+
+          {/* Campaign Title */}
+          <h1 className="text-xl sm:text-2xl lg:text-[28px] font-semibold tracking-tight text-foreground leading-snug">
+            {title}
+          </h1>
+
+          {/* Rate / CPM Callout */}
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground tabular-nums">
+              {cpmDisplay}
+            </span>
+            <span className="text-xs text-muted-foreground">/ 1K views</span>
+          </div>
+
+          {/* Cleanly spaced metadata line without bullet points */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-0.5 tabular-nums">
+            <span className="inline-flex items-center gap-1.5 text-foreground/90">
+              <img
+                src="/assets/icons/tiktok.svg"
+                alt="TikTok"
+                className="size-3.5 opacity-75 dark:invert"
+              />
+              <span>TikTok</span>
+            </span>
+            <span>{categoryBadge}</span>
+            <span>{daysRemaining.label}</span>
+            <span>{joinedCountDisplay} kreator bergabung</span>
+          </div>
+
+          {/* Action buttons row for creators */}
+          {userRole === 'CREATOR' && (
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              {isSubmissionLoading ? (
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-9 w-36 rounded-lg" />
+                  <Skeleton className="h-9 w-28 rounded-lg" />
                 </div>
-                <span className="text-xs font-semibold">{brandName}</span>
-              </div>
+              ) : !isJoined ? (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={joinMutation.isPending}
+                    onClick={HandleJoinClick}
+                    className="h-9 px-4 bg-primary text-primary-foreground font-medium hover:bg-primary/90 rounded-lg text-xs cursor-pointer gap-2"
+                  >
+                    {joinMutation.isPending && <LoaderIcon className="size-3.5 animate-spin" />}
+                    <span>Gabung Kampanye</span>
+                  </Button>
 
-              {/* Campaign type pill */}
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-background/70 backdrop-blur-md text-muted-foreground border border-border/50 uppercase tracking-wider">
-                {typeBadge}
-              </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled
+                    title="Silakan gabung kampanye terlebih dahulu untuk mulai mengirim video."
+                    className="h-9 px-4 rounded-lg gap-2 text-xs border-border/60 opacity-50 cursor-not-allowed"
+                  >
+                    <VideocameraIcon className="size-3.5" />
+                    <span>Kirim Video</span>
+                  </Button>
+                </>
+              ) : submissionStatus === 'JOINED' ? (
+                <>
+                  <div className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-muted/50 border border-border/60 text-foreground text-xs font-medium select-none">
+                    <CheckIcon className="size-3.5 text-emerald-500" />
+                    <span>Tergabung</span>
+                  </div>
 
-              {/* Status badge: STRICTLY shown for BRAND and ADMIN only */}
-              {shouldShowStatusBadge && (
-                <span
-                  className={cn(
-                    'inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border backdrop-blur-md',
-                    statusBadgeConfig.className
-                  )}>
-                  {statusBadgeConfig.label}
-                </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={onOpenSubmitDialog}
+                    className="h-9 px-4 bg-primary text-primary-foreground font-medium hover:bg-primary/90 rounded-lg text-xs cursor-pointer gap-2"
+                  >
+                    <VideocameraIcon className="size-3.5" />
+                    <span>Kirim Video</span>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="inline-flex items-center gap-1.5 text-foreground text-xs font-medium select-none">
+                    <CheckIcon className="size-3.5 text-emerald-500" />
+                    <span>
+                      {submissionStatus === 'PENDING_REVIEW'
+                        ? 'Video Sedang Ditinjau'
+                        : submissionStatus === 'APPROVED'
+                          ? 'Video Disetujui'
+                          : submissionStatus === 'REVISION_REQUESTED'
+                            ? 'Perlu Revisi Video'
+                            : 'Video Terkirim'}
+                    </span>
+                  </div>
+
+                  {submissionStatus === 'REVISION_REQUESTED' && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={onOpenSubmitDialog}
+                      className="h-9 px-4 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg text-xs cursor-pointer gap-2"
+                    >
+                      <VideocameraIcon className="size-3.5" />
+                      <span>Perbaiki Video</span>
+                    </Button>
+                  )}
+                </>
               )}
             </div>
+          )}
+        </div>
 
-            {/* Campaign Title */}
-            <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold tracking-tight text-foreground leading-snug drop-shadow-xs">
-              {title}
-            </h1>
-
-            {/* Rate / CPM Callout */}
-            <div className="flex items-baseline gap-1.5 pt-0.5">
-              <span className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground">
-                {cpmDisplay}
-              </span>
-              <span className="text-xs sm:text-sm font-normal text-muted-foreground">
-                / 1K views
-              </span>
-            </div>
-
-            {/* Meta Badges Row */}
-            <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-              {/* Platform chip */}
-              <div
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background/60 backdrop-blur-md border border-border/50 text-foreground font-medium"
-                title={campaign.platform || 'TikTok'}>
-                <img src="/assets/icons/tiktok.svg" alt="TikTok" className="size-3.5 opacity-80 dark:invert" />
-                <span>TikTok</span>
-              </div>
-
-              {/* Category chip */}
-              <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-background/60 backdrop-blur-md border border-border/50 text-muted-foreground font-medium text-[11px] uppercase tracking-wider">
-                {categoryBadge}
-              </span>
-
-              {/* Active duration / Days remaining chip */}
-              <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-background/60 backdrop-blur-md border border-border/50 text-muted-foreground font-medium text-[11px]">
-                {daysRemaining.label}
-              </span>
-
-              {/* Joined Creators chip */}
-              <div
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background/60 backdrop-blur-md border border-border/50 text-muted-foreground font-medium text-[11px]"
-                title={`${joinedCountDisplay} kreator telah bergabung`}>
-                <UsersGroupRoundedIcon className="size-3.5 text-muted-foreground" />
-                <span>{joinedCountDisplay} Kreator Bergabung</span>
-              </div>
-            </div>
-
-            {/* Action buttons row for creators */}
-            {userRole === 'CREATOR' && (
-              <div className="flex flex-wrap items-center gap-3 pt-3">
-                {isSubmissionLoading ? (
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="h-10 w-36 rounded-xl" />
-                    <Skeleton className="h-10 w-28 rounded-xl" />
-                  </div>
-                ) : !isJoined ? (
-                  <>
-                    <Button
-                      type="button"
-                      size="default"
-                      disabled={joinMutation.isPending}
-                      onClick={HandleJoinClick}
-                      className="bg-primary text-primary-foreground font-semibold px-5 shadow-xs hover:bg-primary/90 rounded-xl h-10 text-xs sm:text-sm cursor-pointer gap-2">
-                      {joinMutation.isPending && <LoaderIcon className="size-4 animate-spin" />}
-                      <span>Gabung Kampanye</span>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="default"
-                      disabled
-                      title="Silakan gabung kampanye terlebih dahulu untuk mulai mengirim video."
-                      className="h-10 px-4 rounded-xl gap-2 text-xs sm:text-sm border-border/60 bg-background/40 backdrop-blur-xs opacity-50 cursor-not-allowed">
-                      <VideocameraIcon className="size-4" />
-                      <span>Kirim Video</span>
-                    </Button>
-                  </>
-                ) : submissionStatus === 'JOINED' ? (
-                  <>
-                    <div className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-muted/70 border border-border/60 text-foreground text-xs sm:text-sm font-semibold select-none">
-                      <CheckIcon className="size-4 text-emerald-500" />
-                      <span>Tergabung</span>
-                    </div>
-
-                    <Button
-                      type="button"
-                      size="default"
-                      onClick={onOpenSubmitDialog}
-                      className="bg-primary text-primary-foreground font-semibold px-5 shadow-xs hover:bg-primary/90 rounded-xl h-10 text-xs sm:text-sm cursor-pointer gap-2">
-                      <VideocameraIcon className="size-4" />
-                      <span>Kirim Video</span>
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <div className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm font-semibold select-none">
-                      <CheckIcon className="size-4" />
-                      <span>
-                        {submissionStatus === 'PENDING_REVIEW'
-                          ? 'Video Sedang Ditinjau'
-                          : submissionStatus === 'APPROVED'
-                            ? 'Video Disetujui'
-                            : submissionStatus === 'REVISION_REQUESTED'
-                              ? 'Perlu Revisi Video'
-                              : 'Video Terkirim'}
-                      </span>
-                    </div>
-
-                    {submissionStatus === 'REVISION_REQUESTED' && (
-                      <Button
-                        type="button"
-                        size="default"
-                        onClick={onOpenSubmitDialog}
-                        className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-4 rounded-xl h-10 text-xs sm:text-sm cursor-pointer gap-2">
-                        <VideocameraIcon className="size-4" />
-                        <span>Perbaiki Video</span>
-                      </Button>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Right column: Atmospheric media preview card */}
-          <div className="md:col-span-5 lg:col-span-4 flex justify-start md:justify-end items-center">
-            <CampaignDetailHeroMedia
-              thumbnailUrl={campaign.thumbnailUrl}
-              title={campaign.title}
-              typeBadge={typeBadge}
-              brandName={brandName}
-            />
-          </div>
+        {/* Right column: Clean thumbnail */}
+        <div className="md:col-span-5 lg:col-span-4 flex justify-start md:justify-end items-center">
+          <CampaignDetailHeroMedia
+            thumbnailUrl={campaign.thumbnailUrl}
+            title={campaign.title}
+          />
         </div>
       </div>
     </header>

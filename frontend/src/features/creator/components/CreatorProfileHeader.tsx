@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { CameraIcon, CheckCircleIcon, LoaderIcon } from '@solar-icons/react/linear';
+import { CameraIcon, LoaderIcon } from '@solar-icons/react/linear';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -88,46 +88,54 @@ export function CreatorProfileHeader({
 
           {/* Creator details */}
           <div className="space-y-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
                 {profile.fullName}
               </h1>
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-                <CheckCircleIcon className="size-3" />
-                <span>Akun Creator</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                Akun Creator
               </span>
             </div>
 
             <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
 
             {/* Tags row: Categories + Location + TikTok */}
-            <div className="flex flex-wrap items-center gap-2 pt-0.5">
-              {profile.contentCategories && profile.contentCategories.length > 0 ? (
-                profile.contentCategories.map((category) => {
-                  const match = CONTENT_CATEGORY_OPTIONS.find((opt) => opt.value === category);
-                  const label = match ? match.label : category;
-                  return (
-                    <span
-                      key={category}
-                      className="inline-flex items-center rounded-md bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                      {label}
-                    </span>
-                  );
-                })
-              ) : null}
+            {(() => {
+              const hasCategories = Boolean(
+                profile.contentCategories && profile.contentCategories.length > 0,
+              );
+              const metaItems: string[] = [];
+              if (profile.location) {
+                metaItems.push(profile.location);
+              }
+              if (profile.tiktokAccount?.username) {
+                metaItems.push(`@${profile.tiktokAccount.username}`);
+              }
 
-              {profile.location ? (
-                <span className="text-xs text-muted-foreground">
-                  • {profile.location}
-                </span>
-              ) : null}
+              if (!hasCategories && metaItems.length === 0) {
+                return null;
+              }
 
-              {profile.tiktokAccount ? (
-                <span className="text-xs text-muted-foreground">
-                  • @{profile.tiktokAccount.username}
-                </span>
-              ) : null}
-            </div>
+              return (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-xs text-muted-foreground">
+                  {hasCategories
+                    ? profile.contentCategories.map((category) => {
+                        const match = CONTENT_CATEGORY_OPTIONS.find((opt) => opt.value === category);
+                        const label = match ? match.label : category;
+                        return (
+                          <span key={category}>
+                            {label}
+                          </span>
+                        );
+                      })
+                    : null}
+
+                  {metaItems.map((metaText) => (
+                    <span key={metaText}>{metaText}</span>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </div>
 

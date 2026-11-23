@@ -14,7 +14,6 @@ import type {
   AdminFifoSubmissionItemDto,
 } from '../types';
 import {
-  FormatCompactViews,
   FormatRupiah,
   FormatSubmissionTimestamp,
   GetFreezeReasonLabel,
@@ -24,9 +23,9 @@ import { AdminFifoSubmissionRow } from './AdminFifoSubmissionRow';
 import { AdminFinalizeSettlementDialog } from './AdminFinalizeSettlementDialog';
 
 /**
- * Admin FIFO Settlement & Disqualification Reshuffle panel rendered on Campaign Detail
+ * Admin Settlement & Disqualification panel rendered on Campaign Detail
  * (`/campaigns/:id?tab=admin-submissions`).
- * Presents the 4-column hairline-divided Settlement Ledger Bar and the FIFO submission queue.
+ * Presents a minimalist 4-cell hairline-divided settlement strip and the submission queue.
  *
  * @param props - Component props containing campaignId and optional className.
  * @returns The rendered admin campaign settlement panel.
@@ -90,14 +89,13 @@ export function AdminCampaignSettlementView({
       <div className={cn('space-y-6', className)}>
         <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border/60 bg-border/50 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className="bg-card p-5 space-y-2">
-              <Skeleton className="h-3.5 w-32" />
-              <Skeleton className="h-6 w-36" />
-              <Skeleton className="h-3 w-24" />
+            <div key={i} className="bg-card px-5 py-4.5 space-y-2.5">
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="h-7 w-32" />
             </div>
           ))}
         </div>
-        <div className="rounded-xl border border-border/60 bg-card divide-y divide-border/50">
+        <div className="rounded-xl border border-border/60 bg-card divide-y divide-border/40">
           {Array.from({ length: 3 }, (_, i) => (
             <div key={i} className="p-5 flex items-center justify-between">
               <div className="space-y-2">
@@ -132,81 +130,63 @@ export function AdminCampaignSettlementView({
   }
 
   const isSettled = summary.campaignStatus === 'FINISHED';
-  const activeCount = isSettled ? summary.verifiedCount : summary.approvedCount;
 
   return (
     <div className={cn('space-y-6', className)}>
-      {/* Flat Hairline-Divided 4-Column Settlement Ledger Bar */}
-      <div className="grid grid-cols-1 divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60 bg-card sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
-        {/* Col 1: Total Anggaran Kampanye */}
-        <div className="p-5">
-          <p className="text-xs text-muted-foreground">Total Anggaran Kampanye</p>
-          <p className="mt-1.5 font-mono text-xl font-semibold tracking-tight text-foreground tabular-nums">
+      {/* Minimalist Hairline-Divided 4-Cell Settlement Strip */}
+      <div className="rounded-xl border border-border/60 bg-border/50 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px overflow-hidden">
+        <div className="bg-card px-5 py-4.5 min-w-0">
+          <p className="text-xs font-medium text-muted-foreground truncate">
+            Total Anggaran
+          </p>
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground tabular-nums leading-tight truncate">
             {FormatRupiah(summary.budget)}
           </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            CPM {FormatRupiah(summary.cpm)} / 1K · Min.{' '}
-            {FormatCompactViews(summary.minViews)} views
-          </p>
         </div>
 
-        {/* Col 2: Anggaran Terpakai (Reward Kreator) */}
-        <div className="p-5">
-          <p className="text-xs text-muted-foreground">
-            Anggaran Terpakai (Reward Kreator)
+        <div className="bg-card px-5 py-4.5 min-w-0">
+          <p className="text-xs font-medium text-muted-foreground truncate">
+            Reward Kreator
           </p>
-          <p className="mt-1.5 font-mono text-xl font-semibold tracking-tight text-foreground tabular-nums">
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground tabular-nums leading-tight truncate">
             {FormatRupiah(summary.allocatedCreatorRewards)}
           </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            Dari {activeCount} video yang {isSettled ? 'terverifikasi' : 'disetujui'}
-          </p>
         </div>
 
-        {/* Col 3: Budget Tersisa (Pengembalian ke Brand) */}
-        <div className="p-5">
-          <p className="text-xs text-muted-foreground">
-            Budget Tersisa (Kembali ke Brand)
+        <div className="bg-card px-5 py-4.5 min-w-0">
+          <p className="text-xs font-medium text-muted-foreground truncate">
+            Kembali ke Brand
           </p>
-          <p
-            className={cn(
-              'mt-1.5 font-mono text-xl font-semibold tracking-tight tabular-nums',
-              summary.brandRefundAmount > 0 ? 'text-emerald-500' : 'text-foreground',
-            )}
-          >
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground tabular-nums leading-tight truncate">
             {FormatRupiah(summary.brandRefundAmount)}
           </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            {isSettled
-              ? `Telah dikembalikan ke saldo ${summary.brand.companyName}`
-              : `Akan dikembalikan ke saldo ${summary.brand.companyName}`}
-          </p>
         </div>
 
-        {/* Col 4: Primary Action CTA */}
-        <div className="flex flex-col justify-center bg-muted/15 p-5">
+        <div className="bg-card px-5 py-4.5 flex flex-col justify-center gap-2 min-w-0">
           {isSettled ? (
             <Button
               type="button"
               disabled
               variant="outline"
-              className="h-10 w-full border-emerald-500/30 bg-emerald-500/10 text-xs font-medium text-emerald-500 opacity-100"
+              className="h-9 w-full border-border/70 text-xs font-medium text-muted-foreground opacity-100"
             >
-              Settlement Telah Selesai
+              Settlement Selesai
             </Button>
           ) : (
             <Button
               type="button"
               disabled={!summary.canFinalize || finalizeMutation.isPending}
               onClick={() => setIsFinalizeDialogOpen(true)}
-              className="h-10 w-full bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium"
+              className="h-9 w-full bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium"
             >
-              Setujui & Selesaikan Settlement
+              Setujui &amp; Selesaikan Settlement
             </Button>
           )}
-          <p className="mt-2 text-center text-[11px] text-muted-foreground">
-            Status: {GetFreezeReasonLabel(summary.freezeReason)}
-          </p>
+          {!isSettled && !summary.canFinalize && (
+            <p className="text-center text-xs text-muted-foreground">
+              {GetFreezeReasonLabel(summary.freezeReason)}
+            </p>
+          )}
         </div>
       </div>
 
@@ -219,7 +199,7 @@ export function AdminCampaignSettlementView({
             </strong>{' '}
             Terdapat {summary.disqualifiedCount} video yang didiskualifikasi. Alokasi
             reward otomatis dialihkan ke urutan kreator berikutnya dan sisa{' '}
-            <span className="font-mono font-medium text-foreground">
+            <span className="font-medium text-foreground tabular-nums">
               {FormatRupiah(summary.brandRefundAmount)}
             </span>{' '}
             akan dikembalikan ke saldo Brand.
@@ -236,7 +216,7 @@ export function AdminCampaignSettlementView({
               Perhatian: Terdapat {summary.flaggedSubmissionsCount} Video Terindikasi Dihapus atau Privat
             </p>
             <p className="text-amber-200/90 leading-relaxed">
-              Tayangan video tersebut dibekukan pada nilai terakhir. Silakan tinjau dan lakukan diskualifikasi pada baris video yang bersangkutan jika memang telah dihapus agar alokasi anggaran otomatis dialihkan secara FIFO ke kreator berikutnya.
+              Tayangan video tersebut dibekukan pada nilai terakhir. Silakan tinjau dan lakukan diskualifikasi pada baris video yang bersangkutan jika memang telah dihapus agar alokasi anggaran otomatis dialihkan ke kreator berikutnya.
             </p>
           </div>
         </div>
@@ -244,19 +224,14 @@ export function AdminCampaignSettlementView({
 
       {/* Submissions Queue Section */}
       <div className="overflow-hidden rounded-xl border border-border/60 bg-card">
-        <div className="flex flex-col gap-2 border-b border-border/50 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 border-b border-border/50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-0.5">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-semibold tracking-tight text-foreground">
-                Daftar Pengajuan Video
-              </span>
-              <span className="text-xs text-muted-foreground">
-                · Urutan FIFO
-              </span>
-            </div>
+            <h2 className="text-sm font-medium text-foreground">
+              Daftar Pengajuan Video
+            </h2>
             {summary.lastMetricsSyncedAt && (
-              <p className="text-[11px] text-muted-foreground">
-                Sinkronisasi tayangan terakhir: {FormatSubmissionTimestamp(summary.lastMetricsSyncedAt)}
+              <p className="text-xs text-muted-foreground tabular-nums">
+                Sinkronisasi terakhir: {FormatSubmissionTimestamp(summary.lastMetricsSyncedAt)}
               </p>
             )}
           </div>
@@ -268,7 +243,7 @@ export function AdminCampaignSettlementView({
               size="sm"
               disabled={syncMutation.isPending}
               onClick={() => syncMutation.mutate(campaignId)}
-              className="h-8 shrink-0 gap-1.5 rounded-lg border-border/60 bg-card text-xs font-medium text-foreground hover:bg-muted/40 cursor-pointer"
+              className="h-8 shrink-0 gap-1.5 rounded-lg border-border/70 bg-card text-xs font-medium text-foreground hover:bg-muted/50 cursor-pointer"
             >
               <RestartIcon className={cn('size-3.5', syncMutation.isPending && 'animate-spin')} />
               <span>{syncMutation.isPending ? 'Menyinkronkan...' : 'Sinkronkan Views'}</span>
@@ -287,7 +262,7 @@ export function AdminCampaignSettlementView({
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-border/50">
+          <div className="divide-y divide-border/40">
             {summary.submissions.map((sub) => (
               <AdminFifoSubmissionRow
                 key={sub.id}

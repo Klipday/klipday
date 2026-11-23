@@ -124,7 +124,7 @@ export function ResumeDraftBanner({ className }: ResumeDraftBannerProps) {
                 <FileTextIcon className="size-3.5" />
                 Draf Belum Selesai
               </span>
-              <span className="inline-flex items-center rounded-md border border-border/60 bg-muted/70 px-2 py-0.5 text-xs font-medium text-foreground">
+              <span className="text-xs font-medium text-foreground">
                 {progress.stepBadgeText}
               </span>
             </div>

@@ -136,15 +136,15 @@ export function NotificationsPage({ className = '' }: NotificationsPageProps) {
               onClick={HandleUnreadToggle}
               className={`inline-flex self-start sm:self-auto shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
                 unreadOnly
-                  ? 'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 font-semibold'
+                  ? 'border-foreground/40 bg-muted text-foreground font-semibold'
                   : 'border-border/80 bg-background text-muted-foreground hover:text-foreground'
               }`}
             >
               <FilterIcon className="h-3.5 w-3.5" />
               <span>Hanya Belum Dibaca</span>
               {unreadCount > 0 && (
-                <span className="ml-1 rounded-full bg-rose-500 px-1.5 py-0.2 text-[10px] font-bold text-white">
-                  {unreadCount}
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  ({unreadCount})
                 </span>
               )}
             </button>

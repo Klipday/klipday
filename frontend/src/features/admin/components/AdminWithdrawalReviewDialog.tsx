@@ -101,8 +101,8 @@ function AdminWithdrawalReviewDialogContent({
         </div>
         <div className="flex items-center justify-between text-muted-foreground">
           <span>Rekening Tujuan</span>
-          <span className="font-medium text-foreground truncate max-w-[200px]">
-            {withdrawal.accountProvider} &middot; {withdrawal.accountNumber}
+          <span className="font-medium text-foreground tabular-nums truncate max-w-[200px]">
+            {withdrawal.accountProvider} {withdrawal.accountNumber}
           </span>
         </div>
         <div className="flex items-center justify-between text-muted-foreground">

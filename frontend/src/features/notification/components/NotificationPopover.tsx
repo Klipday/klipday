@@ -60,10 +60,10 @@ export function NotificationPopover({
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border/60 px-4 py-3 bg-muted/20">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <h3 className="text-sm font-semibold text-foreground">Notifikasi</h3>
           {unreadCount > 0 && (
-            <span className="rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2 py-0.5 text-[11px] font-semibold">
+            <span className="text-xs font-medium text-muted-foreground tabular-nums">
               {unreadCount > 9 ? '9+' : unreadCount} baru
             </span>
           )}

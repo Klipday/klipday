@@ -141,49 +141,49 @@ export function GetCampaignStatusBadge(status?: string | null): CampaignStatusBa
     case 'ACTIVE':
       return {
         label: 'Aktif',
-        className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+        className: 'text-emerald-500',
       };
 
     case 'AWAITING_PAYMENT':
       return {
         label: 'Menunggu Pembayaran',
-        className: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+        className: 'text-amber-500',
       };
 
     case 'IN_REVIEW':
       return {
         label: 'Dalam Review',
-        className: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
+        className: 'text-amber-500',
       };
 
     case 'REVISION':
       return {
         label: 'Perlu Revisi',
-        className: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+        className: 'text-amber-500',
       };
 
     case 'REJECTED':
       return {
         label: 'Ditolak',
-        className: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+        className: 'text-destructive',
       };
 
     case 'FINISHED':
       return {
         label: 'Selesai',
-        className: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30',
+        className: 'text-muted-foreground',
       };
 
     case 'DRAFT':
       return {
         label: 'Draf',
-        className: 'bg-zinc-800/80 text-zinc-300 border-zinc-700/50',
+        className: 'text-muted-foreground',
       };
 
     default:
       return {
         label: 'Lainnya',
-        className: 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30',
+        className: 'text-muted-foreground',
       };
   }
 }

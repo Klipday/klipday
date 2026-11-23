@@ -2,12 +2,8 @@ import { useState } from 'react';
 import {
   AddIcon,
   Buildings2Icon,
-  CheckCircleIcon,
-  ClockCircleIcon,
-  CloseCircleIcon,
   DangerCircleIcon,
   SquareTopDownIcon,
-  StarIcon,
   TrashBinTrashIcon,
   WalletIcon,
 } from '@solar-icons/react/linear';
@@ -29,7 +25,7 @@ import {
   UseDeleteCreatorPayoutAccountMutation,
   UseSetPrimaryCreatorPayoutAccountMutation,
 } from '@/features/wallet/hooks';
-import { cn } from '@/lib/utils';
+import { SanitizeHttpUrl, cn } from '@/lib/utils';
 import type { CreatorPayoutAccountsTabProps } from '../types';
 
 /**
@@ -66,11 +62,11 @@ export function CreatorPayoutAccountsTab({ className }: CreatorPayoutAccountsTab
       {/* Tab Header */}
       <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2">
+          <div className="flex flex-wrap items-center justify-between sm:justify-start gap-x-3 gap-y-1">
             <h2 className="text-base font-semibold tracking-tight text-foreground">
               Rekening & E-Wallet Penarikan Saldo
             </h2>
-            <span className="inline-flex shrink-0 items-center rounded-full bg-muted/60 px-2.5 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground whitespace-nowrap">
+            <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground whitespace-nowrap">
               {accounts.length} / 5 Akun
             </span>
           </div>
@@ -158,37 +154,31 @@ export function CreatorPayoutAccountsTab({ className }: CreatorPayoutAccountsTab
                   </div>
 
                   <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                       <span className="text-sm font-semibold text-foreground tracking-tight">
                         {acc.provider}
                       </span>
-                      <span className="text-xs text-muted-foreground font-mono">
+                      <span className="text-xs text-muted-foreground tabular-nums">
                         {acc.accountNumber}
                       </span>
 
-                      {/* Primary Badge */}
                       {acc.isPrimary ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary border border-primary/20">
-                          <StarIcon className="size-3 fill-primary" />
-                          <span>Utama</span>
+                        <span className="text-xs font-medium text-foreground">
+                          Utama
                         </span>
                       ) : null}
 
-                      {/* Verification Status Badge */}
                       {isVerified ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                          <CheckCircleIcon className="size-3" />
-                          <span>Terverifikasi</span>
+                        <span className="text-xs font-medium text-foreground">
+                          Terverifikasi
                         </span>
                       ) : isPending ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                          <ClockCircleIcon className="size-3" />
-                          <span>Menunggu Verifikasi</span>
+                        <span className="text-xs font-medium text-amber-500">
+                          Menunggu Verifikasi
                         </span>
                       ) : isRejected ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive border border-destructive/20">
-                          <CloseCircleIcon className="size-3" />
-                          <span>Ditolak</span>
+                        <span className="text-xs font-medium text-destructive">
+                          Ditolak
                         </span>
                       ) : null}
                     </div>
@@ -206,9 +196,9 @@ export function CreatorPayoutAccountsTab({ className }: CreatorPayoutAccountsTab
                     ) : null}
 
                     {/* Proof Photo Link */}
-                    {acc.proofUrl ? (
+                    {SanitizeHttpUrl(acc.proofUrl) ? (
                       <a
-                        href={acc.proofUrl}
+                        href={SanitizeHttpUrl(acc.proofUrl)!}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 pt-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4">

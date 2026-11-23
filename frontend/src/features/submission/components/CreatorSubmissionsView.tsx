@@ -1,8 +1,5 @@
 import { useState } from 'react';
 import {
-  CheckCircleIcon,
-  ClockCircleIcon,
-  DangerCircleIcon,
   SquareTopDownIcon,
   VideocameraIcon,
 } from '@solar-icons/react/linear';
@@ -68,35 +65,31 @@ export function CreatorSubmissionsView({
 
     return (
       <div className={cn('rounded-2xl border border-border/60 bg-card p-5 sm:p-6 space-y-5', className)}>
-        {/* Header with status badge */}
+        {/* Header with status text */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/40 pb-4">
           <div>
             <h3 className="text-sm font-medium text-foreground">Video Pengajuan Kamu</h3>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center">
             {isPending && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                <ClockCircleIcon className="size-3" />
-                <span>Menunggu Persetujuan Brand</span>
+              <span className="text-xs font-medium text-amber-500">
+                Menunggu Persetujuan Brand
               </span>
             )}
             {isApproved && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                <CheckCircleIcon className="size-3" />
-                <span>Disetujui • Pelacakan Views Aktif</span>
+              <span className="text-xs font-medium text-foreground">
+                Disetujui, Pelacakan Views Aktif
               </span>
             )}
             {isRevision && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30">
-                <DangerCircleIcon className="size-3" />
-                <span>Perlu Revisi</span>
+              <span className="text-xs font-medium text-amber-500">
+                Perlu Revisi
               </span>
             )}
             {isRejected && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-destructive/10 text-destructive border border-destructive/30">
-                <DangerCircleIcon className="size-3" />
-                <span>Ditolak</span>
+              <span className="text-xs font-medium text-destructive">
+                Ditolak
               </span>
             )}
           </div>

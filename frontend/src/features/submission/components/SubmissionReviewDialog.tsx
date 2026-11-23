@@ -154,12 +154,12 @@ function SubmissionReviewDialogInner({
               <p className="text-xs font-semibold text-foreground truncate">
                 {submission.creator?.fullName || 'Kreator Tanpa Nama'}
               </p>
-              <p className="text-[11px] text-muted-foreground truncate">
-                @{submission.socialAccount?.username || 'unknown'}
+              <div className="flex flex-wrap items-center gap-x-3 text-[11px] text-muted-foreground truncate">
+                <span>@{submission.socialAccount?.username || 'unknown'}</span>
                 {submission.socialAccount?.followersCount !== undefined && (
-                  <span> • {FormatCompactCount(submission.socialAccount.followersCount)} followers</span>
+                  <span>{FormatCompactCount(submission.socialAccount.followersCount)} followers</span>
                 )}
-              </p>
+              </div>
             </div>
           </div>
 
@@ -329,7 +329,7 @@ function SubmissionReviewDialogInner({
       )}
 
       {decision === 'ACCEPT' && (
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-[11px] text-muted-foreground leading-relaxed">
+        <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-[11px] text-muted-foreground leading-relaxed">
           Setelah disetujui, video akan langsung terhubung ke sistem verifikasi tayangan otomatis Klipday dan kreator dapat mulai mengumpulkan tayangan terverifikasi.
         </div>
       )}

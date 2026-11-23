@@ -7,7 +7,7 @@ import { FormatRupiah } from '../utils/formatters';
 
 /**
  * Renders an individual top-up row item in the Admin Brand Top-Up verification queue.
- * Displays reference code, brand metadata, transfer amounts, proof preview trigger, and review actions.
+ * Uses pure typographic hierarchy without pill badges or monospace currency clutter.
  *
  * @param props - Component props containing topUp, onOpenProof, onReview, and optional className.
  * @returns The rendered row item.
@@ -25,6 +25,22 @@ export function AdminTopUpItemRow({
 
   const brandInitial = topUp.brand.companyName.slice(0, 2).toUpperCase() || 'BR';
 
+  const statusLabel = isSubmitted
+    ? 'Perlu Verifikasi'
+    : isPending
+      ? 'Menunggu Transfer'
+      : isApproved
+        ? 'Disetujui'
+        : 'Ditolak';
+
+  const statusTextClassName = isSubmitted
+    ? 'text-amber-500'
+    : isPending
+      ? 'text-muted-foreground'
+      : isRejected
+        ? 'text-destructive'
+        : 'text-foreground';
+
   const formattedDate = new Date(topUp.createdAt).toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'short',
@@ -40,35 +56,16 @@ export function AdminTopUpItemRow({
         className,
       )}
     >
-      {/* Top Header: Reference Code, Status Pill, Creation Date */}
+      {/* Top Header: Reference Code (left) vs Status & Creation Date (right) */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-3">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-sm font-semibold text-foreground">
-            {topUp.referenceCode}
-          </span>
-          {isSubmitted && (
-            <span className="inline-flex items-center rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:text-blue-400">
-              Perlu Verifikasi
-            </span>
-          )}
-          {isPending && (
-            <span className="inline-flex items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
-              Menunggu Transfer
-            </span>
-          )}
-          {isApproved && (
-            <span className="inline-flex items-center rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-              Disetujui
-            </span>
-          )}
-          {isRejected && (
-            <span className="inline-flex items-center rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-              Ditolak
-            </span>
-          )}
-        </div>
+        <span className="text-sm font-semibold tabular-nums text-foreground">
+          {topUp.referenceCode}
+        </span>
 
-        <span className="text-xs text-muted-foreground">{formattedDate}</span>
+        <div className="flex items-center gap-x-4 text-xs">
+          <span className={cn('font-medium', statusTextClassName)}>{statusLabel}</span>
+          <span className="text-muted-foreground tabular-nums">{formattedDate}</span>
+        </div>
       </div>
 
       {/* Middle Body: Brand & Sender vs Financials */}
@@ -81,7 +78,7 @@ export function AdminTopUpItemRow({
               alt={topUp.brand.companyName}
               className="rounded-full object-cover"
             />
-            <AvatarFallback className="rounded-full text-xs font-semibold text-muted-foreground">
+            <AvatarFallback className="rounded-full text-xs font-medium text-muted-foreground">
               {brandInitial}
             </AvatarFallback>
           </Avatar>
@@ -109,10 +106,8 @@ export function AdminTopUpItemRow({
 
         {/* Financial Details (5 cols) */}
         <div className="sm:col-span-5 flex flex-col sm:items-end justify-center">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-            Total Transfer
-          </p>
-          <p className="font-mono text-base font-semibold tabular-nums text-foreground">
+          <p className="text-xs text-muted-foreground">Total Transfer</p>
+          <p className="text-base font-semibold tabular-nums text-foreground mt-0.5">
             {FormatRupiah(topUp.totalPayable)}
           </p>
         </div>
@@ -141,7 +136,7 @@ export function AdminTopUpItemRow({
               <span>Lihat Bukti Struk</span>
             </Button>
           ) : (
-            <span className="text-xs text-muted-foreground italic">
+            <span className="text-xs text-muted-foreground">
               Belum ada bukti struk yang diunggah
             </span>
           )}
@@ -174,7 +169,7 @@ export function AdminTopUpItemRow({
           )}
 
           {isApproved && topUp.verifiedAt && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground tabular-nums">
               Disetujui pada {new Date(topUp.verifiedAt).toLocaleDateString('id-ID')}
             </span>
           )}

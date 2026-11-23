@@ -57,11 +57,14 @@ export function CreatorSubmissionsToolbar({
               {count !== undefined && count > 0 && (
                 <span
                   className={cn(
-                    'inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold bg-muted text-muted-foreground',
-                    isActive && 'bg-primary/10 text-primary',
-                    hasRevisionAlert && 'bg-orange-500/20 text-orange-600 dark:text-orange-400 font-bold',
+                    'text-[11px] tabular-nums',
+                    isActive
+                      ? 'text-foreground/80 font-medium'
+                      : hasRevisionAlert
+                        ? 'text-amber-500 font-medium'
+                        : 'text-muted-foreground',
                   )}>
-                  {count}
+                  ({count})
                 </span>
               )}
             </button>

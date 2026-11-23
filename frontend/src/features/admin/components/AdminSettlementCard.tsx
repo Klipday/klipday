@@ -9,8 +9,7 @@ import {
 
 /**
  * Minimalist campaign settlement card for the Admin Settlement queue.
- * Displays brand name, freeze trigger badge, campaign title, CPM rule,
- * "Anggaran Terpakai" progress bar, and approved submissions count.
+ * Uses pure typographic hierarchy without pill badges, bullet points, or neon amount colors.
  * Clicking navigates directly to `/campaigns/:id?tab=admin-submissions`.
  *
  * @param props - Component props containing the settlement campaign card DTO.
@@ -30,6 +29,12 @@ export function AdminSettlementCard({ campaign }: AdminSettlementCardProps) {
   const activeClipCount = isFinished
     ? campaign.verifiedSubmissionsCount
     : campaign.approvedSubmissionsCount;
+
+  const statusTextClassName = isFinished
+    ? 'text-foreground'
+    : isBudgetFull
+      ? 'text-amber-500'
+      : 'text-muted-foreground';
 
   const HandleNavigateToDetail = () => {
     navigate(`/campaigns/${campaign.id}?tab=admin-submissions`);
@@ -52,21 +57,12 @@ export function AdminSettlementCard({ campaign }: AdminSettlementCardProps) {
       )}
     >
       <div className="space-y-4">
-        {/* Top Row: Brand Name & Freeze Trigger Badge */}
+        {/* Top Row: Brand Name & Plain Status Text */}
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-xs font-medium text-muted-foreground">
             {campaign.brand.companyName}
           </span>
-          <span
-            className={cn(
-              'shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium',
-              isFinished
-                ? 'border border-emerald-500/25 bg-emerald-500/10 text-emerald-500'
-                : isBudgetFull
-                  ? 'border border-amber-500/25 bg-amber-500/10 text-amber-500'
-                  : 'border border-border/60 bg-muted/60 text-muted-foreground',
-            )}
-          >
+          <span className={cn('shrink-0 text-xs font-medium', statusTextClassName)}>
             {GetFreezeReasonLabel(campaign.freezeReason)}
           </span>
         </div>
@@ -76,17 +72,17 @@ export function AdminSettlementCard({ campaign }: AdminSettlementCardProps) {
           <h3 className="line-clamp-1 text-[15px] font-semibold tracking-tight text-foreground group-hover:text-primary transition-colors">
             {campaign.title}
           </h3>
-          <p className="text-xs text-muted-foreground">
-            CPM {FormatRupiah(campaign.cpm)} / 1K · Min.{' '}
-            {FormatCompactViews(campaign.minViews)} views
-          </p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground tabular-nums">
+            <span>CPM {FormatRupiah(campaign.cpm)} / 1K</span>
+            <span>Min. {FormatCompactViews(campaign.minViews)} views</span>
+          </div>
         </div>
 
         {/* Anggaran Terpakai Progress */}
         <div className="space-y-2 pt-1">
           <div className="flex items-center justify-between gap-2 text-xs">
             <span className="text-muted-foreground">Anggaran Terpakai</span>
-            <span className="font-mono font-medium text-foreground tabular-nums">
+            <span className="font-medium text-foreground tabular-nums">
               {FormatRupiah(campaign.allocatedEarnings)} / {FormatRupiah(campaign.budget)}
             </span>
           </div>
@@ -111,14 +107,7 @@ export function AdminSettlementCard({ campaign }: AdminSettlementCardProps) {
         <span>
           {activeClipCount} Video {isFinished ? 'Terverifikasi' : 'Disetujui'}
         </span>
-        <span
-          className={cn(
-            'font-medium tabular-nums',
-            campaign.remainingRefund > 0
-              ? 'text-emerald-500'
-              : 'text-foreground',
-          )}
-        >
+        <span className="font-medium text-foreground tabular-nums">
           {campaign.remainingRefund > 0
             ? `Sisa ${FormatRupiah(campaign.remainingRefund)}`
             : 'Penuh (Sisa Rp 0)'}

@@ -52,19 +52,19 @@ export function BrandTopUpRequestItemRow({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center justify-between gap-2">
-            <h4 className="font-mono text-sm font-semibold text-foreground">
+            <h4 className="text-sm font-semibold tabular-nums text-foreground">
               {topUp.referenceCode}
             </h4>
             {isRejected ? (
-              <span className="inline-flex shrink-0 items-center rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+              <span className="shrink-0 text-xs font-medium text-destructive">
                 Bukti Ditolak
               </span>
             ) : isPending ? (
-              <span className="inline-flex shrink-0 items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+              <span className="shrink-0 text-xs font-medium text-amber-500">
                 Menunggu Transfer
               </span>
             ) : (
-              <span className="inline-flex shrink-0 items-center rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:text-blue-400">
+              <span className="shrink-0 text-xs font-medium text-amber-500">
                 Menunggu Verifikasi
               </span>
             )}
@@ -74,9 +74,10 @@ export function BrandTopUpRequestItemRow({
             {FormatRupiah(topUp.totalPayable)}
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            {topUp.destinationBank} &middot; Dibuat {FormatDateIndonesian(topUp.createdAt)}
-          </p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground tabular-nums">
+            <span>{topUp.destinationBank}</span>
+            <span>Dibuat {FormatDateIndonesian(topUp.createdAt)}</span>
+          </div>
 
           {isRejected && topUp.rejectionReason && (
             <p className="mt-2 rounded-lg border border-destructive/20 bg-destructive/10 p-2 text-xs text-destructive">

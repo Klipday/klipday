@@ -31,12 +31,12 @@ export function CampaignPaymentSenderAssistant({
         className,
       )}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2.5">
           <span className="text-xs font-semibold text-foreground tracking-tight">
             Asisten Pengisian Cepat
           </span>
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-            • Rekening KYC
+          <span className="text-xs text-muted-foreground">
+            Rekening KYC
           </span>
         </div>
         <span className="text-[11px] text-muted-foreground">
@@ -77,18 +77,17 @@ export function CampaignPaymentSenderAssistant({
                   : 'border-border/60 bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground',
                 disabled && 'opacity-50 cursor-not-allowed',
               )}>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <span className="font-semibold text-foreground uppercase">{acc.provider}</span>
-                <span className="font-mono text-[11px] text-muted-foreground group-hover:text-foreground transition-colors">
+                <span className="text-xs tabular-nums text-muted-foreground group-hover:text-foreground transition-colors">
                   {maskedAccount}
                 </span>
               </div>
-              <span className="text-muted-foreground/50">•</span>
               <span className="truncate max-w-[130px] sm:max-w-[180px]" title={acc.accountHolderName}>
                 {acc.accountHolderName}
               </span>
               {acc.isPrimary ? (
-                <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                <span className="text-xs font-medium text-foreground">
                   Utama
                 </span>
               ) : null}

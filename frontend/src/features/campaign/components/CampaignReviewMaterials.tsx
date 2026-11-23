@@ -46,7 +46,7 @@ export function CampaignReviewMaterials({ materials, onEdit }: CampaignReviewMat
               return (
                 <div key={itemKey} className="flex items-center justify-between p-3.5 text-sm">
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="shrink-0 rounded-md border border-border bg-muted/60 px-2 py-0.5 text-xs font-medium text-foreground">
+                    <span className="shrink-0 text-xs font-medium text-muted-foreground">
                       {label}
                     </span>
                     <span className="font-medium text-foreground truncate">{material.name}</span>

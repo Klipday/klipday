@@ -341,21 +341,21 @@ export function WalletWithdrawalDialog({
                         }}
                         className={accountCardClassName}>
                         <div className="space-y-0.5">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-2.5">
                             <span className="font-semibold text-foreground">{acc.provider}</span>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                            <span className="text-xs text-muted-foreground">
                               {isBank ? 'Transfer Bank' : 'E-Wallet'}
                             </span>
                             {acc.isPrimary ? (
-                              <span className="rounded-full bg-primary/20 px-1.5 py-0.2 text-[9px] font-semibold text-primary">
+                              <span className="text-xs font-medium text-foreground">
                                 Utama
                               </span>
                             ) : null}
                           </div>
-                          <p className="font-mono text-muted-foreground tabular-nums">
-                            {acc.accountNumber}
-                            <span className="font-sans text-muted-foreground/80"> • a.n. {acc.accountHolderName}</span>
-                          </p>
+                          <div className="flex flex-wrap items-center gap-x-3 text-muted-foreground tabular-nums">
+                            <span>{acc.accountNumber}</span>
+                            <span>a.n. {acc.accountHolderName}</span>
+                          </div>
                         </div>
 
                         <div className={radioDotClassName}>

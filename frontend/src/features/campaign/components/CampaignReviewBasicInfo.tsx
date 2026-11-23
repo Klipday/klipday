@@ -64,16 +64,10 @@ export function CampaignReviewBasicInfo({ campaign, onEdit }: CampaignReviewBasi
           <div className="min-w-0 flex-1 space-y-2.5">
             <div>
               <h3 className="text-sm sm:text-base font-semibold text-foreground tracking-tight">{titleDisplay}</h3>
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="rounded-md border border-border/70 bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                  {categoryLabel}
-                </span>
-                <span className="rounded-md border border-border/70 bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                  {typeLabel}
-                </span>
-                <span className="rounded-md border border-border/70 bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                  {platformLabel}
-                </span>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 text-xs text-muted-foreground">
+                <span>{categoryLabel}</span>
+                <span>{typeLabel}</span>
+                <span>{platformLabel}</span>
               </div>
             </div>
 

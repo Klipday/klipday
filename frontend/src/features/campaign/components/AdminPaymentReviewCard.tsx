@@ -95,7 +95,7 @@ export function AdminPaymentReviewCard({
               Verifikasi Pembayaran Manual
             </CardTitle>
           </div>
-          <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
+          <span className="text-xs font-medium text-amber-500">
             Menunggu Verifikasi Admin
           </span>
         </div>
