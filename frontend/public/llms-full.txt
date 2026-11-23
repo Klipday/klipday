@@ -65,6 +65,6 @@ A: Pencairan mendukung transfer ke rekening Bank Central Asia (BCA), Bank Mandir
 - **Negara Operasi**: Indonesia (ID)
 - **Bahasa Layanan**: Bahasa Indonesia
 - **Mata Uang**: Rupiah (IDR / Rp)
-- **Komunitas Discord**: https://discord.gg/S2wYRNt7Q
-- **Dukungan Pelanggan**: support@klipday.com
+- **Komunitas Discord**: https://discord.gg/zzMgga7eZ
+- **Dukungan Pelanggan**: https://wa.me/628998732627 (08998732627)
 - **Akun Resmi**: TikTok (@klipday), Instagram (@klipday)

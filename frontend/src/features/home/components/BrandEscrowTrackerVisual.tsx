@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion';
 import { ShieldCheckIcon } from '@solar-icons/react/linear';
+import { BRAND_ESCROW_CLIP_ROWS } from '../constants/home.constants';
 import type { BrandEscrowTrackerVisualProps } from '../types';
 
 /**
- * Interactive Micro-UI simulating Brand Pay-Per-Views deduction and Auto-Refund telemetry.
- * Displays live Rekber Klipday locked budget balance, single-line verified views deduction (-Rp 2.880.000),
- * bot/invalid traffic immunity (Rp 0 Gratis), and remaining saldo guarantee.
- * All rows strictly fit on a single horizontal line with whitespace-nowrap.
+ * Interactive Micro-UI simulating live campaign performance and pay-per-views deduction.
+ * Displays campaign budget progress, real clip thumbnail rows with valid view counts,
+ * and remaining refundable balance in neutral sans-serif tabular numerals.
  *
  * @param props - Component properties including optional className.
  * @returns The rendered Brand Escrow Tracker Micro-UI.
@@ -22,66 +22,74 @@ export function BrandEscrowTrackerVisual({ className = '' }: BrandEscrowTrackerV
         aria-hidden="true"
       />
 
-      {/* Floating Card (w-[288px]) */}
-      <motion.div
-        animate={{
-          y: [-2, 2, -2],
-        }}
-        transition={{
-          duration: 4,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-        className="relative z-10 w-full max-w-[288px] p-3 sm:p-3.5 rounded-2xl bg-zinc-900/90 border border-white/10 space-y-2.5 shadow-2xl backdrop-blur-md text-left"
-      >
-        {/* Header: Dana Rekber & Locked Balance */}
-        <div className="flex items-center justify-between pb-2 border-b border-white/5">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <ShieldCheckIcon className="size-3.5 text-rose-500 shrink-0" />
-            <span className="text-[11px] text-zinc-400 whitespace-nowrap">
-              Dana Rekber
-            </span>
-          </div>
-          <span className="text-xs font-bold text-white font-mono tabular-nums whitespace-nowrap">
-            Rp 10.000.000
-          </span>
-        </div>
-
-        {/* 2 Clean Single-Line Metric Rows: Verified Deduction vs Bot Immunity */}
+      {/* Main Performance & Escrow Card */}
+      <div className="relative z-10 w-full max-w-[278px] rounded-2xl bg-zinc-900/95 border border-white/10 p-3 sm:p-3.5 shadow-2xl backdrop-blur-md space-y-2.5 text-left">
+        {/* Header: Escrow Budget */}
         <div className="space-y-1.5">
-          {/* Row 1 (Verified): 240K Views Valid */}
-          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
-            <span className="text-[11px] text-zinc-200 whitespace-nowrap font-medium flex items-center gap-1">
-              <span className="text-emerald-400 font-bold">✓</span>
-              <span>240K Views Valid</span>
-            </span>
-            <span className="text-[11px] font-mono font-semibold text-emerald-400 tabular-nums whitespace-nowrap">
-              - Rp 2.880.000
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <ShieldCheckIcon className="size-3.5 text-rose-400 shrink-0" />
+              <span className="text-[11px] font-medium text-zinc-300 truncate">
+                Saldo Campaign
+              </span>
+            </div>
+            <span className="text-xs font-semibold text-white tabular-nums whitespace-nowrap">
+              Rp 10.000.000
             </span>
           </div>
 
-          {/* Row 2 (Bot/Invalid): 12K Trafik Bot */}
-          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/[0.02] border border-white/5">
-            <span className="text-[11px] text-zinc-500 whitespace-nowrap flex items-center gap-1">
-              <span className="text-zinc-500">✕</span>
-              <span>12K Trafik Bot</span>
-            </span>
-            <span className="text-[11px] font-mono text-zinc-500 whitespace-nowrap">
-              Rp 0 (Gratis)
-            </span>
+          <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
+            <motion.div
+              initial={{ width: '0%' }}
+              animate={{ width: '29%' }}
+              transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+              className="h-full rounded-full bg-gradient-to-r from-rose-500 to-rose-400"
+            />
           </div>
         </div>
 
-        {/* Row 3 (Footer Refund Box): Sisa Saldo Utuh */}
-        <div className="bg-zinc-950/90 border border-white/5 rounded-xl px-2.5 py-1.5 flex items-center justify-between">
-          <span className="text-[11px] text-zinc-400 whitespace-nowrap">
-            Sisa Saldo Utuh
-          </span>
-          <span className="text-[11px] font-bold text-rose-400 font-mono tabular-nums whitespace-nowrap">
+        {/* Middle: Real Clip Thumbnail Performance Rows */}
+        <div className="divide-y divide-white/[0.06] border-t border-white/[0.06]">
+          {BRAND_ESCROW_CLIP_ROWS.map((row) => (
+            <div
+              key={row.id}
+              className="flex items-center justify-between gap-2.5 py-2"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <img
+                  src={row.thumbnailSrc}
+                  alt={row.thumbnailAlt}
+                  width={56}
+                  height={56}
+                  loading="lazy"
+                  decoding="async"
+                  className="size-7 rounded-lg object-cover object-center border border-white/10 shrink-0"
+                />
+                <div className="min-w-0">
+                  <span className="block truncate text-[11px] font-medium text-zinc-200">
+                    {row.handle}
+                  </span>
+                  <span className="block text-[9px] text-zinc-400 tabular-nums">
+                    {row.views}
+                  </span>
+                </div>
+              </div>
+
+              <span className="text-[11px] font-semibold text-emerald-400 tabular-nums whitespace-nowrap shrink-0">
+                {row.cost}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer: Refundable Remainder */}
+        <div className="border-t border-white/[0.06] pt-2 flex items-center justify-between gap-2 text-[11px] whitespace-nowrap">
+          <span className="text-zinc-400">Sisa saldo kembali</span>
+          <span className="font-semibold text-white tabular-nums">
             Rp 7.120.000
           </span>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

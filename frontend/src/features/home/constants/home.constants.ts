@@ -3,9 +3,11 @@ import type {
   AutomatedPayoutCampaignRow,
   BenefitAudienceContent,
   BottomBannerAudienceContent,
+  BrandEscrowClipRowItem,
+  BrandMultiplierClipItem,
   FaqHeaderContent,
   FaqItem,
-  FloatingPayoutChannelItem,
+  FooterLinkColumn,
   HeroAudienceContent,
   HeroPayoutShareCardItem,
   HeroVideoClipStageItem,
@@ -174,48 +176,56 @@ export const HOME_HOW_IT_WORKS_CONTENT: Record<AudienceType, HowItWorksAudienceC
   },
 } as const;
 
-export const FLOATING_PAYOUT_CHANNELS: readonly FloatingPayoutChannelItem[] = [
+export const BRAND_MULTIPLIER_PHONE_CLIPS: readonly BrandMultiplierClipItem[] = [
   {
-    id: 'bca',
-    label: 'BCA',
-    dotClassName: 'bg-sky-400',
-    positionClassName: 'top-2.5 left-3 sm:left-6 -rotate-3',
-    delay: 0,
+    id: 'brand-clip-left',
+    handle: '@maya_cut',
+    views: '84K',
+    thumbnailSrc: '/assets/images/clip-maya.webp',
+    thumbnailAlt: 'Cuplikan video produk gaya ulasan cepat oleh @maya_cut',
+    rotate: -7,
+    yRange: [4, -4, 4],
+    duration: 4.4,
   },
   {
-    id: 'bri',
-    label: 'BRI',
-    dotClassName: 'bg-blue-400',
-    positionClassName: 'top-2 left-1/2 -translate-x-1/2 rotate-2',
-    delay: 0.4,
+    id: 'brand-clip-center',
+    handle: '@adit_clipper',
+    views: '142K',
+    thumbnailSrc: '/assets/images/clip-adit.webp',
+    thumbnailAlt: 'Cuplikan video produk utama di FYP oleh @adit_clipper',
+    rotate: 0,
+    yRange: [-5, 5, -5],
+    duration: 3.8,
+    isFocal: true,
   },
   {
-    id: 'dana',
-    label: 'DANA',
-    dotClassName: 'bg-cyan-400',
-    positionClassName: 'top-2.5 right-3 sm:right-6 rotate-3',
-    delay: 0.2,
+    id: 'brand-clip-right',
+    handle: '@fajar_edit',
+    views: '61K',
+    thumbnailSrc: '/assets/images/clip-fajar.webp',
+    thumbnailAlt: 'Cuplikan video highlight fitur produk oleh @fajar_edit',
+    rotate: 7,
+    yRange: [3, -5, 3],
+    duration: 4.8,
+  },
+] as const;
+
+export const BRAND_ESCROW_CLIP_ROWS: readonly BrandEscrowClipRowItem[] = [
+  {
+    id: 'escrow-clip-1',
+    handle: '@maya_cut',
+    views: '142K views',
+    cost: '-Rp 1.704.000',
+    thumbnailSrc: '/assets/images/clip-maya.webp',
+    thumbnailAlt: 'Thumbnail klip @maya_cut',
   },
   {
-    id: 'mandiri',
-    label: 'Mandiri',
-    dotClassName: 'bg-amber-400',
-    positionClassName: 'bottom-2.5 left-3 sm:left-6 rotate-3',
-    delay: 0.6,
-  },
-  {
-    id: 'ovo',
-    label: 'OVO',
-    dotClassName: 'bg-violet-400',
-    positionClassName: 'bottom-2 left-1/2 -translate-x-1/2 -rotate-2',
-    delay: 0.8,
-  },
-  {
-    id: 'gopay',
-    label: 'GoPay',
-    dotClassName: 'bg-emerald-400',
-    positionClassName: 'bottom-2.5 right-3 sm:right-6 -rotate-3',
-    delay: 1.0,
+    id: 'escrow-clip-2',
+    handle: '@fajar_edit',
+    views: '98K views',
+    cost: '-Rp 1.176.000',
+    thumbnailSrc: '/assets/images/clip-fajar.webp',
+    thumbnailAlt: 'Thumbnail klip @fajar_edit',
   },
 ] as const;
 
@@ -246,7 +256,7 @@ export const HOME_BENEFITS_CONTENT: Record<AudienceType, BenefitAudienceContent>
     payoutCard: {
       title: 'Kumpul Rp50.000 Langsung Tarik',
       description:
-        'Nggak usah nunggu tanggal tua buat nikmatin hasil editanmu. Begitu saldo nyentuh Rp50.000, langsung cairin ke rekening BCA, Mandiri, BRI, atau saldo DANA, GoPay, dan OVO.',
+        'Nggak usah nunggu akhir bulan buat nikmatin hasil editanmu. Begitu saldo nyentuh Rp50.000, langsung cairin ke rekening bank atau e-wallet pilihanmu kapan aja.',
       statusLabel: 'Saldo Tersedia',
       statusValue: 'Siap Ditarik',
       amountOrProtection: 'Rp 500.000',
@@ -302,15 +312,16 @@ export const HOME_MANIFESTO_CONTENT: Record<AudienceType, ManifestoAudienceConte
       'Gabung jadi bagian dari kami dan raih jutaan rupiah dari setiap views yang kamu dapet.',
   },
   brand: {
-    line1: '“Berhenti Bakar Duit Marketing.',
+    line1: '“Berhenti Bakar Duit buat Marketing.',
     line2: 'Raih Jutaan Views,',
-    line3: 'Dominasi Media Sosial.”',
+    line3: 'dari Ratusan Video Viral Produkmu.”',
     subtitle:
-      'Gabung sekarang untuk kuasai market media sosial lewat jutaan views organik dan bayar cuma buat penayangan asli.',
+      'Cukup bayar untuk penayangan asli, sementara ratusan clipper membantu produkmu terus muncul di FYP setiap hari.',
   },
 } as const;
 
-export const DEFAULT_DISCORD_INVITE_URL = 'https://discord.gg/S2wYRNt7Q';
+export const DEFAULT_DISCORD_INVITE_URL = 'https://discord.gg/zzMgga7eZ';
+export const DEFAULT_WHATSAPP_SUPPORT_URL = 'https://wa.me/628998732627';
 
 export const HOME_BOTTOM_BANNER_CONTENT: Record<AudienceType, BottomBannerAudienceContent> = {
   creator: {
@@ -393,10 +404,32 @@ export const HOME_FAQS: readonly FaqItem[] = [
   },
 ] as const;
 
-export const HOME_FOOTER_LINKS: readonly NavLinkItem[] = [
-  { label: 'Syarat & Ketentuan', href: '/syarat-ketentuan' },
-  { label: 'Kebijakan Privasi', href: '/kebijakan-privasi' },
-  { label: 'Kontak Support', href: 'mailto:support@klipday.com', isExternal: true },
+export const HOME_FOOTER_COLUMNS: readonly FooterLinkColumn[] = [
+  {
+    title: 'Platform',
+    links: [
+      { label: 'Cara Kerja', href: '#cara-kerja' },
+      { label: 'Benefit', href: '#benefit' },
+      { label: 'Masuk', href: '/signin' },
+      { label: 'Daftar Akun', href: '/signup' },
+    ],
+  },
+  {
+    title: 'Bantuan',
+    links: [
+      { label: 'FAQ', href: '/faq' },
+      { label: 'Peraturan Platform', href: '/peraturan' },
+      { label: 'Komunitas Discord', href: DEFAULT_DISCORD_INVITE_URL, isExternal: true },
+      { label: 'Kontak Support', href: DEFAULT_WHATSAPP_SUPPORT_URL, isExternal: true },
+    ],
+  },
+  {
+    title: 'Legal',
+    links: [
+      { label: 'Syarat & Ketentuan', href: '/syarat-ketentuan' },
+      { label: 'Kebijakan Privasi', href: '/kebijakan-privasi' },
+    ],
+  },
 ] as const;
 
 export const AUTOMATED_PAYOUT_CAMPAIGN_ROWS: readonly AutomatedPayoutCampaignRow[] = [

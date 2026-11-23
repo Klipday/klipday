@@ -1,62 +1,48 @@
-import { ArrowLeftIcon } from '@solar-icons/react/linear';
-import { Link } from 'react-router';
 import { cn } from '@/lib/utils';
-import { UseCurrentAccountQuery } from '@/features/authentication/hooks';
 import type { HelpHeaderProps, HelpTabType } from '../types';
 
 /**
  * Header section component for the knowledge hub.
- * Features a left-aligned back button above the title, clean anti-slop typography (without badges),
- * and an edge-to-edge segmented control with FAQ on the left and Rules on the right.
+ * Features centered typography and an edge-to-edge segmented control switching between FAQ and Rules.
  *
  * @param props - Active tab state and tab selection callback.
  * @returns The rendered knowledge hub header.
  */
 export function HelpHeader({ activeTab, onTabChange, className = '' }: HelpHeaderProps) {
-  const { data: userProfile } = UseCurrentAccountQuery();
   const containerClasses = cn('space-y-6', className);
 
+  /**
+   * Switches the active knowledge hub tab between FAQ and platform rules.
+   *
+   * @param tab - Target tab identifier.
+   */
   const HandleTabSelect = (tab: HelpTabType) => {
     onTabChange(tab);
   };
 
-  const backDestination = userProfile ? '/dashboard' : '/';
-  const backLabel = userProfile ? 'Kembali ke Dashboard' : 'Kembali';
-
   return (
     <div className={containerClasses}>
-      {/* Left-aligned Back Button positioned directly above the title */}
-      <div className="flex items-center justify-start">
-        <Link
-          to={backDestination}
-          className="group inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 transition-colors hover:text-white"
-        >
-          <ArrowLeftIcon className="size-3.5 transition-transform duration-150 group-hover:-translate-x-0.5 text-zinc-400 group-hover:text-white" />
-          <span>{backLabel}</span>
-        </Link>
-      </div>
-
-      {/* Centered Title & Subtitle without badge */}
-      <div className="space-y-2 text-center max-w-2xl mx-auto">
+      {/* Centered Title & Subtitle */}
+      <div className="mx-auto max-w-2xl space-y-2 text-center">
         <h1 className="font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-          FAQ & Peraturan Klipday
+          FAQ &amp; Peraturan Klipday
         </h1>
-        <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-xl mx-auto">
+        <p className="mx-auto max-w-xl text-xs leading-relaxed text-zinc-400 sm:text-sm">
           Pelajari aturan main, hak dan kewajiban Brand maupun Creator, serta jawaban atas pertanyaan umum seputar ekosistem Klipday.
         </p>
       </div>
 
       {/* Edge-to-Edge Segmented Control: FAQ on Left, Rules on Right */}
       <div className="flex justify-center">
-        <div className="inline-flex rounded-full border border-white/10 bg-zinc-900/60 p-0 overflow-hidden divide-x divide-white/10">
+        <div className="inline-flex divide-x divide-white/10 overflow-hidden rounded-full border border-white/10 bg-zinc-900/60 p-0">
           <button
             type="button"
             onClick={() => HandleTabSelect('faq')}
             className={cn(
-              'px-5 py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer first:rounded-l-full',
+              'cursor-pointer px-5 py-2 text-xs font-semibold transition-all first:rounded-l-full sm:text-sm',
               activeTab === 'faq'
                 ? 'bg-primary text-primary-foreground shadow-xs'
-                : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                : 'text-zinc-400 hover:bg-white/5 hover:text-white'
             )}
           >
             Pertanyaan Umum (FAQ)
@@ -66,10 +52,10 @@ export function HelpHeader({ activeTab, onTabChange, className = '' }: HelpHeade
             type="button"
             onClick={() => HandleTabSelect('rules')}
             className={cn(
-              'px-5 py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer last:rounded-r-full',
+              'cursor-pointer px-5 py-2 text-xs font-semibold transition-all last:rounded-r-full sm:text-sm',
               activeTab === 'rules'
                 ? 'bg-primary text-primary-foreground shadow-xs'
-                : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                : 'text-zinc-400 hover:bg-white/5 hover:text-white'
             )}
           >
             Peraturan Platform (Rules)

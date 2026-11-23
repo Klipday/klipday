@@ -8,6 +8,11 @@ export interface NavLinkItem {
   readonly isExternal?: boolean;
 }
 
+export interface FooterLinkColumn {
+  readonly title: string;
+  readonly links: readonly NavLinkItem[];
+}
+
 export interface HowItWorksStepItem {
   readonly stepNumber: string;
   readonly badgeText: string;
@@ -83,12 +88,25 @@ export interface HeroPayoutShareCardItem {
   readonly isLive?: boolean;
 }
 
-export interface FloatingPayoutChannelItem {
+export interface BrandMultiplierClipItem {
   readonly id: string;
-  readonly label: string;
-  readonly dotClassName: string;
-  readonly positionClassName: string;
-  readonly delay: number;
+  readonly handle: string;
+  readonly views: string;
+  readonly thumbnailSrc: string;
+  readonly thumbnailAlt: string;
+  readonly rotate: number;
+  readonly yRange: readonly number[];
+  readonly duration: number;
+  readonly isFocal?: boolean;
+}
+
+export interface BrandEscrowClipRowItem {
+  readonly id: string;
+  readonly handle: string;
+  readonly views: string;
+  readonly cost: string;
+  readonly thumbnailSrc: string;
+  readonly thumbnailAlt: string;
 }
 
 export interface AutomatedPayoutCampaignRow {
@@ -233,6 +251,18 @@ export interface BrandClipReviewVisualProps {
 }
 
 export interface BrandEscrowTrackerVisualProps {
+  readonly className?: string;
+}
+
+export interface CreatorInstantPayoutVisualProps {
+  readonly className?: string;
+}
+
+export interface BrandContentMultiplierVisualProps {
+  readonly className?: string;
+}
+
+export interface BrandEscrowRefundVisualProps {
   readonly className?: string;
 }
 

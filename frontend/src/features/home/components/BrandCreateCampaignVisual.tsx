@@ -1,11 +1,10 @@
 import { motion } from 'framer-motion';
-import { ArrowRightIcon, ClapperboardIcon } from '@solar-icons/react/linear';
+import { PlayIcon } from '@solar-icons/react/linear';
 import type { BrandCreateCampaignVisualProps } from '../types';
 
 /**
- * Interactive Micro-UI simulating Brand Campaign Setup & Footage Upload.
- * Displays raw footage upload dropzone ('footage-produk.mp4'), 2-column Total Budget & Rate inputs,
- * an animated cursor clicking the rate input and gliding to click 'Tayangkan Campaign ->'.
+ * Interactive Micro-UI simulating Brand Campaign Setup with a real video preview frame,
+ * budget & CPM metrics, and a smooth Framer Motion playback scrubber.
  *
  * @param props - Component properties including optional className.
  * @returns The rendered Brand Campaign Creation Micro-UI.
@@ -21,114 +20,92 @@ export function BrandCreateCampaignVisual({ className = '' }: BrandCreateCampaig
         aria-hidden="true"
       />
 
-      {/* Main Campaign Creation Card */}
-      <div className="relative z-10 w-full max-w-[280px] p-3 sm:p-3.5 rounded-2xl bg-zinc-900/90 border border-white/10 space-y-2.5 shadow-2xl backdrop-blur-md text-left">
-        {/* Row 1: Raw Footage Upload Box */}
-        <div className="p-2.5 rounded-xl bg-zinc-950/80 border border-dashed border-white/15 flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="size-6 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
-              <ClapperboardIcon className="size-3 text-rose-400" />
+      {/* Ghost Depth Card */}
+      <div
+        className="pointer-events-none absolute -top-1 w-[82%] max-w-[238px] h-44 rounded-2xl bg-zinc-950/80 border border-white/5 opacity-40 scale-95 blur-[1px] -translate-y-2"
+        aria-hidden="true"
+      />
+
+      {/* Main Campaign Setup Card */}
+      <div className="relative z-10 w-full max-w-[264px] rounded-2xl bg-zinc-900/95 border border-white/10 overflow-hidden shadow-2xl backdrop-blur-md text-left">
+        {/* Top 16:9 Real Video Preview Frame */}
+        <div className="relative h-24 w-full overflow-hidden bg-zinc-950">
+          <img
+            src="/assets/images/clip-adit.webp"
+            alt="Preview materi video produk untuk kampanye"
+            width={400}
+            height={225}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover object-center brightness-90 contrast-105"
+          />
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/55 via-black/15 to-black/80"
+            aria-hidden="true"
+          />
+
+          {/* Top Frame Caption & Duration */}
+          <div className="relative z-10 flex items-center justify-between px-3 pt-2 text-[10px]">
+            <span className="font-medium text-white drop-shadow">
+              Materi Video Produk
+            </span>
+            <span className="text-zinc-300 tabular-nums drop-shadow">
+              04:12
+            </span>
+          </div>
+
+          {/* Center Translucent Play Button */}
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+            <div className="size-7 rounded-full bg-black/55 border border-white/25 backdrop-blur-xs flex items-center justify-center text-white shadow-lg">
+              <PlayIcon className="size-3.5 fill-white ml-0.5" />
             </div>
-            <span className="text-[11px] font-medium text-zinc-200 truncate">
-              footage-produk.mp4
-            </span>
-          </div>
-          <span className="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
-            Uploaded ✓
-          </span>
-        </div>
-
-        {/* Row 2: 2-Column Budget & CPM Inputs */}
-        <div className="grid grid-cols-2 gap-2">
-          {/* Left Box: Total Budget */}
-          <div className="p-2 rounded-xl bg-zinc-950 border border-white/5 space-y-0.5">
-            <span className="block text-[9px] text-zinc-500 whitespace-nowrap">
-              Total Budget
-            </span>
-            <span className="block text-[11px] font-bold text-white tabular-nums whitespace-nowrap">
-              Rp 5.000.000
-            </span>
           </div>
 
-          {/* Right Box: Rate per 1K Views (Target of first cursor click) */}
-          <motion.div
-            animate={{
-              borderColor: [
-                'rgba(244, 63, 94, 0.4)',
-                'rgba(244, 63, 94, 0.9)',
-                'rgba(244, 63, 94, 0.9)',
-                'rgba(244, 63, 94, 0.4)',
-                'rgba(244, 63, 94, 0.4)',
-              ],
-              scale: [1, 0.97, 1.02, 1, 1],
-            }}
-            transition={{
-              duration: 5,
-              repeat: Infinity,
-              times: [0, 0.22, 0.35, 0.55, 1],
-              ease: 'easeInOut',
-            }}
-            className="p-2 rounded-xl bg-zinc-950 border border-rose-500/50 bg-rose-500/5 space-y-0.5 relative"
-          >
-            <span className="block text-[9px] text-rose-300/80 whitespace-nowrap">
-              Rate per 1K Views
-            </span>
-            <span className="block text-[11px] font-bold text-white tabular-nums whitespace-nowrap">
-              Rp 12.000
-            </span>
-          </motion.div>
+          {/* Animated Bottom Playback Scrubber */}
+          <div className="absolute inset-x-0 bottom-0 z-10 h-[2.5px] bg-white/15">
+            <motion.div
+              animate={{ width: ['18%', '82%', '18%'] }}
+              transition={{ duration: 4.8, repeat: Infinity, ease: 'easeInOut' }}
+              className="h-full bg-rose-500"
+            />
+          </div>
         </div>
 
-        {/* Row 3: Action Bar (Right-aligned CTA button) */}
-        <div className="flex justify-end pt-0.5">
-          <motion.div
-            animate={{
-              scale: [1, 1, 1, 0.95, 1.03, 1],
-              boxShadow: [
-                'none',
-                'none',
-                'none',
-                '0 0 14px rgba(225, 29, 72, 0.6)',
-                '0 0 14px rgba(225, 29, 72, 0.6)',
-                'none',
-              ],
-            }}
-            transition={{
-              duration: 5,
-              repeat: Infinity,
-              times: [0, 0.5, 0.62, 0.72, 0.85, 1],
-              ease: 'easeInOut',
-            }}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-rose-600 text-white text-[10px] font-semibold whitespace-nowrap shadow-sm"
-          >
-            <span>Tayangkan Campaign</span>
-            <ArrowRightIcon className="size-2.5" />
-          </motion.div>
+        {/* Bottom 2-Column Budget & CPM Details */}
+        <div className="p-3 space-y-2.5">
+          <div className="grid grid-cols-2 divide-x divide-white/[0.08]">
+            <div className="space-y-0.5 pr-2">
+              <span className="block text-[9px] text-zinc-400 whitespace-nowrap">
+                Total Budget
+              </span>
+              <span className="block text-xs font-semibold text-white tabular-nums whitespace-nowrap">
+                Rp 5.000.000
+              </span>
+            </div>
+
+            <div className="space-y-0.5 pl-3">
+              <span className="block text-[9px] text-zinc-400 whitespace-nowrap">
+                Rate / 1K Views
+              </span>
+              <span className="block text-xs font-semibold text-rose-400 tabular-nums whitespace-nowrap">
+                Rp 12.000
+              </span>
+            </div>
+          </div>
+
+          <div className="border-t border-white/[0.06] pt-2 flex items-center justify-between text-[10px] whitespace-nowrap">
+            <span className="text-zinc-400">Status Campaign</span>
+            <span className="inline-flex items-center gap-1.5 font-medium text-emerald-400">
+              <motion.span
+                animate={{ scale: [1, 1.35, 1], opacity: [0.65, 1, 0.65] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                className="size-1.5 rounded-full bg-emerald-400"
+              />
+              <span>Siap Tayang</span>
+            </span>
+          </div>
         </div>
       </div>
-
-      {/* Animated SVG Mouse Cursor (Clicks Rp 12.000 then Tayangkan Campaign) */}
-      <motion.svg
-        animate={{
-          x: [60, 40, 40, 40, 75, 75, 75, 60],
-          y: [50, -5, -5, -5, 45, 45, 45, 50],
-          scale: [1, 1, 0.85, 1, 1, 0.85, 1, 1],
-          opacity: [0, 1, 1, 1, 1, 1, 1, 0],
-        }}
-        transition={{
-          duration: 5,
-          repeat: Infinity,
-          times: [0, 0.2, 0.25, 0.4, 0.65, 0.72, 0.85, 1],
-          ease: 'easeInOut',
-        }}
-        className="pointer-events-none absolute z-20 size-5 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        stroke="black"
-        strokeWidth="1.5"
-      >
-        <path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.85a.5.5 0 0 0-.85.36z" />
-      </motion.svg>
     </div>
   );
 }

@@ -276,7 +276,7 @@ function SidebarCommunityCard({ collapsed, onItemClick }: SidebarCommunityCardPr
 function SidebarHelpSection({ collapsed, onItemClick }: SidebarHelpSectionProps) {
   const location = useLocation();
   const supportPhone =
-    (import.meta.env.VITE_WHATSAPP_SUPPORT_PHONE as string | undefined) || '6281288997700';
+    (import.meta.env.VITE_WHATSAPP_SUPPORT_PHONE as string | undefined) || '628998732627';
   const whatsappUrl = `https://wa.me/${supportPhone}?text=${encodeURIComponent('Halo Admin Klipday, saya butuh bantuan mengenai akun saya.')}`;
   const isFaqActive = IsRouteActive(location.pathname, '/faq');
 

@@ -1,101 +1,124 @@
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { KlipdayLogo } from '@/components';
-import { HOME_FOOTER_LINKS } from '../constants/home.constants';
-import type { HomeFooterProps } from '../types';
+import { HOME_FOOTER_COLUMNS } from '../constants/home.constants';
+import type { HomeFooterProps, NavLinkItem } from '../types';
+
+const FOOTER_LINK_CLASS =
+  'text-sm text-zinc-400 transition-colors hover:text-white';
 
 /**
- * Minimalist dark-mode SaaS footer component for Klipday.
- * Features a top 1px gradient horizon line with crimson glow,
- * brand mark with essential legal/support links, copyright bar,
- * and a signature giant watermark wordmark.
+ * Renders an individual footer navigation link using an anchor for hash/external destinations
+ * or a React Router Link for internal application routes.
  *
- * @param props - Component properties.
- * @returns The rendered footer element.
+ * @param link - Footer navigation link definition.
+ * @param isHomePage - Whether the current route is the landing page (`/`).
+ * @returns The rendered anchor or router link element.
+ */
+function RenderFooterLink(link: NavLinkItem, isHomePage: boolean) {
+  if (link.isExternal) {
+    const isMailto = link.href.startsWith('mailto:');
+    return (
+      <a
+        href={link.href}
+        {...(!isMailto ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+        className={FOOTER_LINK_CLASS}
+      >
+        {link.label}
+      </a>
+    );
+  }
+
+  if (link.href.startsWith('#')) {
+    const resolvedHref = isHomePage ? link.href : `/${link.href}`;
+    return (
+      <a href={resolvedHref} className={FOOTER_LINK_CLASS}>
+        {link.label}
+      </a>
+    );
+  }
+
+  return (
+    <Link to={link.href} className={FOOTER_LINK_CLASS}>
+      {link.label}
+    </Link>
+  );
+}
+
+/**
+ * Minimalist, edge-aligned 3-column dark footer shared across the landing page and public info pages.
+ * Presents Klipday's brand summary alongside structured Platform, Bantuan, and Legal links.
+ *
+ * @param props - Component properties including optional className.
+ * @returns The rendered footer landmark element.
  */
 export function HomeFooter({ className = '' }: HomeFooterProps) {
+  const location = useLocation();
+  const isHomePage = location.pathname === '/';
+  const currentYear = new Date().getFullYear();
+
   /**
-   * Scrolls smoothly to the top of the landing page on brand logo click.
+   * Scrolls smoothly back to the top on landing page logo clicks, or routes home from sub-pages.
    *
-   * @param event - The mouse click event.
-   * @returns void
+   * @param event - Anchor click event.
    */
-  const HandleBrandClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+  function HandleBrandClick(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (!isHomePage) {
+      return;
+    }
+
     event.preventDefault();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }
 
-  const footerClasses = `relative bg-[#09090B] pt-16 pb-0 overflow-hidden ${className}`.trim();
+  const footerClasses =
+    `w-full border-t border-white/[0.08] bg-[#09090B] ${className}`.trim();
 
   return (
     <footer className={footerClasses}>
-      {/* 1. Top Horizon Divider with Subtle Centered Crimson Glow */}
-      <div className="absolute top-0 inset-x-0 w-full overflow-hidden pointer-events-none">
-        <div className="h-px w-full bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-        <div
-          className="w-1/2 h-24 bg-rose-500/[0.04] blur-3xl mx-auto -mt-12 pointer-events-none"
-          aria-hidden="true"
-        />
-      </div>
+      <div className="mx-auto max-w-5xl px-4 sm:px-6">
+        <div className="grid grid-cols-1 gap-10 py-12 sm:py-16 md:grid-cols-12">
+          {/* Brand Identity */}
+          <div className="space-y-4 md:col-span-5">
+            <div>
+              <Link
+                to="/"
+                onClick={HandleBrandClick}
+                className="inline-flex items-center transition-opacity hover:opacity-90"
+              >
+                <KlipdayLogo size="md" />
+              </Link>
+            </div>
 
-      {/* 2. Brand Mark & Essential Legal / Support Links */}
-      <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-start md:items-end justify-between gap-8 pb-12">
-        <div className="space-y-4">
-          <div>
-            <Link
-              to="/"
-              onClick={HandleBrandClick}
-              className="inline-flex items-center transition-opacity hover:opacity-90"
-            >
-              <KlipdayLogo size="md" />
-            </Link>
+            <p className="max-w-xs text-sm leading-relaxed text-zinc-400">
+              Platform kolaborasi brand dan clipper untuk distribusi konten video pendek berbasis penayangan asli.
+            </p>
           </div>
 
-          <p className="text-sm text-zinc-400 max-w-xs leading-relaxed">
-            Klip everyday, cuan everyday. Marketplace kreator klip video &amp; brand nomor satu di Indonesia.
-          </p>
+          {/* 3-Column Navigation Links */}
+          <nav
+            aria-label="Footer navigation"
+            className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:col-span-7"
+          >
+            {HOME_FOOTER_COLUMNS.map((column) => (
+              <div key={column.title}>
+                <h3 className="text-xs font-medium tracking-tight text-zinc-200">
+                  {column.title}
+                </h3>
+                <ul className="mt-4 space-y-2.5">
+                  {column.links.map((link) => (
+                    <li key={link.label}>{RenderFooterLink(link, isHomePage)}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </nav>
         </div>
 
-        <nav aria-label="Footer navigation" className="flex flex-wrap items-center gap-x-8 gap-y-3">
-          {HOME_FOOTER_LINKS.map((link) => {
-            if (link.isExternal) {
-              const isMailto = link.href.startsWith('mailto:');
-              return (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  {...(!isMailto ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                  className="text-sm text-zinc-400 hover:text-white transition-colors"
-                >
-                  {link.label}
-                </a>
-              );
-            }
-
-            return (
-              <Link
-                key={link.label}
-                to={link.href}
-                className="text-sm text-zinc-400 hover:text-white transition-colors"
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* 3. Subtle Copyright Bar */}
-      <div className="max-w-6xl mx-auto px-6 py-6 border-t border-white/[0.05] flex items-center justify-between text-xs text-zinc-500">
-        <div>
-          &copy; {new Date().getFullYear()} Klipday. All rights reserved.
+        {/* Bottom Copyright Strip */}
+        <div className="flex flex-col items-start justify-between gap-2 border-t border-white/[0.06] py-6 text-xs text-zinc-500 sm:flex-row sm:items-center">
+          <p>&copy; {currentYear} Klipday. Seluruh hak cipta dilindungi.</p>
+          <p>Klip everyday, cuan everyday.</p>
         </div>
-      </div>
-
-      {/* 4. Bottom Giant Clipped Watermark Wordmark (Signature SaaS Finish) */}
-      <div className="w-full overflow-hidden flex justify-center select-none pointer-events-none pt-2 -mb-6 sm:-mb-10">
-        <span className="text-[18vw] sm:text-[15vw] font-black tracking-tighter leading-none bg-gradient-to-b from-white/[0.06] via-white/[0.02] to-transparent bg-clip-text text-transparent">
-          KLIPDAY.
-        </span>
       </div>
     </footer>
   );

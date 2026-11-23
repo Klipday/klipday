@@ -168,7 +168,7 @@ export const CREATOR_SUBMISSION_STATUS_CONFIG: Record<
   },
 };
 
-export const DEFAULT_DISCORD_COMMUNITY_URL = 'https://discord.gg/S2wYRNt7Q';
+export const DEFAULT_DISCORD_COMMUNITY_URL = 'https://discord.gg/zzMgga7eZ';
 
 export const ADMIN_DASHBOARD_MESSAGES = {
   TITLE_PREFIX: 'Halo, ',
