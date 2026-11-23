@@ -4,12 +4,13 @@ import { Outlet, useLocation } from 'react-router';
 import { UseCurrentAccountQuery } from '@/features/authentication/hooks';
 import { DashboardSidebar, DashboardTopBar } from '@/features/dashboard/components';
 import { NavbarProvider } from '@/features/dashboard/context';
+import { SyncRoutePageSeo } from '@/lib/seo';
 
 /**
  * Main dashboard layout orchestrator.
  * Wraps the dashboard layout shell in a NavbarProvider, combining the sticky top bar,
  * the role-dynamic left sidebar navigation, and the main scrollable content outlet.
- * Automatically resets scroll position of the main content view to the top on route transitions.
+ * Automatically resets scroll position and updates document SEO/title on route transitions.
  *
  * @returns The full-height dashboard layout shell.
  */
@@ -19,6 +20,7 @@ function DashboardLayout() {
   const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
+    SyncRoutePageSeo(location.pathname);
     mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [location.pathname]);
 

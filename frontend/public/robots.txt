@@ -9,11 +9,14 @@ Allow: /syarat-ketentuan
 Allow: /kebijakan-privasi
 Allow: /signin
 Allow: /signup
+Allow: /llms.txt
+Allow: /llms-full.txt
 Disallow: /creator-dashboard/
 Disallow: /brand-dashboard/
 Disallow: /admin-dashboard/
 Disallow: /dashboard/
 Disallow: /notifications/
+Disallow: /campaigns/
 Disallow: /api/
 
 # Explicit permissions for Generative Search & AI Agents

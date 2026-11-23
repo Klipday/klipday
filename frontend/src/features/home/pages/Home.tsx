@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useGSAP } from '@gsap/react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { UpdatePageSeo } from '@/lib/seo';
+import { SyncRoutePageSeo } from '@/lib/seo';
 import {
   HomeActivityTicker,
   HomeBenefits,
@@ -32,12 +32,7 @@ function HomePage() {
   const [activeAudience, setActiveAudience] = useState<AudienceType>('creator');
 
   useEffect(() => {
-    UpdatePageSeo({
-      title: 'Klipday - Platform Clipper Video Pendek TikTok No. 1 di Indonesia',
-      description:
-        'Platform marketplace clipper video pendek TikTok no. 1 di Indonesia. Cuan per 1.000 views valid walau akun 0 followers, payout cepat mulai Rp50.000, 100% proteksi Rekber bebas boncos.',
-      canonicalPath: '/',
-    });
+    SyncRoutePageSeo('/');
   }, []);
 
   return (

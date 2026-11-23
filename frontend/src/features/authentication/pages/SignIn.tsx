@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { UpdatePageSeo } from '@/lib/seo';
+import { SyncRoutePageSeo } from '@/lib/seo';
 import { SignInForm } from '../components';
 
 /**
@@ -12,11 +12,7 @@ import { SignInForm } from '../components';
  */
 function SignIn() {
   useEffect(() => {
-    UpdatePageSeo({
-      title: 'Masuk ke Akun Klipday - Platform Clipper TikTok',
-      description: 'Masuk ke akun Klipday untuk memantau campaign, memeriksa performa klip video TikTok, dan mencairkan saldo komisi.',
-      canonicalPath: '/signin',
-    });
+    SyncRoutePageSeo('/signin');
   }, []);
   return (
     <Card className="w-full max-w-sm">

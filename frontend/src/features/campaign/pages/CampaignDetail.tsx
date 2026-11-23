@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Navigate, useParams, useSearchParams } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Navigate, useLocation, useParams, useSearchParams } from 'react-router';
+import { UpdatePageSeo } from '@/lib/seo';
 import { cn } from '@/lib/utils';
 import { UseCurrentAccountQuery } from '@/features/authentication/hooks';
 import { CampaignSubmissionsTab, SubmissionDialog } from '@/features/submission/components';
@@ -31,6 +32,7 @@ import { ResolveCampaignWizardStepPath } from '../utils';
  */
 function CampaignDetailPage({ className }: CampaignDetailPageProps) {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'detail';
 
@@ -47,6 +49,19 @@ function CampaignDetailPage({ className }: CampaignDetailPageProps) {
   const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
   const { data: userProfile, isLoading: isProfileLoading } = UseCurrentAccountQuery();
   const { data: campaign, isLoading: isCampaignLoading, isError, error, refetch } = UseCampaignQuery(id);
+
+  useEffect(() => {
+    if (!campaign?.title) {
+      return;
+    }
+
+    UpdatePageSeo({
+      title: `${campaign.title} - Klipday`,
+      description: `Detail kampanye ${campaign.title}, panduan brief, materi video sumber, dan pengajuan klip di Klipday.`,
+      canonicalPath: location.pathname,
+      noIndex: true,
+    });
+  }, [campaign?.title, location.pathname]);
 
   const isCreator = userProfile?.role === 'CREATOR';
   const { isLoading: isSubmissionLoading } = UseMyCampaignSubmissionQuery(isCreator && id ? id : undefined);

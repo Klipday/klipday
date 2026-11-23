@@ -12,6 +12,7 @@ import {
 } from '../components';
 import { CAMPAIGN_WIZARD_STEPS, GetWizardStepPath } from '../config/wizard-steps';
 import { UseCampaignQuery } from '../hooks';
+import { SyncRoutePageSeo } from '@/lib/seo';
 import {
   GetHighestAccessibleStepNumber,
   SubscribeCampaignUpdatesAcrossTabs,
@@ -66,6 +67,7 @@ function CampaignWizardLayout() {
   }, [isForbiddenStep]);
 
   useEffect(() => {
+    SyncRoutePageSeo(location.pathname);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     document.querySelector('main')?.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [location.pathname]);
