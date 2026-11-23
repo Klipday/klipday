@@ -9,6 +9,7 @@ export const CREATOR_LIMITS = {
   MIN_CATEGORIES: 1,
   MAX_CATEGORIES: 3,
   MAX_AVATAR_SIZE_BYTES: 5 * 1024 * 1024, // 5 MB
+  IMAGE_SIGNATURE_HEADER_BYTES: 12,
 } as const;
 
 /**
@@ -41,6 +42,7 @@ export const CREATOR_MESSAGES = {
   CATEGORY_COUNT_INVALID: `Pilih antara ${CREATOR_LIMITS.MIN_CATEGORIES} hingga ${CREATOR_LIMITS.MAX_CATEGORIES} kategori konten.`,
   DUPLICATE_CATEGORIES: 'Kategori konten tidak boleh duplikat.',
   UNSUPPORTED_FILE_TYPE: 'Format file tidak didukung. Harap unggah foto JPEG, PNG, atau WebP.',
+  INVALID_IMAGE_SIGNATURE: 'Isi berkas gambar tidak sesuai dengan format yang dipilih (JPEG, PNG, atau WebP).',
   FILE_SIZE_EXCEEDED: 'Ukuran foto profil melebihi batas maksimal 5 MB.',
   CONTENT_LENGTH_REQUIRED: 'Header Content-Length wajib disertakan pada permintaan pengunggahan.',
   STORAGE_CONFIG_MISSING: 'Konfigurasi penyimpanan server belum lengkap.',

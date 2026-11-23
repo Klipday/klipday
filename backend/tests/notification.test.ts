@@ -41,8 +41,8 @@ import {
 } from './helpers/mock-express.js';
 
 describe('Notification Feature & Dispatcher', () => {
-  const mockAccountId = '00000000-0000-0000-0000-000000000001';
-  const mockNotificationId = '11111111-1111-1111-1111-111111111111';
+  const mockAccountId = '00000000-0000-4000-8000-000000000001';
+  const mockNotificationId = '11111111-1111-4111-8111-111111111111';
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -196,19 +196,13 @@ describe('Notification Feature & Dispatcher', () => {
         const existing = {
           id: mockNotificationId,
           accountId: mockAccountId,
-          status: Status.ACTIVE,
-        };
-
-        const updated = {
-          id: mockNotificationId,
-          accountId: mockAccountId,
           type: NotificationType.SUBMISSION_APPROVED,
           category: NotificationCategory.SUBMISSION,
           title: 'Clip Disetujui',
           message: 'Video Anda disetujui',
           actionUrl: null,
-          isRead: true,
-          readAt: new Date(),
+          isRead: false,
+          readAt: null,
           metadata: null,
           status: Status.ACTIVE,
           createdAt: new Date(),
@@ -216,7 +210,7 @@ describe('Notification Feature & Dispatcher', () => {
         };
 
         jest.spyOn(prisma.notification, 'findFirst').mockResolvedValue(existing as never);
-        jest.spyOn(prisma.notification, 'update').mockResolvedValue(updated as never);
+        jest.spyOn(prisma.notification, 'updateMany').mockResolvedValue({ count: 1 } as never);
 
         await MarkNotificationRead(req, res, next);
 
@@ -317,7 +311,7 @@ describe('Notification Feature & Dispatcher', () => {
         const next = CreateMockNext();
 
         jest.spyOn(prisma.notification, 'findFirst').mockResolvedValue({ id: mockNotificationId } as never);
-        jest.spyOn(prisma.notification, 'update').mockResolvedValue({ id: mockNotificationId } as never);
+        jest.spyOn(prisma.notification, 'updateMany').mockResolvedValue({ count: 1 } as never);
 
         await DeleteNotification(req, res, next);
 

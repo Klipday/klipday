@@ -403,6 +403,9 @@ describe('12-Hour Automated Metrics & Escrow Calculation Cron Engine', () => {
       const findExistingSubmissionMock = jest
         .spyOn(prisma.submission, 'findFirst')
         .mockResolvedValue(null);
+      const aggregateMock = jest
+        .spyOn(prisma.submission, 'aggregate')
+        .mockResolvedValue({ _sum: { earnings: new Prisma.Decimal(100_000) } } as never);
 
       const req = CreateMockRequest({
         account: { sub: 'creator-acc', email: 'creator@klipday.com', role: Role.CREATOR },
@@ -421,6 +424,7 @@ describe('12-Hour Automated Metrics & Escrow Calculation Cron Engine', () => {
       findCampaignMock.mockRestore();
       findCreatorMock.mockRestore();
       findExistingSubmissionMock.mockRestore();
+      aggregateMock.mockRestore();
     });
 
     it('rejects FinalSubmitVideo when campaign budget is already 100% allocated', async () => {
@@ -433,9 +437,6 @@ describe('12-Hour Automated Metrics & Escrow Calculation Cron Engine', () => {
           campaignStatus: CampaignStatus.ACTIVE,
           budget: new Prisma.Decimal(50_000),
           endDate: new Date(Date.now() + 86400000),
-          submissions: [
-            { earnings: new Prisma.Decimal(50_000) }, // 100% full
-          ],
         },
       };
 
@@ -445,13 +446,16 @@ describe('12-Hour Automated Metrics & Escrow Calculation Cron Engine', () => {
       const findExistingSubMock = jest
         .spyOn(prisma.submission, 'findFirst')
         .mockResolvedValue(existingSubMock as never);
+      const aggregateMock = jest
+        .spyOn(prisma.submission, 'aggregate')
+        .mockResolvedValue({ _sum: { earnings: new Prisma.Decimal(50_000) } } as never);
 
       const req = CreateMockRequest({
         account: { sub: 'creator-acc', email: 'creator@klipday.com', role: Role.CREATOR },
         params: { id: 'camp-1' },
         body: {
           liveVideoUrl: 'https://www.tiktok.com/@creator/video/1234567890123456789',
-          thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+          thumbnailUrl: 'https://p16-sign-sg.tiktokcdn.com/thumb.jpg',
           videoCaption: 'Klipday campaign video review',
           socialAccountId: '11111111-1111-4111-8111-111111111111',
         },
@@ -468,6 +472,7 @@ describe('12-Hour Automated Metrics & Escrow Calculation Cron Engine', () => {
 
       findCreatorMock.mockRestore();
       findExistingSubMock.mockRestore();
+      aggregateMock.mockRestore();
     });
   });
 });

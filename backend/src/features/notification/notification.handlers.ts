@@ -218,13 +218,29 @@ export async function MarkNotificationRead(
       return;
     }
 
-    const updatedNotification = await prisma.notification.update({
-      where: { id },
+    const readAt = new Date();
+    const markReadResult = await prisma.notification.updateMany({
+      where: {
+        id,
+        accountId: account.sub,
+        status: Status.ACTIVE,
+      },
       data: {
         isRead: true,
-        readAt: new Date(),
+        readAt,
       },
     });
+
+    if (markReadResult.count === 0) {
+      SendError(res, NOTIFICATION_MESSAGES.NOT_FOUND, 404);
+      return;
+    }
+
+    const updatedNotification = {
+      ...existingNotification,
+      isRead: true,
+      readAt,
+    };
 
     const item = MapNotificationToItem(updatedNotification);
     SendSuccess(res, item, NOTIFICATION_MESSAGES.MARK_READ_SUCCESS);
@@ -314,12 +330,21 @@ export async function DeleteNotification(
       return;
     }
 
-    await prisma.notification.update({
-      where: { id },
+    const deleteResult = await prisma.notification.updateMany({
+      where: {
+        id,
+        accountId: account.sub,
+        status: Status.ACTIVE,
+      },
       data: {
         status: Status.DELETED,
       },
     });
+
+    if (deleteResult.count === 0) {
+      SendError(res, NOTIFICATION_MESSAGES.NOT_FOUND, 404);
+      return;
+    }
 
     SendSuccess(res, null, NOTIFICATION_MESSAGES.DELETE_SUCCESS);
   } catch (err) {

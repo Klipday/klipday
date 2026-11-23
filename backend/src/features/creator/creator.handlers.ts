@@ -273,6 +273,88 @@ export async function UpdateCreatorProfile(
 }
 
 /**
+ * Inspects initial file bytes to identify genuine JPEG, PNG, or WEBP signatures
+ * to prevent Content-Type spoofing on creator avatar uploads.
+ *
+ * @param bytes - Leading header bytes buffered from the upload stream.
+ * @returns Detected canonical extension ('jpg' | 'png' | 'webp'), or null if unrecognized.
+ */
+function DetectAvatarImageMagicBytes(bytes: Uint8Array): 'jpg' | 'png' | 'webp' | null {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return 'jpg';
+  }
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) {
+    return 'png';
+  }
+  if (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return 'webp';
+  }
+  return null;
+}
+
+/**
+ * Concatenates buffered header chunks into a single Uint8Array for magic-byte inspection.
+ *
+ * @param chunks - Header chunks buffered from the stream.
+ * @param totalLength - Combined byte length across chunks.
+ * @returns Single contiguous Uint8Array.
+ */
+function MergeAvatarHeaderChunks(chunks: Uint8Array[], totalLength: number): Uint8Array {
+  const merged = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return merged;
+}
+
+/**
+ * Unwraps stream validation error tokens (including Undici fetch cause wrappers).
+ *
+ * @param error - Unknown caught error object.
+ * @returns Known validation error code or null.
+ */
+function ExtractAvatarStreamValidationCode(
+  error: unknown,
+): 'FILE_SIZE_EXCEEDED' | 'INVALID_IMAGE_SIGNATURE' | null {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+  if (error.message === 'FILE_SIZE_EXCEEDED' || error.message === 'INVALID_IMAGE_SIGNATURE') {
+    return error.message;
+  }
+  const errorWithCause = error as Error & { cause?: unknown };
+  if (errorWithCause.cause instanceof Error) {
+    const causeMsg = errorWithCause.cause.message;
+    if (causeMsg === 'FILE_SIZE_EXCEEDED' || causeMsg === 'INVALID_IMAGE_SIGNATURE') {
+      return causeMsg;
+    }
+  }
+  return null;
+}
+
+/**
  * Handles `POST /creator/profile/avatar`:
  * Streams custom avatar photo directly to Supabase Storage with chunk-based byte counting (DoS defense).
  *
@@ -342,18 +424,63 @@ export async function UploadCreatorAvatar(
     }
 
     let bytesReceived = 0;
-    const sizeLimiter = new TransformStream<Uint8Array, Uint8Array>({
+    let headerValidated = false;
+    let headerBufferedLength = 0;
+    let headerChunks: Uint8Array[] = [];
+
+    const streamValidator = new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
         bytesReceived += chunk.byteLength;
         if (bytesReceived > CREATOR_LIMITS.MAX_AVATAR_SIZE_BYTES) {
           controller.error(new Error('FILE_SIZE_EXCEEDED'));
-        } else {
-          controller.enqueue(chunk);
+          return;
         }
+
+        if (headerValidated) {
+          controller.enqueue(chunk);
+          return;
+        }
+
+        headerChunks.push(chunk);
+        headerBufferedLength += chunk.byteLength;
+
+        if (headerBufferedLength >= CREATOR_LIMITS.IMAGE_SIGNATURE_HEADER_BYTES) {
+          const mergedHeader = MergeAvatarHeaderChunks(headerChunks, headerBufferedLength);
+          const detectedExt = DetectAvatarImageMagicBytes(mergedHeader);
+          if (detectedExt !== fileExtension) {
+            controller.error(new Error('INVALID_IMAGE_SIGNATURE'));
+            return;
+          }
+
+          headerValidated = true;
+          headerChunks = [];
+          controller.enqueue(mergedHeader);
+        }
+      },
+      flush(controller) {
+        if (headerValidated) {
+          return;
+        }
+
+        if (headerBufferedLength === 0) {
+          controller.error(new Error('INVALID_IMAGE_SIGNATURE'));
+          return;
+        }
+
+        const mergedHeader = MergeAvatarHeaderChunks(headerChunks, headerBufferedLength);
+        const detectedExt = DetectAvatarImageMagicBytes(mergedHeader);
+        if (detectedExt !== fileExtension) {
+          controller.error(new Error('INVALID_IMAGE_SIGNATURE'));
+          return;
+        }
+
+        headerValidated = true;
+        headerChunks = [];
+        controller.enqueue(mergedHeader);
       },
     });
 
-    const webStream = Readable.toWeb(req).pipeThrough(sizeLimiter);
+    const webStream = Readable.toWeb(req).pipeThrough(streamValidator);
     const storagePath = `creators/${creator.id}/avatar-${Date.now()}.${fileExtension}`;
     const targetUrl = `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/${bucket}/${storagePath}`;
 
@@ -387,8 +514,13 @@ export async function UploadCreatorAvatar(
 
     SendSuccess(res, { url: publicUrl }, CREATOR_MESSAGES.AVATAR_UPLOAD_SUCCESS);
   } catch (error) {
-    if (error instanceof Error && error.message === 'FILE_SIZE_EXCEEDED') {
+    const validationCode = ExtractAvatarStreamValidationCode(error);
+    if (validationCode === 'FILE_SIZE_EXCEEDED') {
       SendError(res, CREATOR_MESSAGES.FILE_SIZE_EXCEEDED, 400);
+      return;
+    }
+    if (validationCode === 'INVALID_IMAGE_SIGNATURE') {
+      SendError(res, CREATOR_MESSAGES.INVALID_IMAGE_SIGNATURE, 400);
       return;
     }
     next(error);

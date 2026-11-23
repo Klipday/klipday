@@ -30,7 +30,7 @@ export const NotificationQuerySchema = z.object({
 });
 
 export const NotificationIdParamSchema = z.object({
-  id: z.string().trim().min(1, 'ID notifikasi tidak valid.'),
+  id: z.string().trim().uuid('ID notifikasi tidak valid.'),
 });
 
 export type NotificationQueryInput = z.infer<typeof NotificationQuerySchema>;

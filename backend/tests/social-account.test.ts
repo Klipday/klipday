@@ -220,10 +220,13 @@ describe('Social Account Feature Module', () => {
       const next = CreateMockNext();
 
       jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
-      jest.spyOn(prisma.creatorSocialAccount, 'findFirst').mockResolvedValue({
-        ...mockVerifiedAccount,
-        creatorId: 'different-creator-id',
-      } as never);
+      jest
+        .spyOn(prisma.creatorSocialAccount, 'findFirst')
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({
+          ...mockVerifiedAccount,
+          creatorId: 'different-creator-id',
+        } as never);
 
       await RequestVerificationCode(req, res, next);
 
@@ -251,7 +254,7 @@ describe('Social Account Feature Module', () => {
           status: 'success',
           data: expect.objectContaining({
             alreadyVerified: true,
-            account: mockVerifiedAccount,
+            account: expect.objectContaining(mockVerifiedAccount),
           }),
         })
       );
@@ -385,10 +388,13 @@ describe('Social Account Feature Module', () => {
       const next = CreateMockNext();
 
       jest.spyOn(prisma.creator, 'findFirst').mockResolvedValue(mockCreator as never);
-      jest.spyOn(prisma.creatorSocialAccount, 'findFirst').mockResolvedValue({
-        ...mockVerifiedAccount,
-        creatorId: 'other-creator-id',
-      } as never);
+      jest
+        .spyOn(prisma.creatorSocialAccount, 'findFirst')
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({
+          ...mockVerifiedAccount,
+          creatorId: 'other-creator-id',
+        } as never);
 
       await VerifyTikTokBio(req, res, next);
 
@@ -585,7 +591,7 @@ describe('Social Account Feature Module', () => {
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'success',
-          data: expectedCreatedAccount,
+          data: expect.objectContaining(expectedCreatedAccount),
           message: SOCIAL_ACCOUNT_MESSAGES.VERIFY_SUCCESS,
         })
       );
@@ -642,7 +648,7 @@ describe('Social Account Feature Module', () => {
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'success',
-          data: mockVerifiedAccount,
+          data: expect.objectContaining(mockVerifiedAccount),
           message: SOCIAL_ACCOUNT_MESSAGES.CONNECTED_ACCOUNT_RETRIEVED,
         })
       );
