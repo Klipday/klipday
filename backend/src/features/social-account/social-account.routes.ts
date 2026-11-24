@@ -4,6 +4,7 @@ import {
   GetAllConnectedSocialAccounts,
   GetConnectedSocialAccount,
   GetRecentTikTokVideos,
+  ProxySocialMediaThumbnail,
   RequestVerificationCode,
   ValidateTikTokVideoUrl,
   VerifyTikTokBio,
@@ -14,6 +15,7 @@ export const socialAccountRouter = Router();
 // All social account endpoints require an active session
 socialAccountRouter.use(RequireAuth);
 
+socialAccountRouter.get('/media-proxy', ProxySocialMediaThumbnail);
 socialAccountRouter.get('/connected/all', GetAllConnectedSocialAccounts);
 socialAccountRouter.get('/connected', GetConnectedSocialAccount);
 

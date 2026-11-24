@@ -39,6 +39,7 @@ export const ALLOWED_THUMBNAIL_HOST_SUFFIXES = [
   'muscdn.com',
   'cdninstagram.com',
   'fbcdn.net',
+  'img.youtube.com',
   'ytimg.com',
   'ggpht.com',
   'googleusercontent.com',

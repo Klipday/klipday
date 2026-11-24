@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CheckIcon, EyeIcon, VideocameraIcon } from '@solar-icons/react/linear';
 import { cn } from '@/lib/utils';
 import type { SubmissionVideoCardProps } from '../types';
-import { FormatCompactCount } from '../utils/submission-utils';
+import { FormatCompactCount, ResolveSocialThumbnailUrl } from '../utils/submission-utils';
 
 /**
  * Interactive card component representing a TikTok video item in the gallery.
@@ -27,6 +27,7 @@ export function SubmissionVideoCard({
   };
 
   const viewCountDisplay = FormatCompactCount(video.viewCount);
+  const resolvedThumbnailUrl = ResolveSocialThumbnailUrl(video.thumbnailUrl);
 
   return (
     <div
@@ -48,9 +49,9 @@ export function SubmissionVideoCard({
       )}>
       {/* Thumbnail Aspect 3/4 Container */}
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted/40">
-        {video.thumbnailUrl && !hasError ? (
+        {resolvedThumbnailUrl && !hasError ? (
           <img
-            src={video.thumbnailUrl}
+            src={resolvedThumbnailUrl}
             alt={video.caption || 'Thumbnail video'}
             referrerPolicy="no-referrer"
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"

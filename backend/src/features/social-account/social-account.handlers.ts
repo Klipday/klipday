@@ -804,9 +804,13 @@ export async function GetRecentTikTokVideos(req: Request, res: Response, next: N
 
     let videos: SocialVideoItem[];
     try {
+      const lookupIdentifier =
+        platform === Platform.YOUTUBE && verifiedAccount.platformUserId
+          ? verifiedAccount.platformUserId
+          : verifiedAccount.username;
       videos = await FetchPlatformRecentVideos(
         platform,
-        verifiedAccount.username,
+        lookupIdentifier,
         TIKTOK_RECENT_VIDEOS_DEFAULT_LIMIT,
       );
     } catch (scraperErr) {
@@ -925,6 +929,101 @@ export async function ValidateTikTokVideoUrl(req: Request, res: Response, next: 
     }
 
     SendSuccess(res, videoDetails, SOCIAL_ACCOUNT_MESSAGES.VIDEO_VALID_SUCCESS);
+  } catch (err) {
+    next(err);
+  }
+}
+
+const ALLOWED_MEDIA_PROXY_HOST_SUFFIXES = ['cdninstagram.com', 'fbcdn.net'] as const;
+const MEDIA_PROXY_TIMEOUT_MS = 10_000;
+const MEDIA_PROXY_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+
+/**
+ * Validates that a media proxy URL is an HTTPS link from an allowlisted Instagram/Meta CDN host.
+ * Prevents SSRF by blocking arbitrary domains, internal IPs, and non-HTTPS schemes.
+ *
+ * @param rawUrl - Raw URL query parameter.
+ * @returns Parsed URL string if safe, or null if disallowed.
+ */
+function ValidateMediaProxyUrl(rawUrl: string): string | null {
+  try {
+    const parsed = new URL(rawUrl.trim());
+    if (parsed.protocol !== 'https:') {
+      return null;
+    }
+    const hostname = parsed.hostname.toLowerCase();
+    const isAllowed = ALLOWED_MEDIA_PROXY_HOST_SUFFIXES.some(
+      (suffix) => hostname === suffix || hostname.endsWith(`.${suffix}`),
+    );
+    return isAllowed ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Handles `GET /social-accounts/media-proxy?url=...`:
+ * Streams Instagram CDN thumbnails through the backend with `Cross-Origin-Resource-Policy: cross-origin`
+ * so browsers can render Instagram Reel covers blocked by Meta's `same-origin` CORP header.
+ *
+ * @param req - Express request containing authenticated session and `url` query param.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function ProxySocialMediaThumbnail(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    if (!req.account) {
+      SendError(res, SOCIAL_ACCOUNT_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    const rawUrl = typeof req.query.url === 'string' ? req.query.url : '';
+    const safeUrl = ValidateMediaProxyUrl(rawUrl);
+
+    if (!safeUrl) {
+      SendError(res, SOCIAL_ACCOUNT_MESSAGES.INVALID_PAYLOAD, 400);
+      return;
+    }
+
+    const upstream = await fetch(safeUrl, {
+      method: 'GET',
+      signal: AbortSignal.timeout(MEDIA_PROXY_TIMEOUT_MS),
+      headers: {
+        Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+      },
+    });
+
+    if (!upstream.ok) {
+      res.status(404).end();
+      return;
+    }
+
+    const contentType = upstream.headers.get('content-type') || '';
+    if (!contentType.toLowerCase().startsWith('image/')) {
+      res.status(400).end();
+      return;
+    }
+
+    const contentLengthHeader = upstream.headers.get('content-length');
+    if (contentLengthHeader && Number(contentLengthHeader) > MEDIA_PROXY_MAX_BYTES) {
+      res.status(413).end();
+      return;
+    }
+
+    const arrayBuffer = await upstream.arrayBuffer();
+    if (arrayBuffer.byteLength > MEDIA_PROXY_MAX_BYTES) {
+      res.status(413).end();
+      return;
+    }
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'private, max-age=1800');
+    res.status(200).send(Buffer.from(arrayBuffer));
   } catch (err) {
     next(err);
   }

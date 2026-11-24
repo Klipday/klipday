@@ -169,6 +169,10 @@ interface ScrapeCreatorsInstagramReelMedia {
   video_url?: string;
   image_versions2?: {
     candidates?: Array<{ url?: string }>;
+    additional_candidates?: {
+      first_frame?: { url?: string };
+      igtv_first_frame?: { url?: string };
+    };
   };
   caption?: {
     text?: string;
@@ -866,7 +870,9 @@ export async function GetInstagramRecentReels(
       media.display_uri ||
       media.display_url ||
       media.thumbnail_src ||
-      media.image_versions2?.candidates?.[0]?.url;
+      media.image_versions2?.candidates?.[0]?.url ||
+      media.image_versions2?.additional_candidates?.first_frame?.url ||
+      media.image_versions2?.additional_candidates?.igtv_first_frame?.url;
 
     const publishedTimestamp = media.taken_at ?? media.taken_at_timestamp;
     const publishedAt = publishedTimestamp
@@ -965,7 +971,9 @@ export async function GetInstagramVideoDetails(
     media.display_url ||
     media.thumbnail_src ||
     media.display_uri ||
-    media.image_versions2?.candidates?.[0]?.url;
+    media.image_versions2?.candidates?.[0]?.url ||
+    media.image_versions2?.additional_candidates?.first_frame?.url ||
+    media.image_versions2?.additional_candidates?.igtv_first_frame?.url;
 
   const publishedTimestamp = media.taken_at_timestamp ?? media.taken_at;
   const publishedAt = publishedTimestamp
@@ -1072,7 +1080,11 @@ export async function GetYouTubeChannelShorts(
   const endpoint = `/v1/youtube/channel/shorts?${queryParam}`;
   const payload = await ScrapeCreatorsRequest<ScrapeCreatorsYouTubeShortsListResponse>(endpoint, options);
 
-  const rawItems = (payload.shorts ?? payload.videos ?? payload.items ?? []).slice(0, limit);
+  const rawList =
+    Array.isArray(payload.shorts) && payload.shorts.length > 0
+      ? payload.shorts
+      : (payload.videos ?? payload.items ?? []);
+  const rawItems = rawList.slice(0, limit);
   const videoItems: SocialVideoItem[] = [];
 
   for (const item of rawItems) {
@@ -1084,10 +1096,14 @@ export async function GetYouTubeChannelShorts(
     const canonicalUrl = `https://www.youtube.com/shorts/${videoId}`;
     const title = item.title?.slice(0, 60) || 'YouTube Short';
     const caption = item.description || item.title || '';
-    const thumbnailUrl =
+    const rawThumb =
       item.thumbnail ||
-      item.thumbnails?.[item.thumbnails.length - 1]?.url ||
-      `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+      item.thumbnails?.[item.thumbnails.length - 1]?.url;
+    // maxresdefault.jpg frequently 404s on mobile-uploaded Shorts; hqdefault.jpg is guaranteed to exist
+    const thumbnailUrl =
+      rawThumb && !rawThumb.includes('/maxresdefault.jpg')
+        ? rawThumb
+        : `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
     const parsedDate = item.publishDate ? new Date(item.publishDate) : new Date();
     const publishedAt = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
@@ -1162,10 +1178,13 @@ export async function GetYouTubeShortDetails(
   const canonicalUrl = `https://www.youtube.com/shorts/${videoId}`;
   const title = item.title?.slice(0, 60) || 'YouTube Short';
   const caption = item.description || item.title || '';
-  const thumbnailUrl =
+  const rawThumb =
     item.thumbnail ||
-    item.thumbnails?.[item.thumbnails.length - 1]?.url ||
-    `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    item.thumbnails?.[item.thumbnails.length - 1]?.url;
+  const thumbnailUrl =
+    rawThumb && !rawThumb.includes('/maxresdefault.jpg')
+      ? rawThumb
+      : `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
   const parsedDate = item.publishDate ? new Date(item.publishDate) : new Date();
   const publishedAt = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;

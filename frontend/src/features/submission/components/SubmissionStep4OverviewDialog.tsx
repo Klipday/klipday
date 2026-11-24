@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { InfoCircleIcon, SquareTopDownIcon, VideocameraIcon } from '@solar-icons/react/linear';
 import { cn, SanitizeHttpUrl } from '@/lib/utils';
 import type { SubmissionStep4OverviewDialogProps } from '../types';
+import { ResolveSocialThumbnailUrl } from '../utils/submission-utils';
 
 /**
  * Step 4 dialog body component: "Konfirmasi & Kirim".
@@ -19,7 +20,7 @@ export function SubmissionStep4OverviewDialog({
 }: SubmissionStep4OverviewDialogProps) {
   const [hasThumbnailError, setHasThumbnailError] = useState(false);
   const liveVideoUrl = selectedVideo?.url;
-  const thumbnailUrl = selectedVideo?.thumbnailUrl;
+  const thumbnailUrl = ResolveSocialThumbnailUrl(selectedVideo?.thumbnailUrl);
   const videoCaption = selectedVideo?.caption;
 
   return (

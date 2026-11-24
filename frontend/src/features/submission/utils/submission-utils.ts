@@ -96,3 +96,35 @@ export function FormatSubmissionDate(dateStr?: string | null): string {
   }).format(date);
   return formatted;
 }
+
+const INSTAGRAM_PROXY_HOST_SUFFIXES = ['cdninstagram.com', 'fbcdn.net'] as const;
+
+/**
+ * Resolves a social video thumbnail URL for safe browser rendering.
+ * Routes Meta/Instagram CDN URLs through the authenticated backend media proxy
+ * so browsers are not blocked by Instagram's `Cross-Origin-Resource-Policy: same-origin` header.
+ *
+ * @param thumbnailUrl - Raw thumbnail URL from ScrapeCreators or database.
+ * @returns Browser-renderable URL string, or undefined if absent.
+ */
+export function ResolveSocialThumbnailUrl(thumbnailUrl?: string | null): string | undefined {
+  if (!thumbnailUrl || thumbnailUrl.trim() === '') {
+    return undefined;
+  }
+
+  const trimmed = thumbnailUrl.trim();
+  try {
+    const parsed = new URL(trimmed);
+    const hostname = parsed.hostname.toLowerCase();
+    const needsProxy = INSTAGRAM_PROXY_HOST_SUFFIXES.some(
+      (suffix) => hostname === suffix || hostname.endsWith(`.${suffix}`),
+    );
+    if (needsProxy) {
+      const apiBase = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
+      return `${apiBase}/social-accounts/media-proxy?url=${encodeURIComponent(trimmed)}`;
+    }
+    return trimmed;
+  } catch {
+    return trimmed;
+  }
+}

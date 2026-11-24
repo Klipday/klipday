@@ -34,6 +34,11 @@ export async function CleanDatabase(): Promise<void> {
   console.log('[Cleanup] Starting database cleanup...');
 
   const [
+    deletedNotifications,
+    deletedEmailVerificationCodes,
+    deletedPasswordResetTokens,
+    deletedCronSyncRuns,
+    deletedCronJobLocks,
     deletedErrorLogs,
     deletedTopUps,
     deletedPayouts,
@@ -52,6 +57,11 @@ export async function CleanDatabase(): Promise<void> {
     deletedAdmins,
     deletedAccounts,
   ] = await prisma.$transaction([
+    prisma.notification.deleteMany({}),
+    prisma.emailVerificationCode.deleteMany({}),
+    prisma.passwordResetToken.deleteMany({}),
+    prisma.cronSyncRun.deleteMany({}),
+    prisma.cronJobLock.deleteMany({}),
     prisma.errorLog.deleteMany({}),
     prisma.topUpRequest.deleteMany({}),
     prisma.payoutRequest.deleteMany({}),
@@ -72,6 +82,11 @@ export async function CleanDatabase(): Promise<void> {
   ]);
 
   console.log('[Cleanup] Finished database cleanup. Deleted records:');
+  console.log(`  - Notifications: ${deletedNotifications.count}`);
+  console.log(`  - Email verification codes: ${deletedEmailVerificationCodes.count}`);
+  console.log(`  - Password reset tokens: ${deletedPasswordResetTokens.count}`);
+  console.log(`  - Cron sync runs: ${deletedCronSyncRuns.count}`);
+  console.log(`  - Cron job locks: ${deletedCronJobLocks.count}`);
   console.log(`  - Error logs: ${deletedErrorLogs.count}`);
   console.log(`  - Top up requests: ${deletedTopUps.count}`);
   console.log(`  - Payout requests: ${deletedPayouts.count}`);

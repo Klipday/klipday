@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { SubmissionManualVideoFormProps } from '../types';
+import { ResolveSocialThumbnailUrl } from '../utils/submission-utils';
 
 /**
  * Reusable form component for direct manual TikTok URL submission and validation.
@@ -60,9 +61,9 @@ export function SubmissionManualVideoForm({
         /* Verified Manual Video Preview Card */
         <div className="rounded-xl border border-border/80 bg-muted/20 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
           <div className="flex items-center gap-3.5 min-w-0">
-            {selectedVideo.thumbnailUrl && !hasManualThumbnailError ? (
+            {ResolveSocialThumbnailUrl(selectedVideo.thumbnailUrl) && !hasManualThumbnailError ? (
               <img
-                src={selectedVideo.thumbnailUrl}
+                src={ResolveSocialThumbnailUrl(selectedVideo.thumbnailUrl)}
                 alt="Thumbnail terpilih"
                 referrerPolicy="no-referrer"
                 className="size-16 rounded-lg object-cover border border-border/60 shrink-0"
