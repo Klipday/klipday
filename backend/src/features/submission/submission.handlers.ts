@@ -3,7 +3,12 @@ import { Prisma } from '../../generated/prisma/client.js';
 import { CampaignStatus, Platform, Role, Status, SubmissionStatus } from '../../generated/prisma/enums.js';
 import { prisma } from '../../utils/prisma.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
-import { GetTikTokVideoDetails, type TikTokVideoItem } from '../../services/scrape-creators.js';
+import {
+  GetInstagramVideoDetails,
+  GetTikTokVideoDetails,
+  GetYouTubeShortDetails,
+  type SocialVideoItem,
+} from '../../services/scrape-creators.js';
 import { IsSupabaseStorageUrl, PersistVideoThumbnailToStorage } from '../../services/supabase.js';
 import {
   NotifySubmissionApproved,
@@ -17,7 +22,9 @@ import {
   CPM_VIEW_DIVISOR,
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
+  MAX_CONCURRENT_PENDING_REVIEW_PER_CAMPAIGN,
   SUBMISSION_MESSAGES,
+  SUBMISSION_PLATFORM_DISPLAY_NAMES,
   SUBMISSION_SORT,
 } from './submission.constants.js';
 import {
@@ -34,12 +41,14 @@ import type {
   CreatorSubmissionListItemDto,
   CreatorSubmissionsPaginatedData,
   MySubmissionResponseData,
+  PlatformSubmissionQuotaDto,
   SubmissionDetailDto,
 } from './submission.types.js';
 import {
   BuildSubmissionsOrderBy,
   BuildSubmissionsWhereClause,
-  ExtractTikTokVideoId,
+  DoesVideoUrlMatchPlatform,
+  ExtractPlatformVideoId,
   FormatCampaignSubmissionReviewItem,
   FormatSubmissionResponse,
   IsAllowedThumbnailUrl,
@@ -102,20 +111,47 @@ async function GetRemainingCampaignEscrow(
 }
 
 /**
- * Checks whether the same TikTok video (by canonical URL or extracted numeric video ID)
+ * Dispatches live video verification to the matching ScrapeCreators platform adapter.
+ *
+ * @param platform - Target social platform enum.
+ * @param liveVideoUrl - Submitted video URL.
+ * @returns Verified social video metadata from ScrapeCreators.
+ */
+async function FetchVerifiedPlatformVideo(
+  platform: Platform,
+  liveVideoUrl: string,
+): Promise<SocialVideoItem> {
+  if (platform === Platform.INSTAGRAM) {
+    const details = await GetInstagramVideoDetails(liveVideoUrl);
+    return details;
+  }
+
+  if (platform === Platform.YOUTUBE) {
+    const details = await GetYouTubeShortDetails(liveVideoUrl);
+    return details;
+  }
+
+  const details = await GetTikTokVideoDetails(liveVideoUrl);
+  return details;
+}
+
+/**
+ * Checks whether the same social video (by platform external video ID or canonical URL)
  * has already been submitted on another active, non-rejected submission.
  *
  * @param db - Prisma client or interactive transaction client.
- * @param canonicalUrl - Canonical TikTok video URL.
- * @param videoId - Extracted numeric TikTok video ID, if available.
- * @param excludeSubmissionId - Current submission UUID to exclude from the check.
+ * @param platform - Target social platform enum.
+ * @param canonicalUrl - Canonical video URL.
+ * @param videoId - Extracted platform video ID / shortcode, if available.
+ * @param excludeSubmissionId - Optional current submission UUID to exclude from the check.
  * @returns True if a duplicate active submission already exists.
  */
 async function HasDuplicateSubmittedVideo(
   db: SubmissionDbClient,
+  platform: Platform,
   canonicalUrl: string,
   videoId: string | null,
-  excludeSubmissionId: string,
+  excludeSubmissionId?: string,
 ): Promise<boolean> {
   const urlConditions: Prisma.SubmissionWhereInput[] = [
     { liveVideoUrl: canonicalUrl },
@@ -123,22 +159,43 @@ async function HasDuplicateSubmittedVideo(
 
   if (videoId) {
     urlConditions.push({
-      liveVideoUrl: {
-        contains: `/video/${videoId}`,
-        mode: 'insensitive',
-      },
+      platform,
+      externalVideoId: videoId,
     });
-    urlConditions.push({
-      liveVideoUrl: {
-        contains: `/photo/${videoId}`,
-        mode: 'insensitive',
-      },
-    });
+
+    if (platform === Platform.TIKTOK) {
+      urlConditions.push({
+        liveVideoUrl: {
+          contains: `/video/${videoId}`,
+          mode: 'insensitive',
+        },
+      });
+      urlConditions.push({
+        liveVideoUrl: {
+          contains: `/photo/${videoId}`,
+          mode: 'insensitive',
+        },
+      });
+    } else if (platform === Platform.INSTAGRAM) {
+      urlConditions.push({
+        liveVideoUrl: {
+          contains: `/${videoId}`,
+          mode: 'insensitive',
+        },
+      });
+    } else if (platform === Platform.YOUTUBE) {
+      urlConditions.push({
+        liveVideoUrl: {
+          contains: `/shorts/${videoId}`,
+          mode: 'insensitive',
+        },
+      });
+    }
   }
 
   const duplicateQuery = {
     where: {
-      id: { not: excludeSubmissionId },
+      ...(excludeSubmissionId ? { id: { not: excludeSubmissionId } } : {}),
       status: Status.ACTIVE,
       submissionStatus: {
         notIn: [SubmissionStatus.JOINED, SubmissionStatus.REJECTED],
@@ -187,6 +244,7 @@ export async function JoinCampaign(req: Request, res: Response, next: NextFuncti
         minViews: true,
         budget: true,
         endDate: true,
+        platforms: true,
       },
     };
     const campaign = await prisma.campaign.findFirst(findCampaignQuery);
@@ -253,10 +311,12 @@ export async function JoinCampaign(req: Request, res: Response, next: NextFuncti
         return;
       }
 
+      const initialPlatform = campaign.platforms?.[0] ?? Platform.TIKTOK;
       const createSubmissionPayload = {
         data: {
           campaignId: campaign.id,
           creatorId: creator.id,
+          platform: initialPlatform,
           submissionStatus: SubmissionStatus.JOINED,
           status: Status.ACTIVE,
         },
@@ -289,7 +349,8 @@ export async function JoinCampaign(req: Request, res: Response, next: NextFuncti
 
 /**
  * Handles `GET /campaigns/:id/my-submission`:
- * Retrieves current creator's submission progress and connected TikTok social account.
+ * Retrieves current creator's submission progress across all allowed campaign platforms,
+ * per-platform remaining quotas, and all verified social accounts.
  *
  * @param req - Express request with authenticated account and campaign id parameter.
  * @param res - Express response object.
@@ -323,11 +384,26 @@ export async function GetMyCampaignSubmission(req: Request, res: Response, next:
       return;
     }
 
-    const findSubmissionQuery = {
+    const findCampaignQuery = {
+      where: {
+        id: campaignId,
+        status: Status.ACTIVE,
+      },
+      select: {
+        id: true,
+        platforms: true,
+        maxSubmissionsPerPlatform: true,
+      },
+    };
+
+    const findSubmissionsQuery = {
       where: {
         campaignId,
         creatorId: creator.id,
         status: Status.ACTIVE,
+      },
+      orderBy: {
+        createdAt: 'desc' as const,
       },
       include: {
         socialAccount: {
@@ -335,12 +411,10 @@ export async function GetMyCampaignSubmission(req: Request, res: Response, next:
         },
       },
     };
-    const rawSubmission = await prisma.submission.findFirst(findSubmissionQuery);
 
-    const findVerifiedSocialAccountQuery = {
+    const findVerifiedAccountsQuery = {
       where: {
         creatorId: creator.id,
-        platform: Platform.TIKTOK,
         isVerified: true,
         status: Status.ACTIVE,
       },
@@ -348,20 +422,74 @@ export async function GetMyCampaignSubmission(req: Request, res: Response, next:
         verifiedAt: 'desc' as const,
       },
     };
-    const verifiedSocialAccount = await prisma.creatorSocialAccount.findFirst(findVerifiedSocialAccountQuery);
 
-    let mappedSubmission: SubmissionDetailDto | null = null;
-    if (rawSubmission) {
-      mappedSubmission = FormatSubmissionResponse(rawSubmission);
-    }
+    const [campaign, rawSubmissions, verifiedSocialAccounts] = await Promise.all([
+      prisma.campaign.findFirst(findCampaignQuery),
+      prisma.submission.findMany(findSubmissionsQuery),
+      prisma.creatorSocialAccount.findMany(findVerifiedAccountsQuery),
+    ]);
 
-    // Prioritize the social account already bound to this submission;
-    // fallback to the creator's currently active verified TikTok account.
-    const effectiveSocialAccount = rawSubmission?.socialAccount ?? verifiedSocialAccount;
+    // Deduplicate verified accounts to the latest active account per platform
+    const seenPlatforms = new Set<Platform>();
+    const activeSocialAccounts = verifiedSocialAccounts.filter((item) => {
+      if (seenPlatforms.has(item.platform)) {
+        return false;
+      }
+      seenPlatforms.add(item.platform);
+      return true;
+    });
+
+    const mappedSubmissions: SubmissionDetailDto[] = rawSubmissions.map(FormatSubmissionResponse);
+
+    // Prioritize an actionable submission (REVISION_REQUESTED or JOINED) for legacy single-submission callers
+    const primarySubmission =
+      mappedSubmissions.find((s) => s.submissionStatus === SubmissionStatus.REVISION_REQUESTED) ??
+      mappedSubmissions.find((s) => s.submissionStatus === SubmissionStatus.JOINED) ??
+      mappedSubmissions[0] ??
+      null;
+
+    const allowedPlatforms = campaign?.platforms?.length ? campaign.platforms : [Platform.TIKTOK];
+    const maxPerPlatform = campaign?.maxSubmissionsPerPlatform === undefined ? 1 : campaign.maxSubmissionsPerPlatform;
+
+    const platformQuotas: PlatformSubmissionQuotaDto[] = allowedPlatforms.map((platform) => {
+      const submittedCount = mappedSubmissions.filter(
+        (sub) =>
+          sub.platform === platform &&
+          sub.submissionStatus !== SubmissionStatus.JOINED &&
+          sub.submissionStatus !== SubmissionStatus.REJECTED,
+      ).length;
+      const remainingSlots =
+        maxPerPlatform === null ? null : Math.max(0, maxPerPlatform - submittedCount);
+      const canSubmit = maxPerPlatform === null || submittedCount < maxPerPlatform;
+
+      const quota: PlatformSubmissionQuotaDto = {
+        platform,
+        submittedCount,
+        maxSubmissions: maxPerPlatform,
+        remainingSlots,
+        canSubmit,
+      };
+      return quota;
+    });
+
+    const isJoined = mappedSubmissions.length > 0;
+    const canSubmitMore = isJoined && platformQuotas.some((quota) => quota.canSubmit);
+
+    const effectiveSocialAccount =
+      primarySubmission?.socialAccount ??
+      activeSocialAccounts.find((acc) => acc.platform === Platform.TIKTOK) ??
+      activeSocialAccounts[0] ??
+      null;
 
     const responsePayload: MySubmissionResponseData = {
-      submission: mappedSubmission,
+      submission: primarySubmission,
+      submissions: mappedSubmissions,
       socialAccount: effectiveSocialAccount,
+      socialAccounts: activeSocialAccounts,
+      isJoined,
+      canSubmitMore,
+      maxSubmissionsPerPlatform: maxPerPlatform,
+      platformQuotas,
     };
 
     SendSuccess(res, responsePayload, SUBMISSION_MESSAGES.GET_MY_SUBMISSION_SUCCESS);
@@ -415,9 +543,17 @@ export async function SaveDraftSubmission(req: Request, res: Response, next: Nex
 
     const findExistingSubmissionQuery = {
       where: {
+        ...(validation.data.submissionId ? { id: validation.data.submissionId } : {}),
         campaignId,
         creatorId: creator.id,
         status: Status.ACTIVE,
+      },
+      include: {
+        campaign: {
+          select: {
+            platforms: true,
+          },
+        },
       },
     };
     const existingSubmission = await prisma.submission.findFirst(findExistingSubmissionQuery);
@@ -463,6 +599,22 @@ export async function SaveDraftSubmission(req: Request, res: Response, next: Nex
       return;
     }
 
+    const targetPlatform = ownedSocialAccount.platform;
+    const allowedPlatforms = existingSubmission.campaign?.platforms;
+    if (allowedPlatforms?.length && !allowedPlatforms.includes(targetPlatform)) {
+      SendError(res, SUBMISSION_MESSAGES.PLATFORM_NOT_ALLOWED, 400);
+      return;
+    }
+
+    if (!DoesVideoUrlMatchPlatform(validation.data.liveVideoUrl, targetPlatform)) {
+      const mismatchMsg =
+        targetPlatform === Platform.YOUTUBE
+          ? SUBMISSION_MESSAGES.YOUTUBE_SHORTS_ONLY
+          : SUBMISSION_MESSAGES.VIDEO_URL_PLATFORM_MISMATCH;
+      SendError(res, mismatchMsg, 400);
+      return;
+    }
+
     let resolvedThumbnailUrl = validation.data.thumbnailUrl;
     if (
       resolvedThumbnailUrl &&
@@ -488,6 +640,7 @@ export async function SaveDraftSubmission(req: Request, res: Response, next: Nex
         },
       },
       data: {
+        platform: targetPlatform,
         liveVideoUrl: validation.data.liveVideoUrl,
         thumbnailUrl: resolvedThumbnailUrl,
         videoCaption: validation.data.videoCaption,
@@ -525,7 +678,9 @@ export async function SaveDraftSubmission(req: Request, res: Response, next: Nex
 
 /**
  * Handles `POST /campaigns/:id/submission/submit`:
- * Finalizes the video submission (Step 4), setting `submittedAt` and transitioning status to `PENDING_REVIEW`.
+ * Finalizes a video submission across any allowed campaign platform (TikTok, Instagram Reels, YouTube Shorts).
+ * Converts an existing `JOINED` / `REVISION_REQUESTED` record or creates a new `PENDING_REVIEW` submission
+ * when the campaign permits additional videos on the target platform.
  *
  * @param req - Express request with authenticated account and campaign id parameter.
  * @param res - Express response object.
@@ -566,11 +721,14 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
       return;
     }
 
-    const findExistingSubmissionQuery = {
+    const findCreatorCampaignSubmissionsQuery = {
       where: {
         campaignId,
         creatorId: creator.id,
         status: Status.ACTIVE,
+      },
+      orderBy: {
+        createdAt: 'asc' as const,
       },
       include: {
         campaign: {
@@ -581,6 +739,8 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
             campaignStatus: true,
             budget: true,
             endDate: true,
+            platforms: true,
+            maxSubmissionsPerPlatform: true,
             brand: {
               select: {
                 accountId: true,
@@ -590,38 +750,16 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
         },
       },
     };
-    const existingSubmission = await prisma.submission.findFirst(findExistingSubmissionQuery);
+    const creatorSubmissions = await prisma.submission.findMany(findCreatorCampaignSubmissionsQuery);
 
-    if (!existingSubmission) {
+    if (creatorSubmissions.length === 0) {
       SendError(res, SUBMISSION_MESSAGES.SUBMISSION_NOT_FOUND, 404);
       return;
     }
 
-    if (
-      existingSubmission.submissionStatus !== SubmissionStatus.JOINED &&
-      existingSubmission.submissionStatus !== SubmissionStatus.REVISION_REQUESTED
-    ) {
-      if (existingSubmission.submissionStatus === SubmissionStatus.PENDING_REVIEW) {
-        SendError(res, SUBMISSION_MESSAGES.UNDER_REVIEW_BY_BRAND, 400);
-        return;
-      }
+    const parentCampaign = creatorSubmissions[0]?.campaign;
 
-      if (existingSubmission.submissionStatus === SubmissionStatus.APPROVED) {
-        SendError(res, SUBMISSION_MESSAGES.ALREADY_APPROVED, 400);
-        return;
-      }
-
-      if (existingSubmission.submissionStatus === SubmissionStatus.REJECTED) {
-        SendError(res, SUBMISSION_MESSAGES.REJECTED_CANNOT_RESUBMIT, 400);
-        return;
-      }
-
-      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_STATUS_NOT_RESUBMITTABLE, 400);
-      return;
-    }
-
-    if (existingSubmission.campaign) {
-      const parentCampaign = existingSubmission.campaign;
+    if (parentCampaign) {
       if (
         parentCampaign.status !== Status.ACTIVE ||
         parentCampaign.campaignStatus !== CampaignStatus.ACTIVE
@@ -663,10 +801,114 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
       return;
     }
 
-    // Server-side video ownership verification to prevent spoofing viral videos from other creators
-    let verifiedVideoDetails: TikTokVideoItem;
+    const targetPlatform = ownedSocialAccount.platform;
+    const targetPlatformName = SUBMISSION_PLATFORM_DISPLAY_NAMES[targetPlatform];
+    const allowedPlatforms = parentCampaign?.platforms?.length ? parentCampaign.platforms : [Platform.TIKTOK];
+
+    if (!allowedPlatforms.includes(targetPlatform)) {
+      SendError(res, SUBMISSION_MESSAGES.PLATFORM_NOT_ALLOWED, 400);
+      return;
+    }
+
+    if (!DoesVideoUrlMatchPlatform(validation.data.liveVideoUrl, targetPlatform)) {
+      const mismatchMsg =
+        targetPlatform === Platform.YOUTUBE
+          ? SUBMISSION_MESSAGES.YOUTUBE_SHORTS_ONLY
+          : SUBMISSION_MESSAGES.VIDEO_URL_PLATFORM_MISMATCH;
+      SendError(res, mismatchMsg, 400);
+      return;
+    }
+
+    const maxPerPlatform =
+      parentCampaign?.maxSubmissionsPerPlatform === undefined ? 1 : parentCampaign.maxSubmissionsPerPlatform;
+
+    // Resolve whether this submit updates an existing editable row or creates a new submission row
+    let targetExistingSubmission = validation.data.submissionId
+      ? creatorSubmissions.find((s) => s.id === validation.data.submissionId) ?? null
+      : creatorSubmissions.find((s) => s.submissionStatus === SubmissionStatus.JOINED) ??
+        creatorSubmissions.find(
+          (s) => s.platform === targetPlatform && s.submissionStatus === SubmissionStatus.REVISION_REQUESTED,
+        ) ??
+        null;
+
+    if (validation.data.submissionId && !targetExistingSubmission) {
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_NOT_FOUND, 404);
+      return;
+    }
+
+    // If explicitly targeting an existing submission, verify it is editable
+    if (
+      targetExistingSubmission &&
+      targetExistingSubmission.submissionStatus !== SubmissionStatus.JOINED &&
+      targetExistingSubmission.submissionStatus !== SubmissionStatus.REVISION_REQUESTED
+    ) {
+      if (targetExistingSubmission.submissionStatus === SubmissionStatus.PENDING_REVIEW) {
+        SendError(res, SUBMISSION_MESSAGES.UNDER_REVIEW_BY_BRAND, 400);
+        return;
+      }
+      if (targetExistingSubmission.submissionStatus === SubmissionStatus.APPROVED) {
+        SendError(res, SUBMISSION_MESSAGES.ALREADY_APPROVED, 400);
+        return;
+      }
+      if (targetExistingSubmission.submissionStatus === SubmissionStatus.REJECTED) {
+        SendError(res, SUBMISSION_MESSAGES.REJECTED_CANNOT_RESUBMIT, 400);
+        return;
+      }
+      SendError(res, SUBMISSION_MESSAGES.SUBMISSION_STATUS_NOT_RESUBMITTABLE, 400);
+      return;
+    }
+
+    // When creating a new additional submission row (no JOINED or REVISION_REQUESTED row reused), enforce platform quota & spam cap
+    if (!targetExistingSubmission) {
+      const activeSubmissionsOnPlatform = creatorSubmissions.filter(
+        (s) =>
+          s.platform === targetPlatform &&
+          s.submissionStatus !== SubmissionStatus.JOINED &&
+          s.submissionStatus !== SubmissionStatus.REJECTED,
+      );
+
+      if (maxPerPlatform !== null && activeSubmissionsOnPlatform.length >= maxPerPlatform) {
+        if (maxPerPlatform === 1 && activeSubmissionsOnPlatform.length === 1) {
+          const singleSub = activeSubmissionsOnPlatform[0];
+          if (singleSub?.submissionStatus === SubmissionStatus.PENDING_REVIEW) {
+            SendError(res, SUBMISSION_MESSAGES.UNDER_REVIEW_BY_BRAND, 400);
+            return;
+          }
+          if (singleSub?.submissionStatus === SubmissionStatus.APPROVED) {
+            SendError(res, SUBMISSION_MESSAGES.ALREADY_APPROVED, 400);
+            return;
+          }
+        }
+        SendError(res, SUBMISSION_MESSAGES.PLATFORM_QUOTA_REACHED(targetPlatformName, maxPerPlatform), 400);
+        return;
+      }
+
+      // If single-slot campaign has only a REJECTED row on this single platform, preserve legacy rejection block
+      const rejectedOnPlatform = creatorSubmissions.filter(
+        (s) => s.platform === targetPlatform && s.submissionStatus === SubmissionStatus.REJECTED,
+      );
+      if (maxPerPlatform === 1 && allowedPlatforms.length === 1 && rejectedOnPlatform.length > 0 && activeSubmissionsOnPlatform.length === 0) {
+        SendError(res, SUBMISSION_MESSAGES.REJECTED_CANNOT_RESUBMIT, 400);
+        return;
+      }
+
+      const pendingCount = creatorSubmissions.filter(
+        (s) => s.submissionStatus === SubmissionStatus.PENDING_REVIEW,
+      ).length;
+      if (pendingCount >= MAX_CONCURRENT_PENDING_REVIEW_PER_CAMPAIGN) {
+        SendError(
+          res,
+          SUBMISSION_MESSAGES.PENDING_REVIEW_CAP_REACHED(MAX_CONCURRENT_PENDING_REVIEW_PER_CAMPAIGN),
+          400,
+        );
+        return;
+      }
+    }
+
+    // Server-side video ownership verification via ScrapeCreators
+    let verifiedVideoDetails: SocialVideoItem;
     try {
-      verifiedVideoDetails = await GetTikTokVideoDetails(validation.data.liveVideoUrl);
+      verifiedVideoDetails = await FetchVerifiedPlatformVideo(targetPlatform, validation.data.liveVideoUrl);
     } catch {
       SendError(res, SUBMISSION_MESSAGES.VIDEO_VERIFY_FAILED, 400);
       return;
@@ -674,7 +916,7 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
 
     const authorHandle = verifiedVideoDetails.authorUsername.toLowerCase();
     const verifiedHandle = ownedSocialAccount.username.toLowerCase();
-    const isHandleMatch = authorHandle === verifiedHandle;
+    const isHandleMatch = Boolean(authorHandle) && authorHandle === verifiedHandle;
     const isPlatformUserIdMatch =
       Boolean(verifiedVideoDetails.authorPlatformUserId) &&
       Boolean(ownedSocialAccount.platformUserId) &&
@@ -684,6 +926,7 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
       const mismatchMessage = SUBMISSION_MESSAGES.VIDEO_AUTHOR_MISMATCH(
         verifiedVideoDetails.authorUsername,
         ownedSocialAccount.username,
+        targetPlatformName,
       );
       SendError(res, mismatchMessage, 400);
       return;
@@ -691,14 +934,15 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
 
     const canonicalVideoUrl = verifiedVideoDetails.url || validation.data.liveVideoUrl;
     const extractedVideoId =
-      verifiedVideoDetails.id || ExtractTikTokVideoId(canonicalVideoUrl);
+      verifiedVideoDetails.id || ExtractPlatformVideoId(targetPlatform, canonicalVideoUrl);
 
     // Pre-check duplicate reuse before persisting thumbnail to storage
     const isDuplicatePreCheck = await HasDuplicateSubmittedVideo(
       prisma,
+      targetPlatform,
       canonicalVideoUrl,
       extractedVideoId,
-      existingSubmission.id,
+      targetExistingSubmission?.id,
     );
     if (isDuplicatePreCheck) {
       SendError(res, SUBMISSION_MESSAGES.VIDEO_ALREADY_SUBMITTED, 409);
@@ -712,9 +956,12 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
         : undefined;
 
     if (resolvedThumbnailUrl && !IsSupabaseStorageUrl(resolvedThumbnailUrl)) {
+      const thumbnailSlug = targetExistingSubmission
+        ? `submission-${targetExistingSubmission.id}`
+        : `submission-${campaignId}-${Date.now()}`;
       const storedThumbnail = await PersistVideoThumbnailToStorage(
         resolvedThumbnailUrl,
-        `submission-${existingSubmission.id}`,
+        thumbnailSlug,
       );
       if (storedThumbnail) {
         resolvedThumbnailUrl = storedThumbnail;
@@ -725,20 +972,13 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
       verifiedVideoDetails.caption?.trim() || validation.data.videoCaption;
 
     const finalizedSubmission = await prisma.$transaction(async (tx) => {
-      const freshSubmission = await tx.submission.findFirst(findExistingSubmissionQuery);
-      if (!freshSubmission) {
+      const freshSubmissions = await tx.submission.findMany(findCreatorCampaignSubmissionsQuery);
+      if (freshSubmissions.length === 0) {
         throw new SubmissionTransactionError(404, SUBMISSION_MESSAGES.SUBMISSION_NOT_FOUND);
       }
 
-      if (
-        freshSubmission.submissionStatus !== SubmissionStatus.JOINED &&
-        freshSubmission.submissionStatus !== SubmissionStatus.REVISION_REQUESTED
-      ) {
-        throw new SubmissionTransactionError(409, SUBMISSION_MESSAGES.SUBMISSION_RACE_CONFLICT);
-      }
-
-      if (freshSubmission.campaign) {
-        const freshCampaign = freshSubmission.campaign;
+      const freshCampaign = freshSubmissions[0]?.campaign;
+      if (freshCampaign) {
         if (
           freshCampaign.status !== Status.ACTIVE ||
           freshCampaign.campaignStatus !== CampaignStatus.ACTIVE
@@ -764,38 +1004,103 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
 
       const isDuplicateInTx = await HasDuplicateSubmittedVideo(
         tx,
+        targetPlatform,
         canonicalVideoUrl,
         extractedVideoId,
-        freshSubmission.id,
+        targetExistingSubmission?.id,
       );
       if (isDuplicateInTx) {
         throw new SubmissionTransactionError(409, SUBMISSION_MESSAGES.VIDEO_ALREADY_SUBMITTED);
       }
 
-      const claimed = await tx.submission.updateMany({
-        where: {
-          id: freshSubmission.id,
-          status: Status.ACTIVE,
-          submissionStatus: {
-            in: [SubmissionStatus.JOINED, SubmissionStatus.REVISION_REQUESTED],
+      if (targetExistingSubmission) {
+        const freshTarget = freshSubmissions.find((s) => s.id === targetExistingSubmission.id);
+        if (
+          !freshTarget ||
+          (freshTarget.submissionStatus !== SubmissionStatus.JOINED &&
+            freshTarget.submissionStatus !== SubmissionStatus.REVISION_REQUESTED)
+        ) {
+          throw new SubmissionTransactionError(409, SUBMISSION_MESSAGES.SUBMISSION_RACE_CONFLICT);
+        }
+
+        const claimed = await tx.submission.updateMany({
+          where: {
+            id: freshTarget.id,
+            status: Status.ACTIVE,
+            submissionStatus: {
+              in: [SubmissionStatus.JOINED, SubmissionStatus.REVISION_REQUESTED],
+            },
           },
-        },
+          data: {
+            platform: targetPlatform,
+            externalVideoId: extractedVideoId,
+            liveVideoUrl: canonicalVideoUrl,
+            thumbnailUrl: resolvedThumbnailUrl,
+            videoCaption: resolvedCaption,
+            socialAccountId: validation.data.socialAccountId,
+            submissionStatus: SubmissionStatus.PENDING_REVIEW,
+            submittedAt: new Date(),
+          },
+        });
+
+        if (claimed.count === 0) {
+          throw new SubmissionTransactionError(409, SUBMISSION_MESSAGES.SUBMISSION_RACE_CONFLICT);
+        }
+
+        const reloaded = await tx.submission.findFirst({
+          where: { id: freshTarget.id, status: Status.ACTIVE },
+          include: {
+            socialAccount: {
+              where: { status: Status.ACTIVE },
+            },
+          },
+        });
+
+        return reloaded;
+      }
+
+      // Re-verify quota & pending cap atomically inside transaction before inserting a new submission row
+      const freshOnPlatformCount = freshSubmissions.filter(
+        (s) =>
+          s.platform === targetPlatform &&
+          s.submissionStatus !== SubmissionStatus.JOINED &&
+          s.submissionStatus !== SubmissionStatus.REJECTED,
+      ).length;
+
+      const freshMaxPerPlatform =
+        freshCampaign?.maxSubmissionsPerPlatform === undefined ? 1 : freshCampaign.maxSubmissionsPerPlatform;
+
+      if (freshMaxPerPlatform !== null && freshOnPlatformCount >= freshMaxPerPlatform) {
+        throw new SubmissionTransactionError(
+          400,
+          SUBMISSION_MESSAGES.PLATFORM_QUOTA_REACHED(targetPlatformName, freshMaxPerPlatform),
+        );
+      }
+
+      const freshPendingCount = freshSubmissions.filter(
+        (s) => s.submissionStatus === SubmissionStatus.PENDING_REVIEW,
+      ).length;
+      if (freshPendingCount >= MAX_CONCURRENT_PENDING_REVIEW_PER_CAMPAIGN) {
+        throw new SubmissionTransactionError(
+          400,
+          SUBMISSION_MESSAGES.PENDING_REVIEW_CAP_REACHED(MAX_CONCURRENT_PENDING_REVIEW_PER_CAMPAIGN),
+        );
+      }
+
+      const created = await tx.submission.create({
         data: {
+          campaignId,
+          creatorId: creator.id,
+          platform: targetPlatform,
+          externalVideoId: extractedVideoId,
           liveVideoUrl: canonicalVideoUrl,
           thumbnailUrl: resolvedThumbnailUrl,
           videoCaption: resolvedCaption,
           socialAccountId: validation.data.socialAccountId,
           submissionStatus: SubmissionStatus.PENDING_REVIEW,
           submittedAt: new Date(),
+          status: Status.ACTIVE,
         },
-      });
-
-      if (claimed.count === 0) {
-        throw new SubmissionTransactionError(409, SUBMISSION_MESSAGES.SUBMISSION_RACE_CONFLICT);
-      }
-
-      const reloaded = await tx.submission.findFirst({
-        where: { id: freshSubmission.id, status: Status.ACTIVE },
         include: {
           socialAccount: {
             where: { status: Status.ACTIVE },
@@ -803,13 +1108,13 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
         },
       });
 
-      return reloaded;
+      return created;
     });
 
-    if (finalizedSubmission && existingSubmission.campaign?.brand?.accountId) {
+    if (finalizedSubmission && parentCampaign?.brand?.accountId) {
       void NotifySubmissionReceived({
-        brandAccountId: existingSubmission.campaign.brand.accountId,
-        campaignTitle: existingSubmission.campaign.title ?? 'Kampanye',
+        brandAccountId: parentCampaign.brand.accountId,
+        campaignTitle: parentCampaign.title ?? 'Kampanye',
         creatorUsername: ownedSocialAccount.username,
         submissionId: finalizedSubmission.id,
         campaignId,
@@ -821,6 +1126,10 @@ export async function FinalSubmitVideo(req: Request, res: Response, next: NextFu
   } catch (err) {
     if (err instanceof SubmissionTransactionError) {
       SendError(res, err.message, err.statusCode);
+      return;
+    }
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      SendError(res, SUBMISSION_MESSAGES.VIDEO_ALREADY_SUBMITTED, 409);
       return;
     }
     next(err);
@@ -904,6 +1213,7 @@ export async function GetCampaignSubmissions(req: Request, res: Response, next: 
         socialAccount: {
           select: {
             id: true,
+            platform: true,
             username: true,
             avatarUrl: true,
             followersCount: true,
@@ -1071,6 +1381,7 @@ export async function AcceptSubmission(req: Request, res: Response, next: NextFu
         socialAccount: {
           select: {
             id: true,
+            platform: true,
             username: true,
             avatarUrl: true,
             followersCount: true,
@@ -1221,6 +1532,7 @@ export async function RejectSubmission(req: Request, res: Response, next: NextFu
         socialAccount: {
           select: {
             id: true,
+            platform: true,
             username: true,
             avatarUrl: true,
             followersCount: true,
@@ -1373,6 +1685,7 @@ export async function RequestSubmissionRevision(req: Request, res: Response, nex
         socialAccount: {
           select: {
             id: true,
+            platform: true,
             username: true,
             avatarUrl: true,
             followersCount: true,
@@ -1504,7 +1817,7 @@ export async function GetCreatorSubmissions(req: Request, res: Response, next: N
             cpm: true,
             minViews: true,
             maxViews: true,
-            platform: true,
+            platforms: true,
             campaignStatus: true,
             brand: {
               select: {
@@ -1582,7 +1895,7 @@ export async function GetCreatorSubmissions(req: Request, res: Response, next: N
       brandName: s.campaign.brand.companyName,
       brandLogoUrl: s.campaign.brand.logoUrl,
       cpm: Number(s.campaign.cpm ?? 0),
-      platform: s.campaign.platform,
+      platform: s.platform,
       liveVideoUrl: s.liveVideoUrl,
       thumbnailUrl: s.thumbnailUrl,
       videoCaption: s.videoCaption,

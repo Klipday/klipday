@@ -4,6 +4,12 @@ const mockGetTikTokUserProfile = jest.fn<(...args: any[]) => Promise<any>>();
 const mockGetTikTokRecentVideos = jest.fn<(...args: any[]) => Promise<any>>();
 const mockGetTikTokVideoDetails = jest.fn<(...args: any[]) => Promise<any>>();
 const mockValidateTikTokVideoUrl = jest.fn<(...args: any[]) => string>();
+const mockGetInstagramUserProfile = jest.fn<(...args: any[]) => Promise<any>>();
+const mockGetInstagramRecentReels = jest.fn<(...args: any[]) => Promise<any>>();
+const mockGetInstagramVideoDetails = jest.fn<(...args: any[]) => Promise<any>>();
+const mockGetYouTubeChannelProfile = jest.fn<(...args: any[]) => Promise<any>>();
+const mockGetYouTubeChannelShorts = jest.fn<(...args: any[]) => Promise<any>>();
+const mockGetYouTubeShortDetails = jest.fn<(...args: any[]) => Promise<any>>();
 const mockPersistSocialAvatarToStorage = jest.fn<(...args: any[]) => Promise<string>>();
 
 jest.unstable_mockModule('../src/services/scrape-creators.js', () => ({
@@ -11,6 +17,12 @@ jest.unstable_mockModule('../src/services/scrape-creators.js', () => ({
   GetTikTokRecentVideos: mockGetTikTokRecentVideos,
   GetTikTokVideoDetails: mockGetTikTokVideoDetails,
   ValidateTikTokVideoUrl: mockValidateTikTokVideoUrl,
+  GetInstagramUserProfile: mockGetInstagramUserProfile,
+  GetInstagramRecentReels: mockGetInstagramRecentReels,
+  GetInstagramVideoDetails: mockGetInstagramVideoDetails,
+  GetYouTubeChannelProfile: mockGetYouTubeChannelProfile,
+  GetYouTubeChannelShorts: mockGetYouTubeChannelShorts,
+  GetYouTubeShortDetails: mockGetYouTubeShortDetails,
   SCRAPECREATORS_BASE_URL: 'https://api.scrapecreators.com',
 }));
 

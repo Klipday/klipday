@@ -3,18 +3,111 @@ import { Platform, Role, Status } from '../../generated/prisma/enums.js';
 import { SendError, SendSuccess } from '../../utils/api-response.js';
 import { prisma } from '../../utils/prisma.js';
 import { PersistSocialAvatarToStorage } from '../../services/supabase.js';
-import { GetTikTokRecentVideos, GetTikTokUserProfile, GetTikTokVideoDetails, type TikTokVideoItem } from '../../services/scrape-creators.js';
-import { SOCIAL_ACCOUNT_MESSAGES, TIKTOK_RECENT_VIDEOS_DEFAULT_LIMIT, VERIFICATION_CODE_EXPIRY_MS } from './social-account.constants.js';
+import {
+  GetInstagramRecentReels,
+  GetInstagramUserProfile,
+  GetInstagramVideoDetails,
+  GetTikTokRecentVideos,
+  GetTikTokUserProfile,
+  GetTikTokVideoDetails,
+  GetYouTubeChannelProfile,
+  GetYouTubeChannelShorts,
+  GetYouTubeShortDetails,
+  type SocialUserProfile,
+  type SocialVideoItem,
+} from '../../services/scrape-creators.js';
+import {
+  SOCIAL_ACCOUNT_MESSAGES,
+  SOCIAL_PLATFORM_DISPLAY_NAMES,
+  TIKTOK_RECENT_VIDEOS_DEFAULT_LIMIT,
+  VERIFICATION_CODE_EXPIRY_MS,
+} from './social-account.constants.js';
 import {
   CalculateAccountSwitchCooldown,
   FormatCooldownDateId,
   GenerateVerificationCode,
 } from './social-account.helper.js';
 import type { RequestCodeResponseData } from './social-account.types.js';
-import { RequestCodeSchema, ValidateVideoUrlSchema, VerifyBioSchema } from './social-account.validators.js';
+import {
+  BuildValidateVideoUrlSchema,
+  ParseSocialPlatformParam,
+  RequestCodeSchema,
+  VerifyBioSchema,
+} from './social-account.validators.js';
 
 /**
- * Handles `POST /social-accounts/tiktok/request-code`:
+ * Dispatches live profile lookup to the matching ScrapeCreators platform adapter.
+ *
+ * @param platform - Target social platform enum.
+ * @param username - Normalized handle without leading '@'.
+ * @returns Normalized social user profile.
+ */
+async function FetchPlatformUserProfile(platform: Platform, username: string): Promise<SocialUserProfile> {
+  if (platform === Platform.INSTAGRAM) {
+    const profile = await GetInstagramUserProfile(username);
+    return profile;
+  }
+
+  if (platform === Platform.YOUTUBE) {
+    const profile = await GetYouTubeChannelProfile(username);
+    return profile;
+  }
+
+  const profile = await GetTikTokUserProfile(username);
+  return profile;
+}
+
+/**
+ * Dispatches recent videos/reels/shorts listing to the matching ScrapeCreators platform adapter.
+ *
+ * @param platform - Target social platform enum.
+ * @param username - Normalized handle without leading '@'.
+ * @param limit - Maximum number of recent items to fetch.
+ * @returns Array of normalized social video items.
+ */
+async function FetchPlatformRecentVideos(
+  platform: Platform,
+  username: string,
+  limit: number,
+): Promise<SocialVideoItem[]> {
+  if (platform === Platform.INSTAGRAM) {
+    const reels = await GetInstagramRecentReels(username, limit);
+    return reels;
+  }
+
+  if (platform === Platform.YOUTUBE) {
+    const shorts = await GetYouTubeChannelShorts(username, limit);
+    return shorts;
+  }
+
+  const videos = await GetTikTokRecentVideos(username, limit);
+  return videos;
+}
+
+/**
+ * Dispatches single video metadata lookup to the matching ScrapeCreators platform adapter.
+ *
+ * @param platform - Target social platform enum.
+ * @param videoUrl - Public video URL matching the platform.
+ * @returns Normalized social video metadata.
+ */
+async function FetchPlatformVideoDetails(platform: Platform, videoUrl: string): Promise<SocialVideoItem> {
+  if (platform === Platform.INSTAGRAM) {
+    const details = await GetInstagramVideoDetails(videoUrl);
+    return details;
+  }
+
+  if (platform === Platform.YOUTUBE) {
+    const details = await GetYouTubeShortDetails(videoUrl);
+    return details;
+  }
+
+  const details = await GetTikTokVideoDetails(videoUrl);
+  return details;
+}
+
+/**
+ * Handles `POST /social-accounts/:platform/request-code`:
  * Issues a temporary one-time verification challenge (KD-XXXX) valid for 10 minutes.
  * Persists the challenge into `social_verification_codes` table without touching `CreatorSocialAccount`.
  *
@@ -34,6 +127,16 @@ export async function RequestVerificationCode(req: Request, res: Response, next:
       SendError(res, SOCIAL_ACCOUNT_MESSAGES.ONLY_CREATORS_CAN_CONNECT, 403);
       return;
     }
+
+    const platform = ParseSocialPlatformParam(
+      typeof req.params?.platform === 'string' ? req.params.platform : undefined,
+    );
+    if (!platform) {
+      SendError(res, SOCIAL_ACCOUNT_MESSAGES.UNSUPPORTED_PLATFORM, 400);
+      return;
+    }
+
+    const platformName = SOCIAL_PLATFORM_DISPLAY_NAMES[platform];
 
     const validation = RequestCodeSchema.safeParse(req.body);
     if (!validation.success) {
@@ -57,11 +160,11 @@ export async function RequestVerificationCode(req: Request, res: Response, next:
       return;
     }
 
-    // Check if creator already has an active verified TikTok account on cooldown when switching handles
+    // Check if creator already has an active verified account on this platform under switch cooldown
     const findCurrentActiveQuery = {
       where: {
         creatorId: creator.id,
-        platform: Platform.TIKTOK,
+        platform,
         isVerified: true,
         status: Status.ACTIVE,
       },
@@ -78,16 +181,17 @@ export async function RequestVerificationCode(req: Request, res: Response, next:
         const cooldownMessage = SOCIAL_ACCOUNT_MESSAGES.ACCOUNT_SWITCH_COOLDOWN(
           switchCooldown.remainingDays,
           availableDateLabel,
+          platformName,
         );
         SendError(res, cooldownMessage, 429);
         return;
       }
     }
 
-    // Check if this username is already verified in the system
+    // Check if this username is already verified in the system on this platform
     const findVerifiedAccountQuery = {
       where: {
-        platform: Platform.TIKTOK,
+        platform,
         username: cleanUsername,
         isVerified: true,
         status: Status.ACTIVE,
@@ -98,7 +202,11 @@ export async function RequestVerificationCode(req: Request, res: Response, next:
     if (existingVerifiedAccount) {
       // Anti-hijacking guard: prevent linking if already verified by another creator
       if (existingVerifiedAccount.creatorId !== creator.id) {
-        SendError(res, SOCIAL_ACCOUNT_MESSAGES.USERNAME_ALREADY_CONNECTED, 409);
+        const conflictMsg =
+          platform === Platform.TIKTOK
+            ? SOCIAL_ACCOUNT_MESSAGES.USERNAME_ALREADY_CONNECTED
+            : SOCIAL_ACCOUNT_MESSAGES.USERNAME_ALREADY_CONNECTED_PLATFORM(platformName);
+        SendError(res, conflictMsg, 409);
         return;
       }
 
@@ -123,7 +231,7 @@ export async function RequestVerificationCode(req: Request, res: Response, next:
       const deactivateOthersQuery = {
         where: {
           creatorId: creator.id,
-          platform: Platform.TIKTOK,
+          platform,
           id: { not: existingVerifiedAccount.id },
           isVerified: true,
         },
@@ -160,18 +268,17 @@ export async function RequestVerificationCode(req: Request, res: Response, next:
       return;
     }
 
-    // Look up any existing active verification challenge for this creator and handle
+    // Look up any existing active verification challenge for this creator, platform, and handle
     const findActiveChallengeQuery = {
       where: {
         creatorId: creator.id,
-        platform: Platform.TIKTOK,
+        platform,
         username: cleanUsername,
         status: Status.ACTIVE,
       },
     };
     const activeChallenge = await prisma.socialVerificationCode.findFirst(findActiveChallengeQuery);
 
-    // If an active challenge already exists and has not expired, return it directly
     if (activeChallenge && activeChallenge.expiresAt.getTime() > Date.now()) {
       const responseData: RequestCodeResponseData = {
         code: activeChallenge.code,
@@ -187,8 +294,6 @@ export async function RequestVerificationCode(req: Request, res: Response, next:
     const verificationCode = GenerateVerificationCode();
     const expiryDate = new Date(Date.now() + VERIFICATION_CODE_EXPIRY_MS);
 
-    // Save temporary challenge in social_verification_codes table (keyed by creatorId, platform, username)
-    // NOTE: This does NOT touch CreatorSocialAccount, completely preventing username squatting.
     const challengePayload = {
       code: verificationCode,
       expiresAt: expiryDate,
@@ -199,14 +304,14 @@ export async function RequestVerificationCode(req: Request, res: Response, next:
       where: {
         creatorId_platform_username: {
           creatorId: creator.id,
-          platform: Platform.TIKTOK,
+          platform,
           username: cleanUsername,
         },
       },
       update: challengePayload,
       create: {
         creatorId: creator.id,
-        platform: Platform.TIKTOK,
+        platform,
         username: cleanUsername,
         ...challengePayload,
       },
@@ -226,9 +331,9 @@ export async function RequestVerificationCode(req: Request, res: Response, next:
 }
 
 /**
- * Handles `POST /social-accounts/tiktok/verify`:
- * Inspects creator's live TikTok bio description to confirm presence of the verification code.
- * Upon successful bio verification, creates or updates the verified account in CreatorSocialAccount.
+ * Handles `POST /social-accounts/:platform/verify`:
+ * Inspects creator's live social profile bio/description to confirm presence of the verification code.
+ * Upon successful verification, creates or updates the verified account in `CreatorSocialAccount`.
  *
  * @param req - Express request object.
  * @param res - Express response object.
@@ -246,6 +351,16 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
       SendError(res, SOCIAL_ACCOUNT_MESSAGES.ONLY_CREATORS_CAN_CONNECT, 403);
       return;
     }
+
+    const platform = ParseSocialPlatformParam(
+      typeof req.params?.platform === 'string' ? req.params.platform : undefined,
+    );
+    if (!platform) {
+      SendError(res, SOCIAL_ACCOUNT_MESSAGES.UNSUPPORTED_PLATFORM, 400);
+      return;
+    }
+
+    const platformName = SOCIAL_PLATFORM_DISPLAY_NAMES[platform];
 
     const validation = VerifyBioSchema.safeParse(req.body);
     if (!validation.success) {
@@ -269,11 +384,11 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
       return;
     }
 
-    // Enforce 30-day switch cooldown before scraping TikTok if creator already has a different active account
+    // Enforce 30-day switch cooldown before scraping if creator already has a different active account
     const findCurrentActiveQuery = {
       where: {
         creatorId: creator.id,
-        platform: Platform.TIKTOK,
+        platform,
         isVerified: true,
         status: Status.ACTIVE,
       },
@@ -290,6 +405,7 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
         const cooldownMessage = SOCIAL_ACCOUNT_MESSAGES.ACCOUNT_SWITCH_COOLDOWN(
           switchCooldown.remainingDays,
           availableDateLabel,
+          platformName,
         );
         SendError(res, cooldownMessage, 429);
         return;
@@ -299,7 +415,7 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
     // Unified check: Idempotency (if verified by this creator) & Anti-hijacking (if verified by someone else)
     const findExistingVerifiedQuery = {
       where: {
-        platform: Platform.TIKTOK,
+        platform,
         username: cleanUsername,
         isVerified: true,
         status: Status.ACTIVE,
@@ -309,10 +425,18 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
 
     if (existingVerifiedAccount) {
       if (existingVerifiedAccount.creatorId === creator.id) {
-        SendSuccess(res, existingVerifiedAccount, SOCIAL_ACCOUNT_MESSAGES.VERIFY_SUCCESS);
+        const successMsg =
+          platform === Platform.TIKTOK
+            ? SOCIAL_ACCOUNT_MESSAGES.VERIFY_SUCCESS
+            : SOCIAL_ACCOUNT_MESSAGES.VERIFY_SUCCESS_PLATFORM(platformName);
+        SendSuccess(res, existingVerifiedAccount, successMsg);
         return;
       }
-      SendError(res, SOCIAL_ACCOUNT_MESSAGES.USERNAME_ALREADY_CONNECTED, 409);
+      const conflictMsg =
+        platform === Platform.TIKTOK
+          ? SOCIAL_ACCOUNT_MESSAGES.USERNAME_ALREADY_CONNECTED
+          : SOCIAL_ACCOUNT_MESSAGES.USERNAME_ALREADY_CONNECTED_PLATFORM(platformName);
+      SendError(res, conflictMsg, 409);
       return;
     }
 
@@ -320,7 +444,7 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
     const findChallengeQuery = {
       where: {
         creatorId: creator.id,
-        platform: Platform.TIKTOK,
+        platform,
         username: cleanUsername,
         status: Status.ACTIVE,
       },
@@ -337,12 +461,17 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
       return;
     }
 
-    // Call global ScrapeCreators service to fetch live profile and bio from TikTok
-    let liveProfile;
+    // Fetch live profile and bio/description from ScrapeCreators
+    let liveProfile: SocialUserProfile;
     try {
-      liveProfile = await GetTikTokUserProfile(cleanUsername);
+      liveProfile = await FetchPlatformUserProfile(platform, cleanUsername);
     } catch {
-      SendError(res, SOCIAL_ACCOUNT_MESSAGES.PROFILE_ACCESS_FAILED(cleanUsername), 400);
+      SendError(res, SOCIAL_ACCOUNT_MESSAGES.PROFILE_ACCESS_FAILED(cleanUsername, platformName), 400);
+      return;
+    }
+
+    if (liveProfile.isPrivate) {
+      SendError(res, SOCIAL_ACCOUNT_MESSAGES.PROFILE_PRIVATE(cleanUsername, platformName), 400);
       return;
     }
 
@@ -350,20 +479,28 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
     const liveBio = (liveProfile.bioDescription || '').toLowerCase();
 
     if (!liveBio.includes(expectedCode)) {
-      SendError(res, SOCIAL_ACCOUNT_MESSAGES.CODE_NOT_FOUND_IN_BIO(challenge.code, cleanUsername), 400);
+      SendError(
+        res,
+        SOCIAL_ACCOUNT_MESSAGES.CODE_NOT_FOUND_IN_BIO(challenge.code, cleanUsername, platformName),
+        400,
+      );
       return;
     }
 
-    // Persist scraped avatar to permanent storage
+    // Persist scraped avatar to permanent storage (TikTok & Instagram CDN URLs expire)
     let resolvedAvatarUrl: string | null = liveProfile.avatarUrl ?? null;
     if (resolvedAvatarUrl) {
-      const storedAvatarUrl = await PersistSocialAvatarToStorage(resolvedAvatarUrl, creator.id, Platform.TIKTOK, cleanUsername);
+      const storedAvatarUrl = await PersistSocialAvatarToStorage(
+        resolvedAvatarUrl,
+        creator.id,
+        platform,
+        cleanUsername,
+      );
       if (storedAvatarUrl) {
         resolvedAvatarUrl = storedAvatarUrl;
       }
     }
 
-    // Atomic transaction: soft-delete challenge, deactivate prior creator accounts, and upsert verified account
     const softDeleteChallengeQuery = {
       where: { id: challenge.id },
       data: { status: Status.DELETED },
@@ -372,7 +509,7 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
     const deactivateOthersQuery = {
       where: {
         creatorId: creator.id,
-        platform: Platform.TIKTOK,
+        platform,
         username: { not: cleanUsername },
         isVerified: true,
       },
@@ -392,13 +529,13 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
     const upsertAccountQuery = {
       where: {
         platform_username: {
-          platform: Platform.TIKTOK,
+          platform,
           username: cleanUsername,
         },
       },
       update: accountPayload,
       create: {
-        platform: Platform.TIKTOK,
+        platform,
         username: cleanUsername,
         ...accountPayload,
       },
@@ -421,7 +558,7 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
         prisma.creator.update({
           where: { id: creator.id },
           data: { avatarUrl: resolvedAvatarUrl },
-        })
+        }),
       );
     }
 
@@ -434,7 +571,11 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
       nextSwitchAvailableAt: switchCooldown.nextSwitchAvailableAt,
     };
 
-    SendSuccess(res, enrichedVerifiedAccount, SOCIAL_ACCOUNT_MESSAGES.VERIFY_SUCCESS);
+    const successMsg =
+      platform === Platform.TIKTOK
+        ? SOCIAL_ACCOUNT_MESSAGES.VERIFY_SUCCESS
+        : SOCIAL_ACCOUNT_MESSAGES.VERIFY_SUCCESS_PLATFORM(platformName);
+    SendSuccess(res, enrichedVerifiedAccount, successMsg);
   } catch (err) {
     next(err);
   }
@@ -442,7 +583,8 @@ export async function VerifyTikTokBio(req: Request, res: Response, next: NextFun
 
 /**
  * Handles `GET /social-accounts/connected`:
- * Retrieves the currently logged-in creator's verified TikTok account if one exists.
+ * Retrieves the currently logged-in creator's verified social account for the requested platform
+ * (defaults to `TIKTOK` for backward compatibility).
  *
  * @param req - Express request object.
  * @param res - Express response object.
@@ -458,6 +600,14 @@ export async function GetConnectedSocialAccount(req: Request, res: Response, nex
 
     if (account.role !== Role.CREATOR && account.role !== Role.ADMIN) {
       SendError(res, SOCIAL_ACCOUNT_MESSAGES.ONLY_CREATORS_CAN_CONNECT, 403);
+      return;
+    }
+
+    const platform = ParseSocialPlatformParam(
+      typeof req.query?.platform === 'string' ? req.query.platform : undefined,
+    );
+    if (!platform) {
+      SendError(res, SOCIAL_ACCOUNT_MESSAGES.UNSUPPORTED_PLATFORM, 400);
       return;
     }
 
@@ -477,7 +627,7 @@ export async function GetConnectedSocialAccount(req: Request, res: Response, nex
     const findVerifiedAccountQuery = {
       where: {
         creatorId: creator.id,
-        platform: Platform.TIKTOK,
+        platform,
         isVerified: true,
         status: Status.ACTIVE,
       },
@@ -506,8 +656,83 @@ export async function GetConnectedSocialAccount(req: Request, res: Response, nex
 }
 
 /**
- * Handles `GET /social-accounts/tiktok/recent-videos`:
- * Fetches recent public videos uploaded by the creator's connected TikTok account.
+ * Handles `GET /social-accounts/connected/all`:
+ * Retrieves all active verified social accounts (TikTok, Instagram, YouTube) owned by the creator,
+ * deduplicated to the latest active verified account per platform.
+ *
+ * @param req - Express request object.
+ * @param res - Express response object.
+ * @param next - Express next function.
+ */
+export async function GetAllConnectedSocialAccounts(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const account = req.account;
+    if (!account) {
+      SendError(res, SOCIAL_ACCOUNT_MESSAGES.AUTH_REQUIRED, 401);
+      return;
+    }
+
+    if (account.role !== Role.CREATOR && account.role !== Role.ADMIN) {
+      SendError(res, SOCIAL_ACCOUNT_MESSAGES.ONLY_CREATORS_CAN_CONNECT, 403);
+      return;
+    }
+
+    const findCreatorQuery = {
+      where: {
+        accountId: account.sub,
+        status: Status.ACTIVE,
+      },
+    };
+    const creator = await prisma.creator.findFirst(findCreatorQuery);
+
+    if (!creator) {
+      SendError(res, SOCIAL_ACCOUNT_MESSAGES.CREATOR_NOT_FOUND, 404);
+      return;
+    }
+
+    const findAllAccountsQuery = {
+      where: {
+        creatorId: creator.id,
+        isVerified: true,
+        status: Status.ACTIVE,
+      },
+      orderBy: {
+        verifiedAt: 'desc' as const,
+      },
+    };
+    const allAccounts = await prisma.creatorSocialAccount.findMany(findAllAccountsQuery);
+
+    // Keep the most recently verified active account per platform
+    const seenPlatforms = new Set<Platform>();
+    const enrichedAccounts = [];
+
+    for (const socialAccount of allAccounts) {
+      if (seenPlatforms.has(socialAccount.platform)) {
+        continue;
+      }
+      seenPlatforms.add(socialAccount.platform);
+
+      const switchCooldown = CalculateAccountSwitchCooldown(socialAccount.verifiedAt);
+      enrichedAccounts.push({
+        ...socialAccount,
+        canSwitchAccount: switchCooldown.canSwitchAccount,
+        nextSwitchAvailableAt: switchCooldown.nextSwitchAvailableAt,
+      });
+    }
+
+    SendSuccess(res, enrichedAccounts, SOCIAL_ACCOUNT_MESSAGES.CONNECTED_ACCOUNTS_RETRIEVED);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Handles `GET /social-accounts/:platform/recent-videos`:
+ * Fetches recent public videos/reels/shorts uploaded by the creator's connected account on that platform.
  *
  * @param req - Express request object.
  * @param res - Express response object.
@@ -525,6 +750,16 @@ export async function GetRecentTikTokVideos(req: Request, res: Response, next: N
       SendError(res, SOCIAL_ACCOUNT_MESSAGES.ONLY_CREATORS_CAN_ACCESS_VIDEOS, 403);
       return;
     }
+
+    const platform = ParseSocialPlatformParam(
+      typeof req.params?.platform === 'string' ? req.params.platform : undefined,
+    );
+    if (!platform) {
+      SendError(res, SOCIAL_ACCOUNT_MESSAGES.UNSUPPORTED_PLATFORM, 400);
+      return;
+    }
+
+    const platformName = SOCIAL_PLATFORM_DISPLAY_NAMES[platform];
 
     const findCreatorQuery = {
       where: {
@@ -547,7 +782,7 @@ export async function GetRecentTikTokVideos(req: Request, res: Response, next: N
     const findVerifiedAccountQuery = {
       where: {
         creatorId: creator.id,
-        platform: Platform.TIKTOK,
+        platform,
         isVerified: true,
         status: Status.ACTIVE,
         ...(targetUsername ? { username: { equals: targetUsername, mode: 'insensitive' as const } } : {}),
@@ -559,15 +794,23 @@ export async function GetRecentTikTokVideos(req: Request, res: Response, next: N
 
     const verifiedAccount = await prisma.creatorSocialAccount.findFirst(findVerifiedAccountQuery);
     if (!verifiedAccount) {
-      SendError(res, SOCIAL_ACCOUNT_MESSAGES.NO_VERIFIED_TIKTOK, 400);
+      const noVerifiedMsg =
+        platform === Platform.TIKTOK
+          ? SOCIAL_ACCOUNT_MESSAGES.NO_VERIFIED_TIKTOK
+          : SOCIAL_ACCOUNT_MESSAGES.NO_VERIFIED_PLATFORM_ACCOUNT(platformName);
+      SendError(res, noVerifiedMsg, 400);
       return;
     }
 
-    let videos;
+    let videos: SocialVideoItem[];
     try {
-      videos = await GetTikTokRecentVideos(verifiedAccount.username, TIKTOK_RECENT_VIDEOS_DEFAULT_LIMIT);
+      videos = await FetchPlatformRecentVideos(
+        platform,
+        verifiedAccount.username,
+        TIKTOK_RECENT_VIDEOS_DEFAULT_LIMIT,
+      );
     } catch (scraperErr) {
-      console.error(`[GetRecentTikTokVideos] Scraper error for @${verifiedAccount.username}:`, scraperErr);
+      console.error(`[GetRecentSocialVideos] Scraper error for ${platform} @${verifiedAccount.username}:`, scraperErr);
       SendError(res, SOCIAL_ACCOUNT_MESSAGES.RECENT_VIDEOS_FAILED, 400);
       return;
     }
@@ -579,8 +822,8 @@ export async function GetRecentTikTokVideos(req: Request, res: Response, next: N
 }
 
 /**
- * Handles `POST /social-accounts/tiktok/validate-video-url`:
- * Validates a direct TikTok video link and ensures author matches creator's verified account.
+ * Handles `POST /social-accounts/:platform/validate-video-url`:
+ * Validates a direct video link for the platform and ensures the author matches the creator's verified account.
  *
  * @param req - Express request object.
  * @param res - Express response object.
@@ -599,7 +842,17 @@ export async function ValidateTikTokVideoUrl(req: Request, res: Response, next: 
       return;
     }
 
-    const validation = ValidateVideoUrlSchema.safeParse(req.body);
+    const platform = ParseSocialPlatformParam(
+      typeof req.params?.platform === 'string' ? req.params.platform : undefined,
+    );
+    if (!platform) {
+      SendError(res, SOCIAL_ACCOUNT_MESSAGES.UNSUPPORTED_PLATFORM, 400);
+      return;
+    }
+
+    const platformName = SOCIAL_PLATFORM_DISPLAY_NAMES[platform];
+    const urlSchema = BuildValidateVideoUrlSchema(platform);
+    const validation = urlSchema.safeParse(req.body);
     if (!validation.success) {
       const firstError = validation.error.issues[0]?.message ?? SOCIAL_ACCOUNT_MESSAGES.VIDEO_URL_INVALID;
       SendError(res, firstError, 400);
@@ -622,7 +875,7 @@ export async function ValidateTikTokVideoUrl(req: Request, res: Response, next: 
     const findVerifiedAccountQuery = {
       where: {
         creatorId: creator.id,
-        platform: Platform.TIKTOK,
+        platform,
         isVerified: true,
         status: Status.ACTIVE,
       },
@@ -633,14 +886,18 @@ export async function ValidateTikTokVideoUrl(req: Request, res: Response, next: 
 
     const verifiedAccount = await prisma.creatorSocialAccount.findFirst(findVerifiedAccountQuery);
     if (!verifiedAccount) {
-      SendError(res, SOCIAL_ACCOUNT_MESSAGES.ACCOUNT_NOT_VERIFIED, 400);
+      const notVerifiedMsg =
+        platform === Platform.TIKTOK
+          ? SOCIAL_ACCOUNT_MESSAGES.ACCOUNT_NOT_VERIFIED
+          : SOCIAL_ACCOUNT_MESSAGES.ACCOUNT_NOT_VERIFIED_PLATFORM(platformName);
+      SendError(res, notVerifiedMsg, 400);
       return;
     }
 
     const rawVideoUrl = validation.data.videoUrl;
-    let videoDetails: TikTokVideoItem;
+    let videoDetails: SocialVideoItem;
     try {
-      videoDetails = await GetTikTokVideoDetails(rawVideoUrl);
+      videoDetails = await FetchPlatformVideoDetails(platform, rawVideoUrl);
     } catch {
       SendError(res, SOCIAL_ACCOUNT_MESSAGES.VIDEO_VERIFY_FAILED, 400);
       return;
@@ -648,14 +905,22 @@ export async function ValidateTikTokVideoUrl(req: Request, res: Response, next: 
 
     const authorHandle = videoDetails.authorUsername.toLowerCase();
     const verifiedHandle = verifiedAccount.username.toLowerCase();
-    const isHandleMatch = authorHandle === verifiedHandle;
+    const isHandleMatch = Boolean(authorHandle) && authorHandle === verifiedHandle;
     const isPlatformUserIdMatch =
       Boolean(videoDetails.authorPlatformUserId) &&
       Boolean(verifiedAccount.platformUserId) &&
       videoDetails.authorPlatformUserId === verifiedAccount.platformUserId;
 
     if (!isHandleMatch && !isPlatformUserIdMatch) {
-      SendError(res, SOCIAL_ACCOUNT_MESSAGES.VIDEO_AUTHOR_MISMATCH(videoDetails.authorUsername, verifiedAccount.username), 400);
+      SendError(
+        res,
+        SOCIAL_ACCOUNT_MESSAGES.VIDEO_AUTHOR_MISMATCH(
+          videoDetails.authorUsername,
+          verifiedAccount.username,
+          platformName,
+        ),
+        400,
+      );
       return;
     }
 

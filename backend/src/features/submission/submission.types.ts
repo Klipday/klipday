@@ -1,4 +1,4 @@
-import type { SubmissionStatus } from '../../generated/prisma/enums.js';
+import type { Platform, SubmissionStatus } from '../../generated/prisma/enums.js';
 import type { ALL_STATUS_FILTER } from './submission.constants.js';
 import type { SocialAccountDto } from '../social-account/social-account.types.js';
 
@@ -6,6 +6,8 @@ export interface SubmissionDetailDto {
   id: string;
   campaignId: string;
   creatorId: string;
+  platform: Platform;
+  externalVideoId?: string | null;
   draftVideoUrl?: string | null;
   liveVideoUrl?: string | null;
   thumbnailUrl?: string | null;
@@ -20,15 +22,31 @@ export interface SubmissionDetailDto {
   socialAccount?: SocialAccountDto | null;
 }
 
+export interface PlatformSubmissionQuotaDto {
+  platform: Platform;
+  submittedCount: number;
+  maxSubmissions: number | null;
+  remainingSlots: number | null;
+  canSubmit: boolean;
+}
+
 export interface MySubmissionResponseData {
   submission: SubmissionDetailDto | null;
+  submissions?: SubmissionDetailDto[];
   socialAccount: SocialAccountDto | null;
+  socialAccounts?: SocialAccountDto[];
+  isJoined?: boolean;
+  canSubmitMore?: boolean;
+  maxSubmissionsPerPlatform?: number | null;
+  platformQuotas?: PlatformSubmissionQuotaDto[];
 }
 
 export interface RawSubmissionInput {
   id: string;
   campaignId: string;
   creatorId: string;
+  platform?: Platform;
+  externalVideoId?: string | null;
   draftVideoUrl?: string | null;
   liveVideoUrl?: string | null;
   thumbnailUrl?: string | null;
@@ -61,6 +79,7 @@ export interface CampaignSubmissionReviewItemDto {
   id: string;
   campaignId: string;
   creatorId: string;
+  platform: Platform;
   draftVideoUrl: string | null;
   liveVideoUrl: string | null;
   thumbnailUrl: string | null;
@@ -79,6 +98,7 @@ export interface CampaignSubmissionReviewItemDto {
   };
   socialAccount: {
     id: string;
+    platform?: Platform;
     username: string;
     avatarUrl: string | null;
     followersCount: number;

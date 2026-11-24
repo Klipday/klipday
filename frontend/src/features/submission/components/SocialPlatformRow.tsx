@@ -8,19 +8,23 @@ import { RenderPlatformLogo } from './SocialPlatformIcons';
 
 /**
  * Individual social media platform card row.
- * Handles three visual states:
+ * Handles four visual states:
  * 1. Unsupported platform: Disabled, muted, locked icon.
- * 2. Supported & connected account: Highlighted border, user avatar/handle, follower count, "Ganti Akun" action.
- * 3. Supported & unconnected account: Clean prompt with "+ Hubungkan Akun" button.
+ * 2. Quota reached: Muted state showing submitted count out of max allowed.
+ * 3. Supported & connected account: Selectable card with avatar/handle, quota indicator, "Ganti Akun" action.
+ * 4. Supported & unconnected account: Clean prompt with "+ Hubungkan Akun" button.
  *
- * @param props - Platform info, connectivity status, account details, and callback triggers.
+ * @param props - Platform info, connectivity status, selection state, quota, account details, and callbacks.
  * @returns Rendered platform row element.
  */
 export function SocialPlatformRow({
   platformId,
   platformName,
   isSupported,
+  isSelected,
+  quota,
   connectedAccount,
+  onSelect,
   onConnect,
   onSwitchAccount,
   className,
@@ -54,12 +58,53 @@ export function SocialPlatformRow({
     );
   }
 
+  const isQuotaExhausted = Boolean(quota && !quota.canSubmit);
+  const quotaLabel = quota
+    ? quota.maxSubmissions === null
+      ? `${quota.submittedCount} video terkirim`
+      : `${quota.submittedCount}/${quota.maxSubmissions} video`
+    : null;
+
+  // Case 2: Platform supported, but creator already reached the campaign's per-platform video limit
+  if (isQuotaExhausted) {
+    return (
+      <div
+        className={cn(
+          'flex items-center justify-between p-4 rounded-xl border border-border/50 bg-muted/20 opacity-75 cursor-not-allowed select-none',
+          className,
+        )}>
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="size-10 rounded-xl bg-muted/60 border border-border/60 flex items-center justify-center shrink-0 text-muted-foreground">
+            {RenderPlatformLogo(platformId, 'size-5')}
+          </div>
+          <div className="min-w-0 space-y-0.5">
+            <div className="flex items-center gap-x-3 flex-wrap">
+              <h4 className="text-sm font-semibold text-foreground tracking-tight truncate">
+                {platformName}
+              </h4>
+              <span className="text-xs font-medium text-muted-foreground">
+                Batas Tercapai ({quotaLabel})
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Kamu sudah mencapai batas maksimal pengajuan video untuk platform ini.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 pl-3 shrink-0">
+          <CheckIcon className="size-4 text-emerald-500" aria-label="Batas tercapai" />
+        </div>
+      </div>
+    );
+  }
+
   const hasConnectedAccount = Boolean(
     connectedAccount?.isVerified &&
       (connectedAccount.platform || 'TIKTOK').toUpperCase() === platformId.toUpperCase(),
   );
 
-  // Case 2: Platform supported and creator has a verified connected account
+  // Case 3: Platform supported and creator has a verified connected account
   if (hasConnectedAccount && connectedAccount) {
     const isSwitchOnCooldown =
       connectedAccount.canSwitchAccount === false &&
@@ -76,8 +121,20 @@ export function SocialPlatformRow({
 
     return (
       <div
+        role="button"
+        tabIndex={0}
+        onClick={onSelect}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelect();
+          }
+        }}
         className={cn(
-          'rounded-xl border border-foreground/25 bg-muted/20 hover:border-foreground/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs transition-all',
+          'rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs transition-all cursor-pointer',
+          isSelected
+            ? 'border-foreground/50 bg-muted/35'
+            : 'border-border/60 bg-card hover:border-foreground/30',
           className,
         )}>
         <div className="flex items-center gap-3.5 min-w-0">
@@ -108,6 +165,11 @@ export function SocialPlatformRow({
               <span className="text-xs font-medium text-foreground">
                 Terhubung
               </span>
+              {quotaLabel && (
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {quotaLabel}
+                </span>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground truncate">
               <span className="font-medium text-foreground/90">@{connectedAccount.username}</span>
@@ -132,14 +194,22 @@ export function SocialPlatformRow({
                 ? `Anda dapat mengganti akun kembali pada ${cooldownDateLabel}`
                 : undefined
             }
-            onClick={onSwitchAccount}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSwitchAccount();
+            }}
             className="h-8 text-xs font-medium rounded-lg hover:bg-muted/80 cursor-pointer disabled:cursor-not-allowed">
             Ganti Akun
           </Button>
 
           <div
-            className="size-6 rounded-full bg-foreground text-background flex items-center justify-center shrink-0 shadow-xs"
-            aria-label="Akun terpilih">
+            className={cn(
+              'size-6 rounded-full flex items-center justify-center shrink-0 transition-colors',
+              isSelected
+                ? 'bg-foreground text-background shadow-xs'
+                : 'border border-border/80 bg-transparent text-transparent',
+            )}
+            aria-label={isSelected ? 'Akun terpilih' : 'Pilih akun'}>
             <CheckIcon className="size-3.5 stroke-[2.5]" />
           </div>
         </div>
@@ -147,7 +217,7 @@ export function SocialPlatformRow({
     );
   }
 
-  // Case 3: Platform supported but creator has NOT connected an account yet
+  // Case 4: Platform supported but creator has NOT connected an account yet
   return (
     <div
       className={cn(
@@ -163,12 +233,14 @@ export function SocialPlatformRow({
             <h4 className="text-sm font-semibold text-foreground tracking-tight">
               {platformName}
             </h4>
-            <span className="text-xs text-muted-foreground">
-              Wajib untuk kampanye ini
-            </span>
+            {quotaLabel && (
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {quotaLabel}
+              </span>
+            )}
           </div>
           <p className="text-xs text-muted-foreground">
-            Hubungkan dan verifikasi bio akun {platformName} kamu
+            Hubungkan dan verifikasi akun {platformName} kamu
           </p>
         </div>
       </div>

@@ -166,7 +166,7 @@ export function ValidateCampaignSubmitCompleteness(campaign: CampaignSubmitCheck
   const hasMedia = Boolean(campaign.mainMediaUrl && campaign.mainMediaUrl.trim() !== '');
   const hasType = Boolean(campaign.campaignType);
   const hasCat = Boolean(campaign.campaignCategory);
-  const hasPlat = Boolean(campaign.platform);
+  const hasPlat = Array.isArray(campaign.platforms) && campaign.platforms.length > 0;
 
   if (!hasTitle || !hasDesc || !hasThumb || !hasMedia || !hasType || !hasCat || !hasPlat) {
     return CAMPAIGN_MESSAGES.STEP_1_INCOMPLETE;

@@ -55,6 +55,8 @@ export function GetInitialReward(campaign?: Partial<Campaign> | null): RewardFor
   const cpm = campaign?.cpm != null ? Number(campaign.cpm) : 0;
   const minViews = campaign?.minViews != null ? Number(campaign.minViews) : 0;
   const maxViews = campaign?.maxViews != null ? Number(campaign.maxViews) : 0;
+  const maxSubmissionsPerPlatform =
+    campaign?.maxSubmissionsPerPlatform === undefined ? 1 : campaign.maxSubmissionsPerPlatform;
   const budget = campaign?.budget != null ? Number(campaign.budget) : 0;
   const startDate = campaign?.startDate ? FormatDateForInput(campaign.startDate) : '';
   const endDate = campaign?.endDate ? FormatDateForInput(campaign.endDate) : '';
@@ -63,6 +65,7 @@ export function GetInitialReward(campaign?: Partial<Campaign> | null): RewardFor
     cpm,
     minViews,
     maxViews,
+    maxSubmissionsPerPlatform,
     budget,
     startDate,
     endDate,

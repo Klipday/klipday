@@ -27,6 +27,14 @@ export function SubmissionStep3VideoPickerDialog({
   onSwitchAccount,
   className,
 }: SubmissionStep3VideoPickerDialogProps) {
+  const activePlatform = connectedAccount?.platform ?? 'TIKTOK';
+  const platformLabel =
+    activePlatform === 'INSTAGRAM'
+      ? 'Instagram Reels'
+      : activePlatform === 'YOUTUBE'
+        ? 'YouTube Shorts'
+        : 'TikTok';
+
   const {
     data: recentVideos,
     isLoading: isLoadingVideos,
@@ -37,6 +45,7 @@ export function SubmissionStep3VideoPickerDialog({
   } = UseRecentTikTokVideosQuery(
     Boolean(connectedAccount?.isVerified),
     connectedAccount?.username,
+    activePlatform,
   );
   const validateUrlMutation = UseValidateTikTokVideoUrlMutation();
 
@@ -46,14 +55,15 @@ export function SubmissionStep3VideoPickerDialog({
     try {
       const validatedVideo = await validateUrlMutation.mutateAsync({
         videoUrl: cleanUrl,
+        platform: activePlatform,
       });
       onSelectVideo(validatedVideo);
-      toast.success('Video TikTok berhasil diverifikasi dan dipilih!');
+      toast.success(`Video ${platformLabel} berhasil diverifikasi dan dipilih!`);
     } catch (err) {
       const msg =
         err instanceof Error
           ? err.message
-          : 'Tautan video TikTok tidak valid atau milik akun lain.';
+          : `Tautan video ${platformLabel} tidak valid atau milik akun lain.`;
       toast.error(msg);
     }
   };

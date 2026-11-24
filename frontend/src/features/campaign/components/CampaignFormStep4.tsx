@@ -6,6 +6,7 @@ import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { GetWizardStepPath } from '../config/wizard-steps';
 import { UseCampaignWizardContext, UseEditCampaignMutation, UseUnsavedChangesGuard } from '../hooks';
 import { CreateRewardSchema, type RewardFormValues } from '../schemas';
@@ -233,6 +234,71 @@ export function CampaignFormStep4() {
               )}
             />
           </div>
+
+          {/* Max Submissions per Platform */}
+          <Controller
+            name="maxSubmissionsPerPlatform"
+            control={form.control}
+            render={({ field, fieldState }) => {
+              const isUnlimited = field.value === null;
+
+              return (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="maxSubmissionsPerPlatform">
+                    Batas Video per Platform (per Kreator)
+                  </FieldLabel>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <div className="inline-flex w-fit overflow-hidden rounded-lg border border-border/60 divide-x divide-border/60 p-0">
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => field.onChange(isUnlimited ? 1 : field.value)}
+                        className={cn(
+                          'px-3.5 py-2 text-xs font-medium transition-colors cursor-pointer first:rounded-l-lg',
+                          !isUnlimited
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-background text-muted-foreground hover:text-foreground',
+                        )}>
+                        Terbatas
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => field.onChange(null)}
+                        className={cn(
+                          'px-3.5 py-2 text-xs font-medium transition-colors cursor-pointer last:rounded-r-lg',
+                          isUnlimited
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-background text-muted-foreground hover:text-foreground',
+                        )}>
+                        Tanpa Batas
+                      </button>
+                    </div>
+
+                    {!isUnlimited && (
+                      <div className="flex items-center gap-2 sm:max-w-[200px]">
+                        <Input
+                          id="maxSubmissionsPerPlatform"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="Contoh: 3"
+                          disabled={isPending}
+                          value={FormatNumberForInput(field.value)}
+                          onChange={(e) => HandleFormattedNumberChange(field.onChange, e)}
+                          onBlur={field.onBlur}
+                        />
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">video / platform</span>
+                      </div>
+                    )}
+                  </div>
+                  <FieldDescription>
+                    Jumlah maksimal video yang dapat diajukan oleh satu kreator pada masing-masing platform yang diizinkan (1–50 video atau tanpa batas).
+                  </FieldDescription>
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              );
+            }}
+          />
         </FieldGroup>
       </div>
 

@@ -116,7 +116,15 @@ export function CampaignDetailRewardSidebar({
           </div>
 
           {/* Campaign Schedule & Timeline */}
-          <div className="border-t border-border/40 pt-5 space-y-1.5">
+          <div className="border-t border-border/40 pt-5 space-y-2.5">
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="text-muted-foreground font-medium">Batas Video per Platform</span>
+              <span className="font-semibold text-foreground">
+                {campaign.maxSubmissionsPerPlatform === null
+                  ? 'Tanpa Batas'
+                  : `${campaign.maxSubmissionsPerPlatform ?? 1} video`}
+              </span>
+            </div>
             <div className="flex items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-1.5 text-muted-foreground font-medium">
                 <CalendarIcon className="size-3.5 text-muted-foreground shrink-0" />

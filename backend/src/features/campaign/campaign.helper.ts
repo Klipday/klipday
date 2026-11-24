@@ -260,7 +260,7 @@ export function BuildCampaignsWhereClause(
 
   // Platform filter
   if (query.platform) {
-    whereClause.platform = query.platform;
+    whereClause.platforms = { has: query.platform };
   }
 
   return whereClause;

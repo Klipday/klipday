@@ -50,6 +50,7 @@ export const CRON_ELIGIBLE_CAMPAIGN_SELECT = {
     orderBy: FIFO_SUBMISSION_ORDER_BY,
     select: {
       id: true,
+      platform: true,
       liveVideoUrl: true,
       verifiedViews: true,
       earnings: true,
@@ -58,6 +59,7 @@ export const CRON_ELIGIBLE_CAMPAIGN_SELECT = {
       socialAccount: {
         select: {
           id: true,
+          platform: true,
           username: true,
           platformUserId: true,
           status: true,
@@ -105,11 +107,11 @@ export const CRON_MESSAGES = {
 
   // User-facing diagnostic messages persisted to Submission.lastSyncError for Admin Settlement Audit
   SYNC_ERR_MISSING_VIDEO_URL:
-    'Tautan video TikTok belum tersedia. Tayangan terakhir dibekukan untuk ditinjau Admin.',
+    'Tautan video belum tersedia. Tayangan terakhir dibekukan untuk ditinjau Admin.',
   SYNC_ERR_VIDEO_UNAVAILABLE:
-    'Video TikTok tidak dapat diakses (dihapus atau diatur menjadi privat). Tayangan terakhir dibekukan untuk ditinjau Admin.',
+    'Video tidak dapat diakses (dihapus atau diatur menjadi privat). Tayangan terakhir dibekukan untuk ditinjau Admin.',
   SYNC_ERR_OWNERSHIP_MISMATCH:
-    'Akun pemilik video TikTok tidak sesuai dengan akun kreator yang terdaftar. Tayangan dibekukan untuk ditinjau Admin.',
+    'Akun pemilik video tidak sesuai dengan akun kreator yang terdaftar. Tayangan dibekukan untuk ditinjau Admin.',
   SYNC_ERR_TRANSIENT_UNAVAILABLE:
     'Gagal memuat data tayangan terbaru karena gangguan koneksi sementara. Tayangan terakhir tetap dipertahankan.',
   SYNC_ERR_SCRAPER_REJECTED:

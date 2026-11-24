@@ -37,12 +37,14 @@ export const CAMPAIGN_CATEGORY_LABELS: Record<CampaignCategoryOption, string> = 
   OTHER: 'Lainnya (Other)',
 };
 
-export const CAMPAIGN_PLATFORM_OPTIONS = ['TIKTOK'] as const;
+export const CAMPAIGN_PLATFORM_OPTIONS = ['TIKTOK', 'INSTAGRAM', 'YOUTUBE'] as const;
 
 export type CampaignPlatformOption = (typeof CAMPAIGN_PLATFORM_OPTIONS)[number];
 
 export const CAMPAIGN_PLATFORM_LABELS: Record<CampaignPlatformOption, string> = {
   TIKTOK: 'TikTok',
+  INSTAGRAM: 'Instagram Reels',
+  YOUTUBE: 'YouTube Shorts',
 };
 
 export const basicInfoSchema = z.object({
@@ -60,9 +62,13 @@ export const basicInfoSchema = z.object({
     .min(1, 'URL thumbnail wajib diisi.')
     .url('Format URL thumbnail tidak valid.')
     .regex(/^https?:\/\//i, 'Format URL thumbnail tidak valid (harus diawali http:// atau https://).'),
-  platform: z.enum(CAMPAIGN_PLATFORM_OPTIONS, {
-    error: 'Pilih platform yang valid.',
-  }),
+  platforms: z
+    .array(
+      z.enum(CAMPAIGN_PLATFORM_OPTIONS, {
+        error: 'Pilih platform yang valid.',
+      })
+    )
+    .min(1, 'Pilih minimal satu platform promosi.'),
   mainMediaUrl: z
     .string()
     .trim()

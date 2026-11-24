@@ -19,7 +19,7 @@ import {
   UseRequestTikTokVerificationCodeMutation,
   UseVerifyTikTokBioMutation,
 } from '../hooks';
-import type { SocialAccountConnectDialogProps } from '../types';
+import type { SocialAccountConnectDialogProps, SocialPlatform } from '../types';
 import { ConnectGuideInfographic } from './ConnectGuideInfographic';
 import { RenderPlatformLogo } from './SocialPlatformIcons';
 import { SocialVerificationCodeCard } from './SocialVerificationCodeCard';
@@ -39,18 +39,24 @@ function SocialAccountConnectDialogInner({
   className,
 }: SocialAccountConnectDialogProps) {
   const queryClient = useQueryClient();
-  const { data: queriedAccount } = UseConnectedSocialAccountQuery();
-  const effectiveAccount = queriedAccount ?? propConnectedAccount ?? null;
+  const normalizedPlatform = ((platform || 'TIKTOK').toUpperCase() as SocialPlatform);
+  const { data: queriedAccount } = UseConnectedSocialAccountQuery(normalizedPlatform);
+  const matchingPropAccount =
+    propConnectedAccount &&
+    (propConnectedAccount.platform || 'TIKTOK').toUpperCase() === normalizedPlatform
+      ? propConnectedAccount
+      : null;
+  const effectiveAccount = queriedAccount ?? matchingPropAccount ?? null;
 
   const requestCodeMutation = UseRequestTikTokVerificationCodeMutation();
   const verifyBioMutation = UseVerifyTikTokBioMutation();
 
-  const isTikTok = (platform || 'TIKTOK').toUpperCase() === 'TIKTOK';
-  const platformDisplayName = isTikTok
-    ? 'TikTok'
-    : platform
-      ? platform.charAt(0).toUpperCase() + platform.slice(1).toLowerCase()
-      : 'TikTok';
+  const platformDisplayName =
+    normalizedPlatform === 'TIKTOK'
+      ? 'TikTok'
+      : normalizedPlatform === 'INSTAGRAM'
+        ? 'Instagram'
+        : 'YouTube';
 
   // Initialize username from connected account or empty
   const [username, setUsername] = useState<string>(() => {
@@ -129,11 +135,15 @@ function SocialAccountConnectDialogInner({
     }
 
     try {
-      const response = await requestCodeMutation.mutateAsync({ username: cleanUsername });
+      const response = await requestCodeMutation.mutateAsync({
+        username: cleanUsername,
+        platform: normalizedPlatform,
+      });
 
       if (response.alreadyVerified && response.account) {
-        queryClient.setQueryData(['connected-social-account'], response.account);
+        queryClient.setQueryData(['connected-social-account', normalizedPlatform], response.account);
         await queryClient.invalidateQueries({ queryKey: ['connected-social-account'] });
+        await queryClient.invalidateQueries({ queryKey: ['connected-social-accounts'] });
         await queryClient.invalidateQueries({ queryKey: ['recent-tiktok-videos'] });
         queryClient.invalidateQueries({ queryKey: ['current-account'] });
         queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] });
@@ -182,9 +192,13 @@ function SocialAccountConnectDialogInner({
     if (!cleanUsername) return;
 
     try {
-      const verified = await verifyBioMutation.mutateAsync({ username: cleanUsername });
-      queryClient.setQueryData(['connected-social-account'], verified);
+      const verified = await verifyBioMutation.mutateAsync({
+        username: cleanUsername,
+        platform: normalizedPlatform,
+      });
+      queryClient.setQueryData(['connected-social-account', normalizedPlatform], verified);
       await queryClient.invalidateQueries({ queryKey: ['connected-social-account'] });
+      await queryClient.invalidateQueries({ queryKey: ['connected-social-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['current-account'] });
       queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] });
       toast.success(`Akun ${platformDisplayName} berhasil terhubung dan terverifikasi!`);
@@ -252,35 +266,11 @@ function SocialAccountConnectDialogInner({
 
         {/* Right Column: Verification Action Form */}
         <div className="md:col-span-7 p-5 sm:p-6 flex flex-col justify-between space-y-5">
-          {!isTikTok ? (
-            /* Non-TikTok Unsupported Notice */
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 space-y-3">
-              <div className="size-12 rounded-xl bg-muted/50 border border-border/60 flex items-center justify-center text-muted-foreground">
-                {RenderPlatformLogo(platform, 'size-6')}
-              </div>
-              <div className="space-y-1 max-w-sm">
-                <h4 className="text-sm font-semibold text-foreground tracking-tight">
-                  Integrasi {platformDisplayName} Segera Hadir
-                </h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Saat ini Klipday mendukung verifikasi bio otomatis untuk kampanye TikTok. Integrasi akun {platformDisplayName} sedang dalam proses pengembangan.
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => onOpenChange(false)}
-                className="h-8 text-xs rounded-lg mt-2 cursor-pointer">
-                Tutup
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
+          <div className="space-y-4">
               {/* Username Input Form */}
               <form onSubmit={HandleRequestCode} className="space-y-2">
                 <Label htmlFor="connect-account-username" className="text-xs font-semibold text-foreground">
-                  Username Akun {platformDisplayName}
+                  {normalizedPlatform === 'YOUTUBE' ? 'Handle Channel YouTube' : `Username Akun ${platformDisplayName}`}
                 </Label>
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
@@ -290,7 +280,7 @@ function SocialAccountConnectDialogInner({
                     <Input
                       id="connect-account-username"
                       type="text"
-                      placeholder={`username_${(platform || 'tiktok').toLowerCase()}`}
+                      placeholder={`username_${normalizedPlatform.toLowerCase()}`}
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       disabled={requestCodeMutation.isPending || Boolean(activeCode && !isCodeExpired)}
@@ -325,7 +315,9 @@ function SocialAccountConnectDialogInner({
                   )}
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Pastikan akun {platformDisplayName} kamu bersifat publik agar video dapat divalidasi sistem.
+                  {normalizedPlatform === 'YOUTUBE'
+                    ? 'Pastikan channel YouTube kamu bersifat publik agar video Shorts dapat divalidasi sistem.'
+                    : `Pastikan akun ${platformDisplayName} kamu bersifat publik agar video dapat divalidasi sistem.`}
                 </p>
               </form>
 
@@ -344,7 +336,6 @@ function SocialAccountConnectDialogInner({
                 />
               )}
             </div>
-          )}
 
           <p className="text-[11px] text-muted-foreground italic border-t border-border/30 pt-3">
             Setelah terverifikasi, akun kamu akan otomatis terhubung ke sistem Klipday.

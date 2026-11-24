@@ -12,6 +12,7 @@ import type {
   RequestVerificationCodeInput,
   RequestVerificationCodeResponse,
   SaveDraftSubmissionInput,
+  SocialPlatform,
   SocialVideoItem,
   Submission,
   ValidateVideoUrlInput,
@@ -89,13 +90,18 @@ export async function FinalSubmitVideo(campaignId: string, input: FinalSubmitVid
 }
 
 /**
- * Sends a GET request to `/social-accounts/connected` to retrieve the creator's verified TikTok account.
+ * Sends a GET request to `/social-accounts/connected` to retrieve the creator's verified social account
+ * for a specific platform (defaults to TIKTOK).
  *
+ * @param platform - Optional target social platform.
  * @returns Verified account record or null if not yet verified.
  */
-export async function GetConnectedSocialAccount(): Promise<CreatorSocialAccount | null> {
+export async function GetConnectedSocialAccount(platform?: SocialPlatform): Promise<CreatorSocialAccount | null> {
   try {
-    const response = await apiClient.get<ApiResponse<CreatorSocialAccount | null>>('/social-accounts/connected');
+    const url = platform
+      ? `/social-accounts/connected?platform=${encodeURIComponent(platform)}`
+      : '/social-accounts/connected';
+    const response = await apiClient.get<ApiResponse<CreatorSocialAccount | null>>(url);
     const result = response.data.data;
     return result;
   } catch (error) {
@@ -105,14 +111,35 @@ export async function GetConnectedSocialAccount(): Promise<CreatorSocialAccount 
 }
 
 /**
- * Sends a POST request to `/social-accounts/tiktok/request-code` to generate a bio verification token.
+ * Sends a GET request to `/social-accounts/connected/all` to retrieve all verified social accounts
+ * (TikTok, Instagram, YouTube) connected by the creator.
  *
- * @param input - TikTok username.
+ * @returns Array of verified social accounts across all platforms.
+ */
+export async function GetAllConnectedSocialAccounts(): Promise<CreatorSocialAccount[]> {
+  try {
+    const response = await apiClient.get<ApiResponse<CreatorSocialAccount[]>>('/social-accounts/connected/all');
+    const result = response.data.data;
+    return result;
+  } catch (error) {
+    const apiError = ExtractApiError(error, 'Gagal memuat daftar akun media sosial.');
+    throw apiError;
+  }
+}
+
+/**
+ * Sends a POST request to `/social-accounts/:platform/request-code` to generate a bio verification token.
+ *
+ * @param input - Social username and target platform.
  * @returns Verification code and expiry timestamp.
  */
 export async function RequestTikTokVerificationCode(input: RequestVerificationCodeInput): Promise<RequestVerificationCodeResponse> {
   try {
-    const response = await apiClient.post<ApiResponse<RequestVerificationCodeResponse>>('/social-accounts/tiktok/request-code', input);
+    const platformSlug = (input.platform ?? 'TIKTOK').toLowerCase();
+    const response = await apiClient.post<ApiResponse<RequestVerificationCodeResponse>>(
+      `/social-accounts/${platformSlug}/request-code`,
+      { username: input.username },
+    );
     const result = response.data.data;
     return result;
   } catch (error) {
@@ -122,55 +149,68 @@ export async function RequestTikTokVerificationCode(input: RequestVerificationCo
 }
 
 /**
- * Sends a POST request to `/social-accounts/tiktok/verify` to confirm bio verification code.
+ * Sends a POST request to `/social-accounts/:platform/verify` to confirm bio verification code.
  *
- * @param input - TikTok username.
+ * @param input - Social username and target platform.
  * @returns Verified social account details.
  */
 export async function VerifyTikTokBio(input: VerifyBioInput): Promise<CreatorSocialAccount> {
   try {
-    const response = await apiClient.post<ApiResponse<CreatorSocialAccount>>('/social-accounts/tiktok/verify', input);
+    const platformSlug = (input.platform ?? 'TIKTOK').toLowerCase();
+    const response = await apiClient.post<ApiResponse<CreatorSocialAccount>>(
+      `/social-accounts/${platformSlug}/verify`,
+      { username: input.username },
+    );
     const result = response.data.data;
     return result;
   } catch (error) {
-    const apiError = ExtractApiError(error, 'Gagal memverifikasi bio TikTok.');
+    const apiError = ExtractApiError(error, 'Gagal memverifikasi bio akun media sosial.');
     throw apiError;
   }
 }
 
 /**
- * Sends a GET request to `/social-accounts/tiktok/recent-videos` to fetch recent public videos.
+ * Sends a GET request to `/social-accounts/:platform/recent-videos` to fetch recent public videos/reels/shorts.
  *
- * @param username - Optional TikTok username handle to filter by.
+ * @param username - Optional username handle to filter by.
+ * @param platform - Target social platform (defaults to TIKTOK).
  * @returns Array of recent video items.
  */
-export async function GetRecentTikTokVideos(username?: string): Promise<SocialVideoItem[]> {
+export async function GetRecentTikTokVideos(
+  username?: string,
+  platform: SocialPlatform = 'TIKTOK',
+): Promise<SocialVideoItem[]> {
   try {
+    const platformSlug = platform.toLowerCase();
     const url = username
-      ? `/social-accounts/tiktok/recent-videos?username=${encodeURIComponent(username.replace(/^@/, ''))}`
-      : '/social-accounts/tiktok/recent-videos';
+      ? `/social-accounts/${platformSlug}/recent-videos?username=${encodeURIComponent(username.replace(/^@/, ''))}`
+      : `/social-accounts/${platformSlug}/recent-videos`;
     const response = await apiClient.get<ApiResponse<SocialVideoItem[]>>(url);
     const result = response.data.data;
     return result;
   } catch (error) {
-    const apiError = ExtractApiError(error, 'Gagal memuat galeri video TikTok terbaru.');
+    const apiError = ExtractApiError(error, 'Gagal memuat galeri video terbaru.');
     throw apiError;
   }
 }
 
 /**
- * Sends a POST request to `/social-accounts/tiktok/validate-video-url` to check a direct TikTok video link.
+ * Sends a POST request to `/social-accounts/:platform/validate-video-url` to check a direct video link.
  *
- * @param input - Public video URL.
+ * @param input - Public video URL and target platform.
  * @returns Extracted video metadata.
  */
 export async function ValidateTikTokVideoUrl(input: ValidateVideoUrlInput): Promise<SocialVideoItem> {
   try {
-    const response = await apiClient.post<ApiResponse<SocialVideoItem>>('/social-accounts/tiktok/validate-video-url', input);
+    const platformSlug = (input.platform ?? 'TIKTOK').toLowerCase();
+    const response = await apiClient.post<ApiResponse<SocialVideoItem>>(
+      `/social-accounts/${platformSlug}/validate-video-url`,
+      { videoUrl: input.videoUrl },
+    );
     const result = response.data.data;
     return result;
   } catch (error) {
-    const apiError = ExtractApiError(error, 'Tautan video TikTok tidak valid atau tidak cocok.');
+    const apiError = ExtractApiError(error, 'Tautan video tidak valid atau tidak cocok.');
     throw apiError;
   }
 }

@@ -102,6 +102,7 @@ export function UseVerifyTikTokBioMutation() {
     mutationFn: (input: VerifyBioInput) => VerifyTikTokBio(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['connected-social-account'] });
+      queryClient.invalidateQueries({ queryKey: ['connected-social-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['recent-tiktok-videos'] });
       queryClient.invalidateQueries({ queryKey: ['my-campaign-submission'] });
       queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] });

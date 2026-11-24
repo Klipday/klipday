@@ -27,9 +27,10 @@ export function CampaignReviewBasicInfo({ campaign, onEdit }: CampaignReviewBasi
     ? (CAMPAIGN_TYPE_LABELS[campaign.campaignType as CampaignTypeOption] ?? campaign.campaignType)
     : '-';
 
-  const platformLabel = campaign.platform
-    ? (CAMPAIGN_PLATFORM_LABELS[campaign.platform as CampaignPlatformOption] ?? campaign.platform)
-    : 'TikTok';
+  const platformsList = campaign.platforms?.length ? campaign.platforms : ['TIKTOK'];
+  const platformLabel = platformsList
+    .map((item) => CAMPAIGN_PLATFORM_LABELS[item as CampaignPlatformOption] ?? item)
+    .join(', ');
 
   const titleDisplay = campaign.title || 'Belum ada judul';
   const descriptionDisplay = campaign.description || 'Belum ada deskripsi kampanye.';

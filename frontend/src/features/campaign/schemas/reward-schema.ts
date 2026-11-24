@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const CPM_VIEW_DIVISOR = 1000;
 export const MIN_CPM_VALUE = 1000;
+export const MAX_SUBMISSIONS_PER_PLATFORM_LIMIT = 50;
 
 /**
  * Returns today's calendar date string (YYYY-MM-DD) in Asia/Jakarta (WIB) timezone.
@@ -32,6 +33,13 @@ const maxViewsField = z
   .int('Batas penayangan maksimum harus berupa bilangan bulat.')
   .positive('Batas penayangan maksimum harus lebih besar dari 0.');
 
+const maxSubmissionsPerPlatformField = z
+  .number({ error: 'Batas video per platform wajib diisi angka.' })
+  .int('Batas video per platform harus berupa bilangan bulat.')
+  .min(1, 'Minimal 1 video per platform.')
+  .max(MAX_SUBMISSIONS_PER_PLATFORM_LIMIT, 'Maksimal 50 video per platform.')
+  .nullable();
+
 const budgetField = z.number({ error: 'Total anggaran wajib diisi angka.' }).positive('Total anggaran harus lebih besar dari Rp 0.');
 
 const startDateField = z.string().trim().min(1, 'Tanggal mulai kampanye wajib diisi.');
@@ -54,6 +62,7 @@ export function CreateRewardSchema(options?: {
       cpm: cpmField,
       minViews: minViewsField,
       maxViews: maxViewsField,
+      maxSubmissionsPerPlatform: maxSubmissionsPerPlatformField,
       budget: budgetField,
       startDate: startDateField,
       endDate: endDateField,

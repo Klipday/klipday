@@ -444,8 +444,8 @@ describe('12-Hour Automated Metrics & Escrow Calculation Cron Engine', () => {
         .spyOn(prisma.creator, 'findFirst')
         .mockResolvedValue({ id: 'creator-1' } as never);
       const findExistingSubMock = jest
-        .spyOn(prisma.submission, 'findFirst')
-        .mockResolvedValue(existingSubMock as never);
+        .spyOn(prisma.submission, 'findMany')
+        .mockResolvedValue([existingSubMock] as never);
       const aggregateMock = jest
         .spyOn(prisma.submission, 'aggregate')
         .mockResolvedValue({ _sum: { earnings: new Prisma.Decimal(50_000) } } as never);

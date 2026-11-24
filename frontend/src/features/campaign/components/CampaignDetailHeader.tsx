@@ -9,7 +9,9 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { RenderPlatformLogo } from '@/features/submission/components/SocialPlatformIcons';
 import { UseJoinCampaignMutation, UseMyCampaignSubmissionQuery } from '@/features/submission/hooks';
+import { CAMPAIGN_PLATFORM_LABELS, type CampaignPlatformOption } from '../schemas';
 import type { CampaignDetailHeaderProps } from '../types';
 import {
   CalculateDaysRemaining,
@@ -69,8 +71,18 @@ export function CampaignDetailHeader({
   );
   const joinMutation = UseJoinCampaignMutation();
 
-  const isJoined = Boolean(mySubmissionData?.submission);
+  const isJoined = Boolean(mySubmissionData?.isJoined ?? mySubmissionData?.submission);
   const submissionStatus = mySubmissionData?.submission?.submissionStatus;
+  const submittedVideosCount =
+    mySubmissionData?.submissions?.filter(
+      (s) => s.submissionStatus !== 'JOINED' && s.submissionStatus !== 'REJECTED',
+    ).length ?? (submissionStatus && submissionStatus !== 'JOINED' && submissionStatus !== 'REJECTED' ? 1 : 0);
+  const canSubmitMore = Boolean(mySubmissionData?.canSubmitMore);
+  const hasRevisionRequested = Boolean(
+    mySubmissionData?.submissions?.some((s) => s.submissionStatus === 'REVISION_REQUESTED') ||
+      submissionStatus === 'REVISION_REQUESTED',
+  );
+  const campaignPlatforms = campaign.platforms?.length ? campaign.platforms : ['TIKTOK'];
 
   const HandleJoinClick = async () => {
     try {
@@ -132,13 +144,17 @@ export function CampaignDetailHeader({
 
           {/* Cleanly spaced metadata line without bullet points */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-0.5 tabular-nums">
-            <span className="inline-flex items-center gap-1.5 text-foreground/90">
-              <img
-                src="/assets/icons/tiktok.svg"
-                alt="TikTok"
-                className="size-3.5 opacity-75 dark:invert"
-              />
-              <span>TikTok</span>
+            <span className="inline-flex items-center gap-2 text-foreground/90">
+              {campaignPlatforms.map((platformKey) => {
+                const label =
+                  CAMPAIGN_PLATFORM_LABELS[platformKey as CampaignPlatformOption] ?? platformKey;
+                return (
+                  <span key={platformKey} className="inline-flex items-center gap-1">
+                    {RenderPlatformLogo(platformKey, 'size-3.5 opacity-80')}
+                    <span>{label}</span>
+                  </span>
+                );
+              })}
             </span>
             <span>{categoryBadge}</span>
             <span>{daysRemaining.label}</span>
@@ -178,7 +194,7 @@ export function CampaignDetailHeader({
                     <span>Kirim Video</span>
                   </Button>
                 </>
-              ) : submissionStatus === 'JOINED' ? (
+              ) : submittedVideosCount === 0 && !hasRevisionRequested ? (
                 <>
                   <div className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-muted/50 border border-border/60 text-foreground text-xs font-medium select-none">
                     <CheckIcon className="size-3.5 text-emerald-500" />
@@ -200,17 +216,19 @@ export function CampaignDetailHeader({
                   <div className="inline-flex items-center gap-1.5 text-foreground text-xs font-medium select-none">
                     <CheckIcon className="size-3.5 text-emerald-500" />
                     <span>
-                      {submissionStatus === 'PENDING_REVIEW'
-                        ? 'Video Sedang Ditinjau'
-                        : submissionStatus === 'APPROVED'
-                          ? 'Video Disetujui'
-                          : submissionStatus === 'REVISION_REQUESTED'
-                            ? 'Perlu Revisi Video'
-                            : 'Video Terkirim'}
+                      {submittedVideosCount > 1
+                        ? `${submittedVideosCount} Video Terkirim`
+                        : submissionStatus === 'PENDING_REVIEW'
+                          ? 'Video Sedang Ditinjau'
+                          : submissionStatus === 'APPROVED'
+                            ? 'Video Disetujui'
+                            : submissionStatus === 'REVISION_REQUESTED'
+                              ? 'Perlu Revisi Video'
+                              : 'Video Terkirim'}
                     </span>
                   </div>
 
-                  {submissionStatus === 'REVISION_REQUESTED' && (
+                  {hasRevisionRequested && (
                     <Button
                       type="button"
                       size="sm"
@@ -219,6 +237,18 @@ export function CampaignDetailHeader({
                     >
                       <VideocameraIcon className="size-3.5" />
                       <span>Perbaiki Video</span>
+                    </Button>
+                  )}
+
+                  {canSubmitMore && !hasRevisionRequested && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={onOpenSubmitDialog}
+                      className="h-9 px-4 bg-primary text-primary-foreground font-medium hover:bg-primary/90 rounded-lg text-xs cursor-pointer gap-2"
+                    >
+                      <VideocameraIcon className="size-3.5" />
+                      <span>Kirim Video Lainnya</span>
                     </Button>
                   )}
                 </>

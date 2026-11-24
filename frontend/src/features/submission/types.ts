@@ -26,6 +26,8 @@ export interface Submission {
   id: string;
   campaignId: string;
   creatorId: string;
+  platform?: SocialPlatform;
+  externalVideoId?: string | null;
   draftVideoUrl?: string | null;
   liveVideoUrl?: string | null;
   thumbnailUrl?: string | null;
@@ -41,9 +43,23 @@ export interface Submission {
   socialAccount?: CreatorSocialAccount | null;
 }
 
+export interface PlatformSubmissionQuota {
+  platform: SocialPlatform;
+  submittedCount: number;
+  maxSubmissions: number | null;
+  remainingSlots: number | null;
+  canSubmit: boolean;
+}
+
 export interface MySubmissionData {
   submission: Submission | null;
+  submissions?: Submission[];
   socialAccount: CreatorSocialAccount | null;
+  socialAccounts?: CreatorSocialAccount[];
+  isJoined?: boolean;
+  canSubmitMore?: boolean;
+  maxSubmissionsPerPlatform?: number | null;
+  platformQuotas?: PlatformSubmissionQuota[];
 }
 
 export interface SocialVideoItem {
@@ -62,6 +78,7 @@ export interface SocialVideoItem {
 
 export interface RequestVerificationCodeInput {
   username: string;
+  platform?: SocialPlatform;
 }
 
 export interface RequestVerificationCodeResponse {
@@ -74,13 +91,16 @@ export interface RequestVerificationCodeResponse {
 
 export interface VerifyBioInput {
   username: string;
+  platform?: SocialPlatform;
 }
 
 export interface ValidateVideoUrlInput {
   videoUrl: string;
+  platform?: SocialPlatform;
 }
 
 export interface SaveDraftSubmissionInput {
+  submissionId?: string;
   liveVideoUrl?: string;
   thumbnailUrl?: string;
   videoCaption?: string;
@@ -88,6 +108,7 @@ export interface SaveDraftSubmissionInput {
 }
 
 export interface FinalSubmitVideoInput {
+  submissionId?: string;
   liveVideoUrl?: string;
   thumbnailUrl?: string;
   videoCaption?: string;
@@ -135,8 +156,11 @@ export interface SubmissionStep1BriefDialogProps {
 export interface SubmissionStep2AccountDialogProps {
   campaignId: string;
   campaign?: Campaign;
-  campaignPlatform?: string;
-  connectedAccount?: CreatorSocialAccount | null;
+  allowedPlatforms: SocialPlatform[];
+  selectedPlatform: SocialPlatform;
+  onSelectPlatform: (platform: SocialPlatform) => void;
+  connectedAccounts: CreatorSocialAccount[];
+  platformQuotas?: PlatformSubmissionQuota[];
   onAccountVerified?: (account: CreatorSocialAccount) => void;
   className?: string;
 }
@@ -160,7 +184,10 @@ export interface SocialPlatformRowProps {
   platformId: SocialPlatform;
   platformName: string;
   isSupported: boolean;
+  isSelected: boolean;
+  quota?: PlatformSubmissionQuota;
   connectedAccount?: CreatorSocialAccount | null;
+  onSelect: () => void;
   onConnect: () => void;
   onSwitchAccount: () => void;
   className?: string;
@@ -224,6 +251,7 @@ export interface CampaignSubmissionReviewItem {
   id: string;
   campaignId: string;
   creatorId: string;
+  platform?: SocialPlatform;
   draftVideoUrl: string | null;
   liveVideoUrl: string | null;
   thumbnailUrl: string | null;
@@ -242,6 +270,7 @@ export interface CampaignSubmissionReviewItem {
   };
   socialAccount: {
     id: string;
+    platform?: SocialPlatform;
     username: string;
     avatarUrl: string | null;
     followersCount: number;
@@ -319,6 +348,11 @@ export interface BrandSubmissionsEmptyProps {
 export interface BrandSubmissionsViewProps {
   campaignId?: string;
   className?: string;
+}
+
+export interface CreatorSubmissionItemCardProps {
+  submission: Submission;
+  onOpenSubmitDialog?: () => void;
 }
 
 export interface CreatorSubmissionsViewProps {

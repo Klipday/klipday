@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import {
+  GetAllConnectedSocialAccounts,
   GetCampaignSubmissions,
   GetConnectedSocialAccount,
   GetMyCampaignSubmission,
@@ -13,6 +14,7 @@ import type {
   CreatorSubmissionsPaginatedResponse,
   CreatorSubmissionsQueryParams,
   MySubmissionData,
+  SocialPlatform,
   SocialVideoItem,
 } from '../types';
 
@@ -37,30 +39,49 @@ export function UseMyCampaignSubmissionQuery(campaignId?: string) {
 }
 
 /**
- * Query hook for retrieving creator's currently verified TikTok account.
+ * Query hook for retrieving creator's currently verified social account for a specific platform.
  *
+ * @param platform - Optional social platform (defaults to TIKTOK).
  * @returns Query state containing verified social account.
  */
-export function UseConnectedSocialAccountQuery() {
+export function UseConnectedSocialAccountQuery(platform?: SocialPlatform) {
   return useQuery<CreatorSocialAccount | null>({
-    queryKey: ['connected-social-account'],
-    queryFn: GetConnectedSocialAccount,
+    queryKey: platform ? ['connected-social-account', platform] : ['connected-social-account'],
+    queryFn: () => GetConnectedSocialAccount(platform),
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 }
 
 /**
- * Query hook for fetching recent TikTok videos from the creator's connected account.
- * Segmented by username to prevent showing stale cached videos from a previous account.
+ * Query hook for retrieving all active verified social accounts (TikTok, Instagram, YouTube) connected by the creator.
+ *
+ * @returns Query state containing array of verified social accounts across all platforms.
+ */
+export function UseAllConnectedSocialAccountsQuery() {
+  return useQuery<CreatorSocialAccount[]>({
+    queryKey: ['connected-social-accounts'],
+    queryFn: GetAllConnectedSocialAccounts,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  });
+}
+
+/**
+ * Query hook for fetching recent videos/reels/shorts from the creator's connected account on a given platform.
+ * Segmented by platform and username to prevent showing stale cached videos from another account.
  *
  * @param isEnabled - Whether the query is active.
  * @param username - Clean username handle of the connected account.
+ * @param platform - Target social platform (defaults to TIKTOK).
  * @returns Query state containing recent video gallery.
  */
-export function UseRecentTikTokVideosQuery(isEnabled = true, username?: string) {
+export function UseRecentTikTokVideosQuery(
+  isEnabled = true,
+  username?: string,
+  platform: SocialPlatform = 'TIKTOK',
+) {
   return useQuery<SocialVideoItem[]>({
-    queryKey: ['recent-tiktok-videos', username],
-    queryFn: () => GetRecentTikTokVideos(username),
+    queryKey: ['recent-tiktok-videos', platform, username],
+    queryFn: () => GetRecentTikTokVideos(username, platform),
     enabled: Boolean(isEnabled && username),
     staleTime: 1000 * 30, // 30 seconds
     retry: 2,

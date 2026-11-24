@@ -84,7 +84,8 @@ export interface Campaign {
   campaignType?: string;
   campaignCategory?: string;
   thumbnailUrl?: string | null;
-  platform?: string;
+  platforms?: string[];
+  maxSubmissionsPerPlatform?: number | null;
   mainMediaUrl?: string | null;
   cpm?: number | string | null;
   minViews?: number | null;
@@ -120,7 +121,8 @@ export interface CampaignEditInput {
   campaignType?: string;
   campaignCategory?: string;
   thumbnailUrl?: string;
-  platform?: string;
+  platforms?: string[];
+  maxSubmissionsPerPlatform?: number | null;
   mainMediaUrl?: string;
   materials?: Array<{
     type: string;
@@ -340,7 +342,8 @@ export interface CampaignCardItem {
   campaignType: string;
   campaignCategory: string;
   thumbnailUrl: string | null;
-  platform: string;
+  platforms: string[];
+  maxSubmissionsPerPlatform?: number | null;
   mainMediaUrl?: string | null;
   cpm: number | string | null;
   minViews?: number | null;

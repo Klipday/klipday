@@ -5,13 +5,18 @@ import {
   CampaignStatus,
   CronSyncStatus,
   CronTriggerSource,
+  Platform,
   Status,
   SubmissionStatus,
 } from '../../generated/prisma/enums.js';
 import {
+  GetInstagramVideoDetails,
   GetTikTokVideoDetails,
+  GetYouTubeShortDetails,
   ScrapeCreatorsApiError,
+  ValidateInstagramVideoUrl,
   ValidateTikTokVideoUrl,
+  ValidateYouTubeShortsUrl,
 } from '../../services/scrape-creators.js';
 import { prisma } from '../../utils/prisma.js';
 import { FIFO_SUBMISSION_ORDER_BY } from '../admin/admin.constants.js';
@@ -289,9 +294,17 @@ async function ScrapeSubmissionMetricsWithRetry(
     return missingUrlOutcome;
   }
 
+  const targetPlatform = target.platform ?? target.socialAccount?.platform ?? Platform.TIKTOK;
+
   let validatedUrl: string;
   try {
-    validatedUrl = ValidateTikTokVideoUrl(rawUrl);
+    if (targetPlatform === Platform.INSTAGRAM) {
+      validatedUrl = ValidateInstagramVideoUrl(rawUrl);
+    } else if (targetPlatform === Platform.YOUTUBE) {
+      validatedUrl = ValidateYouTubeShortsUrl(rawUrl);
+    } else {
+      validatedUrl = ValidateTikTokVideoUrl(rawUrl);
+    }
   } catch {
     const invalidUrlOutcome: ScrapedSubmissionOutcome = {
       submissionId: target.id,
@@ -304,7 +317,12 @@ async function ScrapeSubmissionMetricsWithRetry(
   for (let attempt = 0; attempt <= config.maxRetries; attempt += 1) {
     try {
       const requestOptions = { timeoutMs: config.timeoutMs };
-      const videoDetails = await GetTikTokVideoDetails(validatedUrl, requestOptions);
+      const videoDetails =
+        targetPlatform === Platform.INSTAGRAM
+          ? await GetInstagramVideoDetails(validatedUrl, requestOptions)
+          : targetPlatform === Platform.YOUTUBE
+            ? await GetYouTubeShortDetails(validatedUrl, requestOptions)
+            : await GetTikTokVideoDetails(validatedUrl, requestOptions);
 
       if (config.interRequestPacingMs > 0) {
         await SleepMs(config.interRequestPacingMs);
@@ -715,6 +733,7 @@ export async function ExecuteCampaignMetricsSync(
         const target: SubmissionScrapeTarget = {
           id: sub.id,
           campaignId: campaign.id,
+          platform: sub.platform,
           liveVideoUrl: sub.liveVideoUrl,
           socialAccount: sub.socialAccount,
         };

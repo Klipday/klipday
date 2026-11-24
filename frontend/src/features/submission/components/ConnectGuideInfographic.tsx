@@ -38,11 +38,14 @@ function ConnectGuideStepItem({
  * @returns Rendered infographic guide panel.
  */
 export function ConnectGuideInfographic({ platformDisplayName }: ConnectGuideInfographicProps) {
+  const isYouTube = platformDisplayName.toLowerCase().includes('youtube');
+  const bioFieldLabel = isYouTube ? 'Deskripsi Channel (Tentang)' : 'Bio';
+
   return (
     <div className="p-5 bg-muted/20 space-y-4">
       <div className="space-y-1">
         <h3 className="text-xs font-semibold text-foreground tracking-tight">
-          Panduan Verifikasi Bio
+          Panduan Verifikasi {isYouTube ? 'Channel' : 'Bio'}
         </h3>
         <p className="text-[11px] text-muted-foreground">
           Ikuti 4 langkah mudah berikut langsung di aplikasi {platformDisplayName}:
@@ -52,23 +55,23 @@ export function ConnectGuideInfographic({ platformDisplayName }: ConnectGuideInf
       <div className="pt-2">
         <ConnectGuideStepItem
           stepNumber={1}
-          title={`Buka Profil ${platformDisplayName}`}
-          description={`Buka aplikasi ${platformDisplayName} dan masuk ke halaman profil akun kamu.`}
+          title={`Buka ${isYouTube ? 'Channel' : 'Profil'} ${platformDisplayName}`}
+          description={`Buka aplikasi ${platformDisplayName} dan masuk ke halaman ${isYouTube ? 'channel' : 'profil akun'} kamu.`}
         />
         <ConnectGuideStepItem
           stepNumber={2}
-          title="Klik Edit Profil"
-          description="Pilih opsi Edit Profil untuk membuka pengaturan bio akun."
+          title={isYouTube ? 'Klik Edit Channel' : 'Klik Edit Profil'}
+          description={`Pilih opsi ${isYouTube ? 'Edit Channel' : 'Edit Profil'} untuk membuka pengaturan ${bioFieldLabel.toLowerCase()}.`}
         />
         <ConnectGuideStepItem
           stepNumber={3}
-          title="Masukkan Kode di Bio"
-          description="Salin kode verifikasi (contoh: KD-XXXX) dan tempelkan ke kolom Bio akun kamu, lalu simpan."
+          title={`Masukkan Kode di ${bioFieldLabel}`}
+          description={`Salin kode verifikasi (contoh: KD-XXXX) dan tempelkan ke kolom ${bioFieldLabel} kamu, lalu simpan.`}
         />
         <ConnectGuideStepItem
           stepNumber={4}
           title="Hapus Kode Setelah Berhasil"
-          description={`Setelah verifikasi berhasil, kamu dapat langsung menghapus kode tersebut dari bio ${platformDisplayName}.`}
+          description={`Setelah verifikasi berhasil, kamu dapat langsung menghapus kode tersebut dari ${bioFieldLabel.toLowerCase()} ${platformDisplayName}.`}
           isLast
         />
       </div>

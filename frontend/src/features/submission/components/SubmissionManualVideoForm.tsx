@@ -24,11 +24,25 @@ export function SubmissionManualVideoForm({
   const [manualUrlInput, setManualUrlInput] = useState('');
   const [hasManualThumbnailError, setHasManualThumbnailError] = useState(false);
 
+  const activePlatform = connectedAccount?.platform ?? 'TIKTOK';
+  const platformLabel =
+    activePlatform === 'INSTAGRAM'
+      ? 'Instagram Reels'
+      : activePlatform === 'YOUTUBE'
+        ? 'YouTube Shorts'
+        : 'TikTok';
+  const urlPlaceholder =
+    activePlatform === 'INSTAGRAM'
+      ? 'https://www.instagram.com/reel/...'
+      : activePlatform === 'YOUTUBE'
+        ? 'https://www.youtube.com/shorts/...'
+        : 'https://www.tiktok.com/@username/video/...';
+
   const HandleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     let cleanUrl = manualUrlInput.trim();
     if (!cleanUrl) {
-      toast.error('Harap masukkan tautan video TikTok.');
+      toast.error(`Harap masukkan tautan video ${platformLabel}.`);
       return;
     }
 
@@ -92,13 +106,13 @@ export function SubmissionManualVideoForm({
             <Label
               htmlFor="manual-tiktok-dialog-url"
               className="text-xs font-medium text-foreground">
-              Tempel Tautan Video TikTok
+              Tempel Tautan Video {platformLabel}
             </Label>
             <div className="flex items-center gap-2">
               <Input
                 id="manual-tiktok-dialog-url"
                 type="url"
-                placeholder="https://www.tiktok.com/@username/video/..."
+                placeholder={urlPlaceholder}
                 value={manualUrlInput}
                 onChange={(e) => setManualUrlInput(e.target.value)}
                 disabled={isPending}

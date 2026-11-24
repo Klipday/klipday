@@ -2,6 +2,7 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import type {
   CronSyncStatus,
   CronTriggerSource,
+  Platform,
   Status,
 } from '../../generated/prisma/enums.js';
 import type {
@@ -34,6 +35,7 @@ export interface CampaignEligibilityEvaluation {
 
 export interface SubmissionSocialAccountSnapshot {
   id: string;
+  platform?: Platform;
   username: string;
   platformUserId: string | null;
   status: Status;
@@ -42,6 +44,7 @@ export interface SubmissionSocialAccountSnapshot {
 export interface SubmissionScrapeTarget {
   id: string;
   campaignId: string;
+  platform?: Platform;
   liveVideoUrl: string | null;
   socialAccount: SubmissionSocialAccountSnapshot | null;
 }

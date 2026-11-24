@@ -54,7 +54,8 @@ export interface CampaignCardItem {
   campaignType: CampaignType;
   campaignCategory: Category;
   thumbnailUrl: string | null;
-  platform: Platform;
+  platforms: Platform[];
+  maxSubmissionsPerPlatform?: number | null;
   mainMediaUrl: string | null;
   cpm: Prisma.Decimal | number | null;
   minViews: number | null;
@@ -174,7 +175,7 @@ export interface CampaignSubmitCheckRecord {
   mainMediaUrl?: string | null;
   campaignType?: CampaignType | string | null;
   campaignCategory?: Category | string | null;
-  platform?: Platform | string | null;
+  platforms?: Platform[] | string[] | null;
   cpm?: Prisma.Decimal | number | string | null;
   budget?: Prisma.Decimal | number | string | null;
   minViews?: number | null;

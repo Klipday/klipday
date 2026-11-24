@@ -10,13 +10,14 @@ import {
   SUBMISSION_MESSAGES,
   SUBMISSION_SORT_OPTIONS,
 } from './submission.constants.js';
-import { IsAllowedThumbnailUrl, IsAllowedTikTokVideoUrl } from './submission.helper.js';
+import { IsAllowedSocialVideoUrl, IsAllowedThumbnailUrl } from './submission.helper.js';
 
 export const SaveDraftSubmissionSchema = z.object({
+  submissionId: z.string().uuid().optional(),
   liveVideoUrl: z
     .string({ error: SUBMISSION_MESSAGES.VIDEO_URL_REQUIRED })
     .url(SUBMISSION_MESSAGES.VIDEO_URL_INVALID)
-    .refine(IsAllowedTikTokVideoUrl, {
+    .refine(IsAllowedSocialVideoUrl, {
       message: SUBMISSION_MESSAGES.TIKTOK_URL_HOST_INVALID,
     }),
   thumbnailUrl: z
@@ -33,10 +34,11 @@ export const SaveDraftSubmissionSchema = z.object({
 });
 
 export const FinalSubmitVideoSchema = z.object({
+  submissionId: z.string().uuid().optional(),
   liveVideoUrl: z
     .string({ error: SUBMISSION_MESSAGES.TIKTOK_URL_REQUIRED })
     .url(SUBMISSION_MESSAGES.TIKTOK_URL_INVALID)
-    .refine(IsAllowedTikTokVideoUrl, {
+    .refine(IsAllowedSocialVideoUrl, {
       message: SUBMISSION_MESSAGES.TIKTOK_URL_HOST_INVALID,
     }),
   thumbnailUrl: z

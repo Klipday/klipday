@@ -1,49 +1,12 @@
 import { cn } from '@/lib/utils';
+import { CAMPAIGN_PLATFORM_LABELS, type CampaignPlatformOption } from '@/features/campaign/schemas';
 import {
   FormatCpmDisplay,
   GetCampaignCategoryBadgeLabel,
   GetCampaignTypeBadgeLabel,
 } from '@/features/campaign/utils';
 import type { SubmissionDialogCampaignSidebarProps } from '../types';
-
-/**
- * Inline Instagram vector icon matching stroke styling.
- *
- * @param props - SVG element properties.
- * @returns Rendered SVG Instagram icon.
- */
-function InstagramIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true">
-      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-    </svg>
-  );
-}
-
-/**
- * Resolves the platform icon based on campaign configuration.
- *
- * @param platform - Campaign social platform string.
- * @returns Rendered platform icon element.
- */
-function RenderPlatformIcon(platform?: string) {
-  const normalized = (platform || 'TIKTOK').toUpperCase();
-  if (normalized === 'INSTAGRAM') {
-    return <InstagramIcon className="size-3.5 text-foreground opacity-90" />;
-  }
-  return <img src="/assets/icons/tiktok.svg" alt="TikTok" className="size-3.5 opacity-90 dark:invert" />;
-}
+import { RenderPlatformLogo } from './SocialPlatformIcons';
 
 /**
  * Left sidebar column component for the Submission Dialog.
@@ -121,11 +84,17 @@ export function SubmissionDialogCampaignSidebar({
         </div>
 
         {/* Platform & Category Indicator Row */}
-        <div className="flex items-center gap-x-3 text-xs text-muted-foreground pt-0.5">
-          <div
-            className="inline-flex items-center text-foreground font-medium"
-            title={campaign.platform || 'TikTok'}>
-            {RenderPlatformIcon(campaign.platform)}
+        <div className="flex items-center gap-x-3 text-xs text-muted-foreground pt-0.5 flex-wrap">
+          <div className="inline-flex items-center gap-1.5 text-foreground font-medium">
+            {(campaign.platforms?.length ? campaign.platforms : ['TIKTOK']).map((platformKey) => {
+              const label =
+                CAMPAIGN_PLATFORM_LABELS[platformKey as CampaignPlatformOption] ?? platformKey;
+              return (
+                <span key={platformKey} title={label} className="inline-flex items-center">
+                  {RenderPlatformLogo(platformKey, 'size-3.5 opacity-90')}
+                </span>
+              );
+            })}
           </div>
 
           <span>{categoryBadge}</span>

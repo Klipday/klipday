@@ -3,6 +3,8 @@ import { GalleryOffIcon, UsersGroupRoundedIcon } from '@solar-icons/react/linear
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { RenderPlatformLogo } from '@/features/submission/components/SocialPlatformIcons';
+import { CAMPAIGN_PLATFORM_LABELS, type CampaignPlatformOption } from '../schemas';
 import type { CampaignCardProps } from '../types';
 import {
   CalculateBudgetPercentage,
@@ -96,10 +98,17 @@ export function CampaignCard({ campaign, onClick, className }: CampaignCardProps
         </div>
 
         <div className="space-y-3 pt-1">
-          {/* Metadata Row: Platform Icon + Type + Category + Joined Creators */}
+          {/* Metadata Row: Platform Icons + Type + Category + Joined Creators */}
           <div className="flex items-center gap-x-3 gap-y-1 text-xs text-muted-foreground flex-wrap">
-            <div className="flex items-center" title={campaign.platform || 'TikTok'}>
-              <img src="/assets/icons/tiktok.svg" alt="TikTok" className="size-3.5 opacity-80 dark:invert" />
+            <div className="flex items-center gap-1.5">
+              {(campaign.platforms?.length ? campaign.platforms : ['TIKTOK']).map((platformKey) => {
+                const label = CAMPAIGN_PLATFORM_LABELS[platformKey as CampaignPlatformOption] ?? platformKey;
+                return (
+                  <span key={platformKey} title={label} className="inline-flex items-center text-foreground/80">
+                    {RenderPlatformLogo(platformKey, 'size-3.5')}
+                  </span>
+                );
+              })}
             </div>
 
             <span>{typeBadge}</span>

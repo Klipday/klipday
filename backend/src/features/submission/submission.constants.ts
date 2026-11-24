@@ -1,4 +1,4 @@
-import { SubmissionStatus } from '../../generated/prisma/enums.js';
+import { Platform, SubmissionStatus } from '../../generated/prisma/enums.js';
 
 export const DEFAULT_PAGE = 1;
 export const DEFAULT_LIMIT = 10;
@@ -8,6 +8,7 @@ export const MAX_SEARCH_LENGTH = 100;
 export const MAX_REVIEW_NOTE_LENGTH = 1000;
 export const CPM_VIEW_DIVISOR = 1000;
 export const BUDGET_DECIMAL_PLACES = 2;
+export const MAX_CONCURRENT_PENDING_REVIEW_PER_CAMPAIGN = 5;
 
 export const ALLOWED_TIKTOK_VIDEO_HOSTS = [
   'tiktok.com',
@@ -17,6 +18,18 @@ export const ALLOWED_TIKTOK_VIDEO_HOSTS = [
   'vt.tiktok.com',
 ] as const;
 
+export const ALLOWED_INSTAGRAM_VIDEO_HOSTS = [
+  'instagram.com',
+  'www.instagram.com',
+  'm.instagram.com',
+] as const;
+
+export const ALLOWED_YOUTUBE_VIDEO_HOSTS = [
+  'youtube.com',
+  'www.youtube.com',
+  'm.youtube.com',
+] as const;
+
 export const ALLOWED_THUMBNAIL_HOST_SUFFIXES = [
   'tiktokcdn.com',
   'tiktokcdn-us.com',
@@ -24,8 +37,19 @@ export const ALLOWED_THUMBNAIL_HOST_SUFFIXES = [
   'tiktokv.com',
   'ibytedtos.com',
   'muscdn.com',
+  'cdninstagram.com',
+  'fbcdn.net',
+  'ytimg.com',
+  'ggpht.com',
+  'googleusercontent.com',
   'supabase.co',
 ] as const;
+
+export const SUBMISSION_PLATFORM_DISPLAY_NAMES: Record<Platform, string> = {
+  [Platform.TIKTOK]: 'TikTok',
+  [Platform.INSTAGRAM]: 'Instagram Reels',
+  [Platform.YOUTUBE]: 'YouTube Shorts',
+};
 
 export const ALL_STATUS_FILTER = 'ALL' as const;
 
@@ -88,24 +112,32 @@ export const SUBMISSION_MESSAGES = {
 
   // Social Account & Video Ownership Validation
   SOCIAL_ACCOUNT_INVALID: 'Social account is invalid or does not belong to your profile.',
-  SOCIAL_ACCOUNT_NOT_VERIFIED: 'Akun TikTok belum terverifikasi atau sudah tidak aktif.',
+  SOCIAL_ACCOUNT_NOT_VERIFIED: 'Akun media sosial belum terverifikasi atau sudah tidak aktif.',
   SOCIAL_ACCOUNT_ID_REQUIRED: 'Social account ID is required.',
   SOCIAL_ACCOUNT_ID_INVALID: 'Invalid social account ID.',
+  PLATFORM_NOT_ALLOWED: 'Platform ini tidak diizinkan pada kampanye ini.',
+  PLATFORM_QUOTA_REACHED: (platformName: string, limit: number) =>
+    `Batas maksimal pengajuan untuk ${platformName} (${limit} video) telah tercapai.`,
+  PENDING_REVIEW_CAP_REACHED: (limit: number) =>
+    `Anda sudah memiliki ${limit} video yang menunggu tinjauan pada kampanye ini. Tunggu hasil tinjauan sebelum mengirim video baru.`,
+  VIDEO_URL_PLATFORM_MISMATCH: 'Tautan video tidak sesuai dengan platform akun media sosial yang dipilih.',
+  YOUTUBE_SHORTS_ONLY: 'Hanya tautan YouTube Shorts (/shorts/...) yang diperbolehkan.',
   VIDEO_VERIFY_FAILED:
-    'Gagal memverifikasi tautan video TikTok. Pastikan video bersifat publik dan tautan benar.',
-  VIDEO_AUTHOR_MISMATCH: (author: string, verified: string) =>
-    `Video ini milik @${author}, bukan akun TikTok terverifikasi Anda (@${verified}).`,
+    'Gagal memverifikasi tautan video. Pastikan video bersifat publik dan tautan benar.',
+  VIDEO_AUTHOR_MISMATCH: (author: string, verified: string, platformName = 'TikTok') =>
+    `Video ini milik @${author}, bukan akun ${platformName} terverifikasi Anda (@${verified}).`,
   VIDEO_ALREADY_SUBMITTED:
-    'Video TikTok ini sudah pernah diajukan dan tidak dapat digunakan ulang.',
+    'Video ini sudah pernah diajukan dan tidak dapat digunakan ulang.',
   CAMPAIGN_NOT_ACTIVE_FOR_APPROVAL:
     'Kampanye ini sudah tidak aktif sehingga pengajuan video tidak dapat disetujui.',
 
   // Zod Validation & Schema Constraints
   VIDEO_URL_REQUIRED: 'Video URL is required.',
   VIDEO_URL_INVALID: 'Video URL must be a valid URL.',
-  TIKTOK_URL_REQUIRED: 'TikTok video URL is required.',
-  TIKTOK_URL_INVALID: 'TikTok video URL must be a valid URL.',
-  TIKTOK_URL_HOST_INVALID: 'URL video harus berupa tautan TikTok yang valid (tiktok.com).',
+  TIKTOK_URL_REQUIRED: 'Video URL is required.',
+  TIKTOK_URL_INVALID: 'Video URL must be a valid URL.',
+  TIKTOK_URL_HOST_INVALID:
+    'URL video harus berupa tautan TikTok, Instagram Reels, atau YouTube Shorts (/shorts/...) yang valid.',
   THUMBNAIL_URL_INVALID: 'Invalid thumbnail URL.',
   THUMBNAIL_URL_HOST_INVALID: 'URL thumbnail tidak valid atau bukan berasal dari sumber yang diizinkan.',
   CAPTION_MAX_EXCEEDED: 'Caption is too long.',

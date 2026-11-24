@@ -18,7 +18,7 @@ export function IsStep1Complete(campaign?: Partial<Campaign> | null): boolean {
   const hasType = Boolean(campaign.campaignType);
   const hasCategory = Boolean(campaign.campaignCategory);
   const hasThumbnail = Boolean(campaign.thumbnailUrl && campaign.thumbnailUrl.trim() !== '');
-  const hasPlatform = Boolean(campaign.platform);
+  const hasPlatform = Array.isArray(campaign.platforms) && campaign.platforms.length > 0;
   const hasMainMedia = Boolean(campaign.mainMediaUrl && campaign.mainMediaUrl.trim() !== '');
 
   const isComplete = hasTitle && hasDescription && hasType && hasCategory && hasThumbnail && hasPlatform && hasMainMedia;

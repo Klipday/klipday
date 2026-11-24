@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { cn, SanitizeHttpUrl } from '@/lib/utils';
 import type { BrandSubmissionCardProps } from '../types';
 import { FormatCompactCount, FormatSubmissionDate } from '../utils/submission-utils';
+import { RenderPlatformLogo } from './SocialPlatformIcons';
 import { SubmissionReviewDialog } from './SubmissionReviewDialog';
 
 /**
@@ -51,8 +52,11 @@ export function BrandSubmissionCard({ submission, onReview, className }: BrandSu
 
           <div className="min-w-0 space-y-0.5">
             <h4 className="text-sm font-semibold text-foreground truncate">{submission.creator?.fullName || 'Kreator Tanpa Nama'}</h4>
-            <div className="flex items-center gap-x-3 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground/80">@{submission.socialAccount?.username || 'unknown'}</span>
+            <div className="flex items-center gap-x-3 text-xs text-muted-foreground flex-wrap">
+              <span className="inline-flex items-center gap-1.5 font-medium text-foreground/80">
+                {RenderPlatformLogo(submission.platform ?? submission.socialAccount?.platform ?? 'TIKTOK', 'size-3.5')}
+                <span>@{submission.socialAccount?.username || 'unknown'}</span>
+              </span>
               {submission.socialAccount?.followersCount !== undefined && (
                 <span>{FormatCompactCount(submission.socialAccount.followersCount)} followers</span>
               )}

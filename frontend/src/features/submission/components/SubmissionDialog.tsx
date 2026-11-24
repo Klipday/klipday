@@ -11,12 +11,12 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import {
-  UseConnectedSocialAccountQuery,
+  UseAllConnectedSocialAccountsQuery,
   UseFinalSubmitVideoMutation,
   UseMyCampaignSubmissionQuery,
   UseSaveDraftSubmissionMutation,
 } from '../hooks';
-import type { SocialVideoItem, SubmissionDialogProps } from '../types';
+import type { SocialPlatform, SocialVideoItem, SubmissionDialogProps } from '../types';
 import { SubmissionDialogCampaignSidebar } from './SubmissionDialogCampaignSidebar';
 import { SubmissionDialogFooter } from './SubmissionDialogFooter';
 import { SubmissionDialogStepper } from './SubmissionDialogStepper';
@@ -26,11 +26,29 @@ import { SubmissionStep2AccountDialog } from './SubmissionStep2AccountDialog';
 import { SubmissionStep3VideoPickerDialog } from './SubmissionStep3VideoPickerDialog';
 import { SubmissionStep4OverviewDialog } from './SubmissionStep4OverviewDialog';
 
+const PLATFORM_LABELS: Record<SocialPlatform, string> = {
+  TIKTOK: 'TikTok',
+  INSTAGRAM: 'Instagram Reels',
+  YOUTUBE: 'YouTube Shorts',
+};
+
 /**
- * Modern modal dialog orchestrator for the video submission workflow.
- * Replaces the multi-page wizard layout with a 2-column split modal:
- * - Left column: Live campaign summary preview card with CPM, metrics, and poster artwork.
- * - Right column: Compact horizontal stepper (1 -> 4), step body, and action footer.
+ * Normalizes a campaign's allowed platforms array into valid `SocialPlatform` values.
+ *
+ * @param rawPlatforms - Campaign platforms array from API.
+ * @returns Non-empty list of valid SocialPlatform values.
+ */
+function NormalizeAllowedPlatforms(rawPlatforms?: string[]): SocialPlatform[] {
+  const valid = (rawPlatforms ?? []).filter(
+    (p): p is SocialPlatform => p === 'TIKTOK' || p === 'INSTAGRAM' || p === 'YOUTUBE',
+  );
+  return valid.length > 0 ? valid : ['TIKTOK'];
+}
+
+/**
+ * Modern modal dialog orchestrator for the multi-platform video submission workflow.
+ * Supports submitting clips across TikTok, Instagram Reels, and YouTube Shorts,
+ * honoring per-platform submission quotas configured by the brand.
  *
  * @param props - Component properties containing campaign, open state, and visibility toggle.
  * @returns Rendered submission modal dialog.
@@ -46,38 +64,67 @@ export function SubmissionDialog({
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [hasAgreed, setHasAgreed] = useState<boolean>(false);
   const [maxStepReached, setMaxStepReached] = useState<number>(1);
+  const [userSelectedPlatform, setUserSelectedPlatform] = useState<SocialPlatform | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<SocialVideoItem | null | undefined>(undefined);
   const [showExitConfirm, setShowExitConfirm] = useState<boolean>(false);
 
-  const { data: queriedAccount } = UseConnectedSocialAccountQuery();
+  const { data: queriedAccounts } = UseAllConnectedSocialAccountsQuery();
   const { data: mySubmissionData } = UseMyCampaignSubmissionQuery(open ? campaign.id : undefined);
   const saveDraftMutation = UseSaveDraftSubmissionMutation(campaign.id);
   const finalSubmitMutation = UseFinalSubmitVideoMutation(campaign.id);
 
-  const connectedAccount = queriedAccount ?? mySubmissionData?.socialAccount ?? null;
-  const existingSubmission = mySubmissionData?.submission;
+  const allowedPlatforms = NormalizeAllowedPlatforms(campaign.platforms);
+  const platformQuotas = mySubmissionData?.platformQuotas;
+  const connectedAccounts = queriedAccounts ?? mySubmissionData?.socialAccounts ?? [];
 
-  // Only restore initial draft video if it matches the currently connected social account
+  // Default to the first allowed platform that still has remaining quota (or a REVISION_REQUESTED submission's platform)
+  const revisionSubmission = mySubmissionData?.submissions?.find(
+    (s) => s.submissionStatus === 'REVISION_REQUESTED',
+  );
+  const firstAvailablePlatform =
+    platformQuotas?.find((q) => q.canSubmit)?.platform ?? allowedPlatforms[0] ?? 'TIKTOK';
+  const defaultPlatform: SocialPlatform =
+    revisionSubmission?.platform && allowedPlatforms.includes(revisionSubmission.platform)
+      ? revisionSubmission.platform
+      : firstAvailablePlatform;
+
+  const selectedPlatform: SocialPlatform =
+    userSelectedPlatform && allowedPlatforms.includes(userSelectedPlatform)
+      ? userSelectedPlatform
+      : defaultPlatform;
+
+  const selectedPlatformQuota = platformQuotas?.find((q) => q.platform === selectedPlatform);
+  const connectedAccount =
+    connectedAccounts.find((acc) => acc.platform === selectedPlatform && acc.isVerified) ?? null;
+
+  // Identify if we are editing an existing JOINED or REVISION_REQUESTED row for the selected platform
+  const editableSubmission =
+    mySubmissionData?.submissions?.find(
+      (s) => s.platform === selectedPlatform && s.submissionStatus === 'REVISION_REQUESTED',
+    ) ??
+    mySubmissionData?.submissions?.find((s) => s.submissionStatus === 'JOINED') ??
+    null;
+
+  // Only restore initial draft video if editing an existing editable row matching the selected account
   const isDraftMatchingAccount = Boolean(
     connectedAccount &&
-      existingSubmission?.liveVideoUrl &&
-      ((!existingSubmission.socialAccountId && !existingSubmission.socialAccount) ||
-        existingSubmission.socialAccountId === connectedAccount.id ||
-        existingSubmission.socialAccount?.id === connectedAccount.id),
+      editableSubmission?.liveVideoUrl &&
+      ((!editableSubmission.socialAccountId && !editableSubmission.socialAccount) ||
+        editableSubmission.socialAccountId === connectedAccount.id ||
+        editableSubmission.socialAccount?.id === connectedAccount.id),
   );
 
   const initialDraftVideo: SocialVideoItem | null =
-    isDraftMatchingAccount && existingSubmission?.liveVideoUrl
+    isDraftMatchingAccount && editableSubmission?.liveVideoUrl
       ? {
           id: 'existing-draft',
-          url: existingSubmission.liveVideoUrl,
+          url: editableSubmission.liveVideoUrl,
           authorUsername: connectedAccount?.username || 'creator',
-          caption: existingSubmission.videoCaption || undefined,
-          thumbnailUrl: existingSubmission.thumbnailUrl || undefined,
+          caption: editableSubmission.videoCaption || undefined,
+          thumbnailUrl: editableSubmission.thumbnailUrl || undefined,
         }
       : null;
 
-  // Guard against orphaned video selections from previous accounts
   const isSelectedVideoMatchingAccount = Boolean(
     selectedVideo &&
       connectedAccount &&
@@ -97,24 +144,23 @@ export function SubmissionDialog({
   const activeVideo =
     validSelectedVideo !== undefined ? validSelectedVideo : initialDraftVideo;
 
+  const isPlatformSelectableAndConnected = Boolean(
+    connectedAccount?.isVerified &&
+      allowedPlatforms.includes(selectedPlatform) &&
+      (editableSubmission?.submissionStatus === 'REVISION_REQUESTED' ||
+        !selectedPlatformQuota ||
+        selectedPlatformQuota.canSubmit),
+  );
+
   const highestAccessibleStep = (() => {
-    // If the creator has not agreed to the campaign brief, no step past step 1 is accessible
     if (!hasAgreed) return 1;
 
     let maxAllowed = maxStepReached;
 
-    // Prerequisite: cannot jump to or past step 3 without a verified social account matching the campaign platform
-    const requiredPlatform = (campaign.platform || 'TIKTOK').toUpperCase();
-    const isAccountValid = Boolean(
-      connectedAccount?.isVerified &&
-        (connectedAccount.platform || 'TIKTOK').toUpperCase() === requiredPlatform,
-    );
-
-    if (maxAllowed >= 3 && !isAccountValid) {
+    if (maxAllowed >= 3 && !isPlatformSelectableAndConnected) {
       maxAllowed = 2;
     }
 
-    // Prerequisite: cannot jump to step 4 without a selected video
     if (maxAllowed >= 4 && !activeVideo) {
       maxAllowed = 3;
     }
@@ -126,11 +172,12 @@ export function SubmissionDialog({
     setShowExitConfirm(true);
   };
 
-  const HandleConfirmExit = () => {
+  const ResetWizardState = () => {
     setShowExitConfirm(false);
     setCurrentStep(1);
     setHasAgreed(false);
     setMaxStepReached(1);
+    setUserSelectedPlatform(null);
     setSelectedVideo(undefined);
     onOpenChange(false);
   };
@@ -139,36 +186,27 @@ export function SubmissionDialog({
     setShowExitConfirm(false);
   };
 
-  const HandleForceClose = () => {
-    setShowExitConfirm(false);
-    setCurrentStep(1);
-    setHasAgreed(false);
-    setMaxStepReached(1);
-    setSelectedVideo(undefined);
-    onOpenChange(false);
-  };
-
   const HandleToggleAgreed = () => {
     setHasAgreed((prev) => {
       const nextAgreed = !prev;
       if (!nextAgreed) {
-        // Revoke progression past step 1 if creator unchecks brief agreement
         setMaxStepReached(1);
       }
       return nextAgreed;
     });
   };
 
-  // Compute if user can proceed to next step
+  const HandleSelectPlatform = (nextPlatform: SocialPlatform) => {
+    if (nextPlatform !== selectedPlatform) {
+      setUserSelectedPlatform(nextPlatform);
+      setSelectedVideo(null);
+      setMaxStepReached((prev) => Math.min(prev, 2));
+    }
+  };
+
   const canProceed = (() => {
     if (currentStep === 1) return hasAgreed;
-    if (currentStep === 2) {
-      const requiredPlatform = (campaign.platform || 'TIKTOK').toUpperCase();
-      return Boolean(
-        connectedAccount?.isVerified &&
-          (connectedAccount.platform || 'TIKTOK').toUpperCase() === requiredPlatform,
-      );
-    }
+    if (currentStep === 2) return isPlatformSelectableAndConnected;
     if (currentStep === 3) return Boolean(activeVideo);
     if (currentStep === 4) return Boolean(activeVideo && connectedAccount);
     return false;
@@ -190,17 +228,9 @@ export function SubmissionDialog({
     }
 
     if (currentStep === 2) {
-      const requiredPlatform = (campaign.platform || 'TIKTOK').toUpperCase();
-      const isAccountValid = Boolean(
-        connectedAccount?.isVerified &&
-          (connectedAccount.platform || 'TIKTOK').toUpperCase() === requiredPlatform,
-      );
-
-      if (!isAccountValid) {
-        const platformLabel = campaign.platform
-          ? campaign.platform.charAt(0).toUpperCase() + campaign.platform.slice(1).toLowerCase()
-          : 'TikTok';
-        toast.error(`Harap hubungkan akun ${platformLabel} yang terverifikasi terlebih dahulu.`);
+      if (!isPlatformSelectableAndConnected) {
+        const label = PLATFORM_LABELS[selectedPlatform];
+        toast.error(`Harap hubungkan akun ${label} yang terverifikasi dan masih memiliki kuota terlebih dahulu.`);
         return;
       }
       setMaxStepReached((prev) => Math.max(prev, 3));
@@ -214,9 +244,12 @@ export function SubmissionDialog({
         return;
       }
 
-      if (connectedAccount?.id) {
+      // Only autosave draft when editing an existing JOINED / REVISION_REQUESTED row;
+      // additional 2nd+ submissions are inserted atomically on final submit in Step 4.
+      if (connectedAccount?.id && editableSubmission) {
         try {
           await saveDraftMutation.mutateAsync({
+            submissionId: editableSubmission.id,
             liveVideoUrl: activeVideo.url,
             thumbnailUrl: activeVideo.thumbnailUrl || undefined,
             videoCaption: activeVideo.caption || undefined,
@@ -243,6 +276,7 @@ export function SubmissionDialog({
 
       try {
         await finalSubmitMutation.mutateAsync({
+          ...(editableSubmission ? { submissionId: editableSubmission.id } : {}),
           liveVideoUrl: activeVideo.url,
           thumbnailUrl: activeVideo.thumbnailUrl || undefined,
           videoCaption: activeVideo.caption || undefined,
@@ -255,10 +289,10 @@ export function SubmissionDialog({
           queryClient.invalidateQueries({ queryKey: ['campaign', campaign.id] }),
           queryClient.invalidateQueries({ queryKey: ['campaign-submissions', campaign.id] }),
           queryClient.invalidateQueries({ queryKey: ['creator-campaigns'] }),
-          queryClient.invalidateQueries({ queryKey: ['creator-submissions'] }),
+          queryClient.invalidateQueries({ queryKey: ['my-submissions'] }),
           queryClient.invalidateQueries({ queryKey: ['creator', 'dashboard'] }),
         ]);
-        HandleForceClose();
+        ResetWizardState();
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Gagal mengirim pengajuan video.';
         toast.error(errorMsg);
@@ -344,93 +378,87 @@ export function SubmissionDialog({
               </Button>
             </div>
 
-          {/* Revision Feedback Alert Banner for creators whose video requires changes */}
-          {existingSubmission?.submissionStatus === 'REVISION_REQUESTED' && existingSubmission.reviewNote && (
-            <div className="mx-6 mt-4 -mb-1 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 space-y-1 shrink-0">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                <DangerCircleIcon className="size-3.5" />
-                <span>Catatan Revisi dari Brand:</span>
+            {/* Revision Feedback Alert Banner when fixing a revision-requested submission */}
+            {editableSubmission?.submissionStatus === 'REVISION_REQUESTED' && editableSubmission.reviewNote && (
+              <div className="mx-6 mt-4 -mb-1 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 space-y-1 shrink-0">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                  <DangerCircleIcon className="size-3.5" />
+                  <span>Catatan Revisi dari Brand:</span>
+                </div>
+                <p className="text-xs text-foreground/90 leading-relaxed">
+                  {editableSubmission.reviewNote}
+                </p>
               </div>
-              <p className="text-xs text-foreground/90 leading-relaxed">
-                {existingSubmission.reviewNote}
-              </p>
-            </div>
-          )}
-
-          {/* Body Content Area: Scrollable Step View */}
-          <main className="flex-1 overflow-y-auto px-6 py-5">
-            {currentStep === 1 && (
-              <SubmissionStep1BriefDialog
-                campaign={campaign}
-                hasAgreed={hasAgreed}
-                onToggleAgreed={HandleToggleAgreed}
-              />
             )}
 
-            {currentStep === 2 && (
-              <SubmissionStep2AccountDialog
-                campaignId={campaign.id}
-                campaign={campaign}
-                campaignPlatform={campaign.platform || 'TIKTOK'}
-                connectedAccount={connectedAccount}
-                onAccountVerified={(acc) => {
-                  const isAccountChanged = Boolean(
-                    connectedAccount &&
-                      (acc.id !== connectedAccount.id ||
-                        acc.username.toLowerCase() !== connectedAccount.username.toLowerCase()),
-                  );
-                  queryClient.setQueryData(['connected-social-account'], acc);
-                  queryClient.invalidateQueries({ queryKey: ['connected-social-account'] });
-                  queryClient.invalidateQueries({ queryKey: ['recent-tiktok-videos'] });
-                  queryClient.invalidateQueries({ queryKey: ['my-campaign-submission', campaign.id] });
+            {/* Body Content Area: Scrollable Step View */}
+            <main className="flex-1 overflow-y-auto px-6 py-5">
+              {currentStep === 1 && (
+                <SubmissionStep1BriefDialog
+                  campaign={campaign}
+                  hasAgreed={hasAgreed}
+                  onToggleAgreed={HandleToggleAgreed}
+                />
+              )}
 
-                  if (isAccountChanged) {
+              {currentStep === 2 && (
+                <SubmissionStep2AccountDialog
+                  campaignId={campaign.id}
+                  campaign={campaign}
+                  allowedPlatforms={allowedPlatforms}
+                  selectedPlatform={selectedPlatform}
+                  onSelectPlatform={HandleSelectPlatform}
+                  connectedAccounts={connectedAccounts}
+                  platformQuotas={platformQuotas}
+                  onAccountVerified={(acc) => {
+                    setUserSelectedPlatform(acc.platform);
                     setSelectedVideo(null);
-                    setMaxStepReached(3);
-                  } else {
+                    queryClient.invalidateQueries({ queryKey: ['connected-social-account'] });
+                    queryClient.invalidateQueries({ queryKey: ['connected-social-accounts'] });
+                    queryClient.invalidateQueries({ queryKey: ['recent-tiktok-videos'] });
+                    queryClient.invalidateQueries({ queryKey: ['my-campaign-submission', campaign.id] });
                     setMaxStepReached((prev) => Math.max(prev, 3));
-                  }
-                }}
-              />
-            )}
+                  }}
+                />
+              )}
 
-            {currentStep === 3 && (
-              <SubmissionStep3VideoPickerDialog
-                campaignId={campaign.id}
-                connectedAccount={connectedAccount}
-                selectedVideo={activeVideo}
-                onSelectVideo={(video) => setSelectedVideo(video)}
-                onSwitchAccount={() => setCurrentStep(2)}
-              />
-            )}
+              {currentStep === 3 && (
+                <SubmissionStep3VideoPickerDialog
+                  campaignId={campaign.id}
+                  connectedAccount={connectedAccount}
+                  selectedVideo={activeVideo}
+                  onSelectVideo={(video) => setSelectedVideo(video)}
+                  onSwitchAccount={() => setCurrentStep(2)}
+                />
+              )}
 
-            {currentStep === 4 && (
-              <SubmissionStep4OverviewDialog
-                campaign={campaign}
-                selectedVideo={activeVideo}
-                connectedAccount={connectedAccount}
-              />
-            )}
-          </main>
+              {currentStep === 4 && (
+                <SubmissionStep4OverviewDialog
+                  campaign={campaign}
+                  selectedVideo={activeVideo}
+                  connectedAccount={connectedAccount}
+                />
+              )}
+            </main>
 
-          {/* Action Footer: Back & Next / Submit */}
-          <SubmissionDialogFooter
-            currentStep={currentStep}
-            totalSteps={4}
-            canProceed={canProceed}
-            isSubmitting={saveDraftMutation.isPending || finalSubmitMutation.isPending}
-            onBack={HandleBack}
-            onNext={HandleNext}
-          />
-        </div>
-      </DialogContent>
-    </Dialog>
+            {/* Action Footer: Back & Next / Submit */}
+            <SubmissionDialogFooter
+              currentStep={currentStep}
+              totalSteps={4}
+              canProceed={canProceed}
+              isSubmitting={saveDraftMutation.isPending || finalSubmitMutation.isPending}
+              onBack={HandleBack}
+              onNext={HandleNext}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
-    <SubmissionExitConfirmDialog
-      open={showExitConfirm}
-      onConfirm={HandleConfirmExit}
-      onCancel={HandleCancelExit}
-    />
-  </>
-);
+      <SubmissionExitConfirmDialog
+        open={showExitConfirm}
+        onConfirm={ResetWizardState}
+        onCancel={HandleCancelExit}
+      />
+    </>
+  );
 }

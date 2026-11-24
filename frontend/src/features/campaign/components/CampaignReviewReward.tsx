@@ -40,6 +40,10 @@ export function CampaignReviewReward({ campaign, projections, onEdit }: Campaign
   const formattedEstimatedViews = FormatNumber(projections.totalEstimatedViews);
   const formattedMaxEarnings = FormatRupiah(projections.maxEarningsPerVideo);
   const fundedVideosDisplay = `~${projections.minFundedVideos} video`;
+  const submissionLimitDisplay =
+    campaign.maxSubmissionsPerPlatform === null
+      ? 'Tanpa Batas / platform'
+      : `${campaign.maxSubmissionsPerPlatform ?? 1} video / platform`;
 
   return (
     <Card className="border-border/60 shadow-xs">
@@ -131,6 +135,10 @@ export function CampaignReviewReward({ campaign, projections, onEdit }: Campaign
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Kapasitas Video:</span>
               <span className="font-medium text-foreground tabular-nums">{fundedVideosDisplay}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Batas per Kreator:</span>
+              <span className="font-medium text-foreground">{submissionLimitDisplay}</span>
             </div>
           </div>
         </div>

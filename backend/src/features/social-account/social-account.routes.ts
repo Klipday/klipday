@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { RequireAuth } from '../../middleware/auth.middleware.js';
 import {
+  GetAllConnectedSocialAccounts,
   GetConnectedSocialAccount,
   GetRecentTikTokVideos,
   RequestVerificationCode,
@@ -13,8 +14,11 @@ export const socialAccountRouter = Router();
 // All social account endpoints require an active session
 socialAccountRouter.use(RequireAuth);
 
+socialAccountRouter.get('/connected/all', GetAllConnectedSocialAccounts);
 socialAccountRouter.get('/connected', GetConnectedSocialAccount);
-socialAccountRouter.post('/tiktok/request-code', RequestVerificationCode);
-socialAccountRouter.post('/tiktok/verify', VerifyTikTokBio);
-socialAccountRouter.get('/tiktok/recent-videos', GetRecentTikTokVideos);
-socialAccountRouter.post('/tiktok/validate-video-url', ValidateTikTokVideoUrl);
+
+// Multi-platform parameterized routes (supports tiktok, instagram, youtube)
+socialAccountRouter.post('/:platform/request-code', RequestVerificationCode);
+socialAccountRouter.post('/:platform/verify', VerifyTikTokBio);
+socialAccountRouter.get('/:platform/recent-videos', GetRecentTikTokVideos);
+socialAccountRouter.post('/:platform/validate-video-url', ValidateTikTokVideoUrl);

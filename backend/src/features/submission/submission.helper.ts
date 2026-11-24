@@ -1,9 +1,11 @@
 import type { Prisma } from '../../generated/prisma/client.js';
-import { Status, SubmissionStatus } from '../../generated/prisma/enums.js';
+import { Platform, Status, SubmissionStatus } from '../../generated/prisma/enums.js';
 import {
   ALL_STATUS_FILTER,
+  ALLOWED_INSTAGRAM_VIDEO_HOSTS,
   ALLOWED_THUMBNAIL_HOST_SUFFIXES,
   ALLOWED_TIKTOK_VIDEO_HOSTS,
+  ALLOWED_YOUTUBE_VIDEO_HOSTS,
   SUBMISSION_SORT,
 } from './submission.constants.js';
 import type {
@@ -22,10 +24,14 @@ import type {
  */
 export function FormatSubmissionResponse(submission: RawSubmissionInput): SubmissionDetailDto {
   const earningsString = submission.earnings.toString();
+  const resolvedPlatform = submission.platform ?? submission.socialAccount?.platform ?? Platform.TIKTOK;
+
   const formatted: SubmissionDetailDto = {
     id: submission.id,
     campaignId: submission.campaignId,
     creatorId: submission.creatorId,
+    platform: resolvedPlatform,
+    externalVideoId: submission.externalVideoId ?? null,
     draftVideoUrl: submission.draftVideoUrl,
     liveVideoUrl: submission.liveVideoUrl,
     thumbnailUrl: submission.thumbnailUrl,
@@ -52,6 +58,7 @@ export function FormatCampaignSubmissionReviewItem(row: {
   id: string;
   campaignId: string;
   creatorId: string;
+  platform?: Platform;
   draftVideoUrl: string | null;
   liveVideoUrl: string | null;
   thumbnailUrl: string | null;
@@ -64,13 +71,22 @@ export function FormatCampaignSubmissionReviewItem(row: {
   createdAt: Date;
   updatedAt: Date;
   creator: { id: string; fullName: string; avatarUrl: string | null };
-  socialAccount: { id: string; username: string; avatarUrl: string | null; followersCount: number } | null;
+  socialAccount: {
+    id: string;
+    platform?: Platform;
+    username: string;
+    avatarUrl: string | null;
+    followersCount: number;
+  } | null;
 }): CampaignSubmissionReviewItemDto {
   const earningsString = row.earnings.toString();
+  const resolvedPlatform = row.platform ?? row.socialAccount?.platform ?? Platform.TIKTOK;
+
   const item: CampaignSubmissionReviewItemDto = {
     id: row.id,
     campaignId: row.campaignId,
     creatorId: row.creatorId,
+    platform: resolvedPlatform,
     draftVideoUrl: row.draftVideoUrl,
     liveVideoUrl: row.liveVideoUrl,
     thumbnailUrl: row.thumbnailUrl,
@@ -97,7 +113,7 @@ export function FormatCampaignSubmissionReviewItem(row: {
  */
 export function BuildSubmissionsWhereClause(
   campaignId: string,
-  query: SubmissionQueryInput
+  query: SubmissionQueryInput,
 ): Prisma.SubmissionWhereInput {
   const where: Prisma.SubmissionWhereInput = {
     campaignId,
@@ -145,7 +161,6 @@ export function BuildSubmissionsOrderBy(sort?: string): Prisma.SubmissionOrderBy
 
 /**
  * Validates that a URL is an HTTPS link pointing to an official TikTok hostname.
- * Blocks arbitrary external domains and non-HTTPS schemes.
  *
  * @param rawUrl - Candidate video URL string.
  * @returns True if the URL is an allowed HTTPS TikTok video host.
@@ -165,7 +180,86 @@ export function IsAllowedTikTokVideoUrl(rawUrl: string): boolean {
 }
 
 /**
- * Validates that a thumbnail URL is an HTTPS link from an allowlisted TikTok CDN
+ * Validates that a URL is an HTTPS link pointing to an Instagram Reel or video post.
+ *
+ * @param rawUrl - Candidate video URL string.
+ * @returns True if the URL is a valid Instagram Reel/post URL.
+ */
+export function IsAllowedInstagramVideoUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== 'https:') {
+      return false;
+    }
+    const hostname = parsed.hostname.toLowerCase();
+    const isHostAllowed = ALLOWED_INSTAGRAM_VIDEO_HOSTS.some((host) => hostname === host);
+    if (!isHostAllowed) {
+      return false;
+    }
+    const isReelOrPostPath = /\/(reel|reels|p)\/[A-Za-z0-9_-]+/i.test(parsed.pathname);
+    return isReelOrPostPath;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validates that a URL is strictly an HTTPS YouTube Shorts link (`/shorts/<id>`).
+ *
+ * @param rawUrl - Candidate video URL string.
+ * @returns True if the URL is a valid YouTube Shorts URL.
+ */
+export function IsAllowedYouTubeShortsUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== 'https:') {
+      return false;
+    }
+    const hostname = parsed.hostname.toLowerCase();
+    const isHostAllowed = ALLOWED_YOUTUBE_VIDEO_HOSTS.some((host) => hostname === host);
+    if (!isHostAllowed) {
+      return false;
+    }
+    const isShortsPath = /^\/shorts\/[A-Za-z0-9_-]{6,}/i.test(parsed.pathname);
+    return isShortsPath;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validates that a URL is an HTTPS link belonging to any supported platform (TikTok, Instagram Reels, or YouTube Shorts).
+ *
+ * @param rawUrl - Candidate video URL string.
+ * @returns True if the URL matches one of the supported social video formats.
+ */
+export function IsAllowedSocialVideoUrl(rawUrl: string): boolean {
+  const isAllowed =
+    IsAllowedTikTokVideoUrl(rawUrl) ||
+    IsAllowedInstagramVideoUrl(rawUrl) ||
+    IsAllowedYouTubeShortsUrl(rawUrl);
+  return isAllowed;
+}
+
+/**
+ * Checks whether a video URL matches the domain and path rules of a specific social platform.
+ *
+ * @param rawUrl - Candidate video URL string.
+ * @param platform - Target social platform enum.
+ * @returns True if the URL matches the given platform.
+ */
+export function DoesVideoUrlMatchPlatform(rawUrl: string, platform: Platform): boolean {
+  if (platform === Platform.INSTAGRAM) {
+    return IsAllowedInstagramVideoUrl(rawUrl);
+  }
+  if (platform === Platform.YOUTUBE) {
+    return IsAllowedYouTubeShortsUrl(rawUrl);
+  }
+  return IsAllowedTikTokVideoUrl(rawUrl);
+}
+
+/**
+ * Validates that a thumbnail URL is an HTTPS link from an allowlisted social CDN
  * or the configured Supabase Storage host to prevent SSRF via server-side fetch.
  *
  * @param rawUrl - Candidate thumbnail URL string.
@@ -210,4 +304,26 @@ export function ExtractTikTokVideoId(rawUrl: string): string | null {
   const match = /\/(?:video|photo)\/(\d+)/i.exec(rawUrl);
   const videoId = match?.[1] ?? null;
   return videoId;
+}
+
+/**
+ * Extracts the normalized platform-specific video identifier from a video URL.
+ *
+ * @param platform - Target social platform enum.
+ * @param rawUrl - Canonical or raw video URL.
+ * @returns Extracted platform video ID or shortcode, or null if not found.
+ */
+export function ExtractPlatformVideoId(platform: Platform, rawUrl: string): string | null {
+  if (platform === Platform.INSTAGRAM) {
+    const match = /\/(?:reel|reels|p)\/([A-Za-z0-9_-]+)/i.exec(rawUrl);
+    return match?.[1] ?? null;
+  }
+
+  if (platform === Platform.YOUTUBE) {
+    const match = /\/shorts\/([A-Za-z0-9_-]{6,})/i.exec(rawUrl);
+    return match?.[1] ?? null;
+  }
+
+  const tiktokId = ExtractTikTokVideoId(rawUrl);
+  return tiktokId;
 }

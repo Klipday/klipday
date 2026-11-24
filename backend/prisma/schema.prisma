@@ -39,6 +39,8 @@ enum Industry {
 
 enum Platform {
   TIKTOK
+  INSTAGRAM
+  YOUTUBE
 
   @@map("platform")
 }
@@ -368,8 +370,11 @@ model Campaign {
   // thumbnailUrl is the URL of the thumbnail for the campaign, and is optional.
   thumbnailUrl String? @map("thumbnail_url")
 
-  // platform is the platform of the campaign, and is required. Currently only TIKTOK is supported.
-  platform Platform @default(TIKTOK)
+  // platforms lists the allowed social media platforms for the campaign (e.g. TIKTOK, INSTAGRAM, YOUTUBE).
+  platforms Platform[] @default([TIKTOK]) @map("platforms")
+
+  // maxSubmissionsPerPlatform limits how many videos a creator can submit per allowed platform; null means unlimited.
+  maxSubmissionsPerPlatform Int? @default(1) @map("max_submissions_per_platform")
 
   // mainMediaUrl is the URL of the main media for the campaign, and is optional. It can be a URL of a product, service or content.
   mainMediaUrl String? @map("main_media_url")
@@ -523,16 +528,23 @@ model Submission {
   // id is the primary key for the submission, and is generated as a UUID.
   id String @id @default(uuid())
 
+  // platform identifies the social media platform of this submitted video.
+  platform Platform @default(TIKTOK)
+
+  // externalVideoId stores the normalized platform video identifier (TikTok aweme_id, IG shortcode, YouTube Shorts ID)
+  // to prevent duplicate submissions of the same video in a campaign.
+  externalVideoId String? @map("external_video_id")
+
   // draftVideoUrl is the URL of the draft video for the submission, and is optional.
   draftVideoUrl String? @map("draft_video_url")
 
-  // liveVideoUrl is the URL of the live published video on TikTok, and is optional until submitted.
+  // liveVideoUrl is the URL of the live published video on the social platform, and is optional until submitted.
   liveVideoUrl String? @map("live_video_url")
 
-  // thumbnailUrl is the preview thumbnail URL of the selected TikTok video.
+  // thumbnailUrl is the preview thumbnail URL of the selected social video.
   thumbnailUrl String? @map("thumbnail_url")
 
-  // videoCaption is the caption of the selected TikTok video.
+  // videoCaption is the caption or title of the selected social video.
   videoCaption String? @map("video_caption")
 
   // status is used to determine if the submission is active or deleted.
@@ -577,7 +589,8 @@ model Submission {
   // relation to wallet transactions
   walletTransactions WalletTransaction[]
 
-  @@unique([campaignId, creatorId])
+  @@index([campaignId, creatorId, platform, status])
+  @@index([campaignId, platform, externalVideoId])
   @@map("submissions")
 }
 
@@ -588,7 +601,7 @@ model CreatorSocialAccount {
   // creatorId references the creator who owns this social account.
   creatorId String @map("creator_id")
 
-  // platform is the social media platform (currently TIKTOK).
+  // platform is the social media platform (TIKTOK, INSTAGRAM, YOUTUBE).
   platform Platform @default(TIKTOK)
 
   // username is the handle of the creator on the platform without '@'.

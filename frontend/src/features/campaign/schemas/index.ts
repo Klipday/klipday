@@ -18,7 +18,7 @@ export { briefSchema } from './brief-schema';
 
 export type { BriefFormValues } from './brief-schema';
 
-export { CreateRewardSchema, MIN_CPM_VALUE, rewardSchema } from './reward-schema';
+export { CreateRewardSchema, MAX_SUBMISSIONS_PER_PLATFORM_LIMIT, MIN_CPM_VALUE, rewardSchema } from './reward-schema';
 
 export type { RewardFormValues } from './reward-schema';
 

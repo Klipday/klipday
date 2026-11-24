@@ -57,6 +57,23 @@ const thumbnailUrlField = BuildHttpUrlSchema(CAMPAIGN_MESSAGES.THUMBNAIL_URL_INV
 
 const mainMediaUrlField = BuildHttpUrlSchema(CAMPAIGN_MESSAGES.MAIN_MEDIA_URL_INVALID);
 
+const platformsField = z
+  .array(z.enum(Platform, { error: CAMPAIGN_MESSAGES.PLATFORM_INVALID }), {
+    error: CAMPAIGN_MESSAGES.PLATFORMS_REQUIRED,
+  })
+  .min(1, CAMPAIGN_MESSAGES.PLATFORMS_REQUIRED)
+  .transform((items) => Array.from(new Set(items)));
+
+const maxSubmissionsPerPlatformField = z
+  .number({ error: CAMPAIGN_MESSAGES.MAX_SUBMISSIONS_PER_PLATFORM_INVALID })
+  .int(CAMPAIGN_MESSAGES.MAX_SUBMISSIONS_PER_PLATFORM_INVALID)
+  .min(1, CAMPAIGN_MESSAGES.MAX_SUBMISSIONS_PER_PLATFORM_INVALID)
+  .max(
+    CAMPAIGN_FIELD_LIMITS.MAX_SUBMISSIONS_PER_PLATFORM_LIMIT,
+    CAMPAIGN_MESSAGES.MAX_SUBMISSIONS_PER_PLATFORM_INVALID,
+  )
+  .nullable();
+
 const cpmField = z
   .number({ error: CAMPAIGN_MESSAGES.CPM_NUMBER_REQUIRED })
   .finite(CAMPAIGN_MESSAGES.CPM_NUMBER_REQUIRED)
@@ -183,7 +200,8 @@ export const campaignEditSchema = z
     campaignType: z.enum(CampaignType, { error: CAMPAIGN_MESSAGES.CAMPAIGN_TYPE_INVALID }).optional(),
     campaignCategory: z.enum(Category, { error: CAMPAIGN_MESSAGES.CAMPAIGN_CATEGORY_INVALID }).optional(),
     thumbnailUrl: thumbnailUrlField.optional(),
-    platform: z.enum(Platform, { error: CAMPAIGN_MESSAGES.PLATFORM_INVALID }).optional(),
+    platforms: platformsField.optional(),
+    maxSubmissionsPerPlatform: maxSubmissionsPerPlatformField.optional(),
     mainMediaUrl: mainMediaUrlField.optional(),
     materials: campaignMaterialsSchema.optional(),
     brief: campaignBriefSchema.optional(),

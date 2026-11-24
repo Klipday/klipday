@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { SquareTopDownIcon } from '@solar-icons/react/linear';
+import { CheckCircleIcon, SquareTopDownIcon } from '@solar-icons/react/linear';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -8,11 +8,12 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/c
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { RenderPlatformLogo } from '@/features/submission/components/SocialPlatformIcons';
+import { cn, SanitizeHttpUrl } from '@/lib/utils';
 import { CampaignThumbnailUpload } from './CampaignThumbnailUpload';
 import { CampaignUnsavedChangesDialog } from './CampaignUnsavedChangesDialog';
 import { FieldLengthTracker } from './FieldLengthTracker';
 import { WizardFormActions } from './WizardFormActions';
-import { SanitizeHttpUrl } from '@/lib/utils';
 import { UseCampaignWizardContext, UseEditCampaignMutation, UseUnsavedChangesGuard } from '../hooks';
 import {
   basicInfoSchema,
@@ -229,35 +230,75 @@ export function CampaignFormStep1() {
           />
         </div>
 
-        {/* Platform Selection */}
+        {/* Multi-Platform Selection */}
         <Controller
-          name="platform"
+          name="platforms"
           control={form.control}
           render={({ field, fieldState }) => {
-            const selectedPlatformLabel = field.value ? CAMPAIGN_PLATFORM_LABELS[field.value as CampaignPlatformOption] : undefined;
+            const selectedPlatforms = Array.isArray(field.value) ? field.value : [];
+
+            const HandleTogglePlatform = (platformOption: CampaignPlatformOption) => {
+              const isSelected = selectedPlatforms.includes(platformOption);
+              if (isSelected) {
+                const next = selectedPlatforms.filter((item) => item !== platformOption);
+                field.onChange(next);
+              } else {
+                const next = [...selectedPlatforms, platformOption];
+                field.onChange(next);
+              }
+              field.onBlur();
+            };
 
             return (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>
+                <FieldLabel>
                   Platform Promosi <span className="text-destructive font-medium">*</span>
                 </FieldLabel>
-                <Select value={field.value} onValueChange={field.onChange} disabled={isPending}>
-                  <SelectTrigger id={field.name} aria-invalid={fieldState.invalid} className="w-full">
-                    <SelectValue placeholder="Pilih platform">{selectedPlatformLabel}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent position="popper">
-                    {CAMPAIGN_PLATFORM_OPTIONS.map((platformOption) => {
-                      const label = CAMPAIGN_PLATFORM_LABELS[platformOption];
-                      return (
-                        <SelectItem key={platformOption} value={platformOption}>
-                          {label}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {CAMPAIGN_PLATFORM_OPTIONS.map((platformOption) => {
+                    const label = CAMPAIGN_PLATFORM_LABELS[platformOption];
+                    const isSelected = selectedPlatforms.includes(platformOption);
+                    const subtitle =
+                      platformOption === 'YOUTUBE'
+                        ? 'Khusus Shorts'
+                        : platformOption === 'INSTAGRAM'
+                          ? 'Khusus Reels'
+                          : 'Video Vertikal';
+
+                    return (
+                      <button
+                        key={platformOption}
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => HandleTogglePlatform(platformOption)}
+                        aria-pressed={isSelected}
+                        className={cn(
+                          'flex items-center justify-between gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50',
+                          isSelected
+                            ? 'border-foreground/50 bg-muted/50 text-foreground'
+                            : 'border-border/60 bg-background text-muted-foreground hover:border-border hover:text-foreground',
+                        )}>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
+                            {RenderPlatformLogo(platformOption, 'size-4')}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-foreground truncate">{label}</p>
+                            <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>
+                          </div>
+                        </div>
+                        <CheckCircleIcon
+                          className={cn(
+                            'size-4 shrink-0 transition-opacity',
+                            isSelected ? 'text-foreground opacity-100' : 'opacity-20',
+                          )}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
                 <FieldDescription className="text-xs text-muted-foreground/80 leading-relaxed">
-                  Platform media sosial tempat kreator mempublikasikan konten video mereka.
+                  Pilih satu atau lebih platform tempat kreator dapat mengunggah konten. Semua platform berbagi total anggaran kampanye yang sama.
                 </FieldDescription>
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
