@@ -1,4 +1,5 @@
 import { CAMPAIGN_WIZARD_STEPS, GetWizardStepPath } from '../config/wizard-steps';
+import { MIN_CPM_VALUE } from '../schemas';
 import type { Campaign, WizardStepSlug } from '../types';
 
 /**
@@ -69,7 +70,7 @@ export function IsStep3Complete(campaign?: Partial<Campaign> | null): boolean {
 
 /**
  * Checks whether Step 4 (Hadiah & Anggaran) has all mandatory fields filled.
- * Requires positive CPM, positive budget (>= CPM), valid min/max views, and valid date range.
+ * Requires CPM >= Rp 1.000, positive budget (>= CPM), valid min/max views, and valid date range.
  *
  * @param campaign - The campaign entity to evaluate.
  * @returns True if all reward and budget fields are valid, false otherwise.
@@ -82,7 +83,7 @@ export function IsStep4Complete(campaign?: Partial<Campaign> | null): boolean {
   const minViewsNum = campaign.minViews != null ? Number(campaign.minViews) : 0;
   const maxViewsNum = campaign.maxViews != null ? Number(campaign.maxViews) : 0;
 
-  const hasCpm = cpmNum > 0;
+  const hasCpm = cpmNum >= MIN_CPM_VALUE;
   const hasBudget = budgetNum > 0 && budgetNum >= cpmNum;
   const hasViews = minViewsNum > 0 && maxViewsNum >= minViewsNum;
   const hasDates = Boolean(campaign.startDate && campaign.endDate);

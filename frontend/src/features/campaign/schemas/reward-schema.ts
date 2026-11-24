@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const CPM_VIEW_DIVISOR = 1000;
+export const MIN_CPM_VALUE = 1000;
 
 /**
  * Returns today's calendar date string (YYYY-MM-DD) in Asia/Jakarta (WIB) timezone.
@@ -17,7 +18,9 @@ function GetJakartaTodayDateString(): string {
   return formatted;
 }
 
-const cpmField = z.number({ error: 'Tarif CPM wajib diisi angka.' }).positive('Tarif CPM harus lebih besar dari Rp 0.');
+const cpmField = z
+  .number({ error: 'Tarif CPM wajib diisi angka.' })
+  .min(MIN_CPM_VALUE, 'Tarif CPM minimal Rp 1.000.');
 
 const minViewsField = z
   .number({ error: 'Penayangan minimum wajib diisi angka.' })

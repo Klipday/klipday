@@ -337,6 +337,29 @@ describe('Campaign Feature Module', () => {
         });
       });
 
+      it('returns 400 when cpm is below minimum Rp 1.000', async () => {
+        const req = CreateMockRequest({
+          account: { sub: mockBrand.accountId, role: Role.BRAND },
+          params: { id: sampleCompleteCampaign.id },
+          body: { cpm: 999, budget: 100000 },
+        });
+        const { res, statusMock, jsonMock } = CreateMockResponse();
+        const next = CreateMockNext();
+
+        jest
+          .spyOn(prisma.campaign, 'findFirst')
+          .mockResolvedValue(sampleCompleteCampaign as never);
+
+        await EditCampaign(req, res, next);
+
+        expect(statusMock).toHaveBeenCalledWith(400);
+        expect(jsonMock).toHaveBeenCalledWith({
+          status: 'error',
+          data: null,
+          message: CAMPAIGN_MESSAGES.CPM_MIN_VALUE,
+        });
+      });
+
       it('returns 400 when reward logic fails (budget < cpm)', async () => {
         const req = CreateMockRequest({
           account: { sub: mockBrand.accountId, role: Role.BRAND },

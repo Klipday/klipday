@@ -210,7 +210,7 @@ export function ValidateCampaignSubmitCompleteness(campaign: CampaignSubmitCheck
   const minViews = campaign.minViews != null ? Number(campaign.minViews) : 0;
   const maxViews = campaign.maxViews != null ? Number(campaign.maxViews) : 0;
 
-  if (cpm <= 0) {
+  if (cpm < CAMPAIGN_FIELD_LIMITS.MIN_CPM_VALUE) {
     return CAMPAIGN_MESSAGES.STEP_4_INVALID_CPM;
   }
 

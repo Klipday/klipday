@@ -170,7 +170,7 @@ export function CampaignFormStep4() {
                 </div>
 
                 <FieldDescription>
-                  Nominal rupiah yang diberikan untuk setiap 1.000 tayangan video yang lolos verifikasi sistem.
+                  Nominal rupiah yang diberikan untuk setiap 1.000 tayangan video yang lolos verifikasi sistem. Minimal Rp 1.000.
                 </FieldDescription>
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
